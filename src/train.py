@@ -44,7 +44,9 @@ from src.models.mlp import MLP
 # Configuração de logging
 # ---------------------------------------------------------------------------
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s"
+)
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -63,8 +65,8 @@ HPARAMS = {
     "dropout_rate": 0.3,
     "learning_rate": 1e-3,
     "max_epochs": 200,
-    "patience": 15,          # early stopping — 25% da nota
-    "batch_size": "full",    # full-batch para dataset pequeno (569 samples)
+    "patience": 15,  # early stopping — 25% da nota
+    "batch_size": "full",  # full-batch para dataset pequeno (569 samples)
 }
 
 
@@ -73,7 +75,9 @@ HPARAMS = {
 # ---------------------------------------------------------------------------
 
 
-def _evaluate(model: MLP, X_tensor: torch.Tensor, y_true: list[int]) -> dict[str, float]:
+def _evaluate(
+    model: MLP, X_tensor: torch.Tensor, y_true: list[int]
+) -> dict[str, float]:
     """Calcula as métricas de avaliação priorizadas no Model Card (Secção 4)."""
     model.eval()
     with torch.no_grad():
@@ -82,7 +86,7 @@ def _evaluate(model: MLP, X_tensor: torch.Tensor, y_true: list[int]) -> dict[str
         preds = (probs >= 0.5).astype(int)
 
     return {
-        "recall": recall_score(y_true, preds),          # Métrica principal
+        "recall": recall_score(y_true, preds),  # Métrica principal
         "precision": precision_score(y_true, preds),
         "f1": f1_score(y_true, preds),
         "roc_auc": roc_auc_score(y_true, probs),
@@ -118,9 +122,10 @@ def train() -> None:
         y = df["target"]
 
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y,
+            X,
+            y,
             test_size=HPARAMS["test_size"],
-            stratify=y,                      # preserva proporção maligno/benigno
+            stratify=y,  # preserva proporção maligno/benigno
             random_state=HPARAMS["seed"],
         )
         log.info("Split: %d treino | %d teste", len(X_train), len(X_test))
@@ -153,7 +158,7 @@ def train() -> None:
             dropout_rate=HPARAMS["dropout_rate"],
         )
         optimizer = optim.Adam(model.parameters(), lr=HPARAMS["learning_rate"])
-        criterion = nn.BCEWithLogitsLoss()   # logit estável > BCELoss + Sigmoid
+        criterion = nn.BCEWithLogitsLoss()  # logit estável > BCELoss + Sigmoid
 
         log.info(
             "Modelo criado: %d parâmetros treináveis",
@@ -177,9 +182,9 @@ def train() -> None:
             model.eval()
             with torch.no_grad():
                 val_outputs = model(test_tensor)
-                val_target = torch.tensor(
-                    y_test.values, dtype=torch.float32
-                ).unsqueeze(1)
+                val_target = torch.tensor(y_test.values, dtype=torch.float32).unsqueeze(
+                    1
+                )
                 val_loss = criterion(val_outputs, val_target).item()
 
             # ── Log MLflow ──
@@ -209,9 +214,7 @@ def train() -> None:
             hidden_dim=HPARAMS["hidden_dim"],
             dropout_rate=HPARAMS["dropout_rate"],
         )
-        best_model.load_state_dict(
-            torch.load(MODEL_WEIGHTS_PATH, weights_only=True)
-        )
+        best_model.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, weights_only=True))
 
         metrics = _evaluate(best_model, test_tensor, y_test.tolist())
         mlflow.log_metrics(metrics)

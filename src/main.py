@@ -38,6 +38,7 @@ app = FastAPI(
 # Schema de entrada — todas as 30 features WDBC com nomes explícitos
 # ---------------------------------------------------------------------------
 
+
 class TumorFeatures(BaseModel):
     """
     30 atributos morfológicos numéricos extraídos de núcleos celulares
@@ -46,15 +47,21 @@ class TumorFeatures(BaseModel):
 
     # --- Mean values ---
     radius_mean: float = Field(..., gt=0, description="Raio médio do núcleo")
-    texture_mean: float = Field(..., gt=0, description="Textura média (desvio padrão de intensidades)")
+    texture_mean: float = Field(
+        ..., gt=0, description="Textura média (desvio padrão de intensidades)"
+    )
     perimeter_mean: float = Field(..., gt=0, description="Perímetro médio")
     area_mean: float = Field(..., gt=0, description="Área média")
-    smoothness_mean: float = Field(..., gt=0, description="Suavidade média (variação local do raio)")
+    smoothness_mean: float = Field(
+        ..., gt=0, description="Suavidade média (variação local do raio)"
+    )
     compactness_mean: float = Field(..., gt=0, description="Compacidade média")
     concavity_mean: float = Field(..., ge=0, description="Concavidade média")
     concave_points_mean: float = Field(..., ge=0, description="Pontos côncavos médios")
     symmetry_mean: float = Field(..., gt=0, description="Simetria média")
-    fractal_dimension_mean: float = Field(..., gt=0, description="Dimensão fractal média")
+    fractal_dimension_mean: float = Field(
+        ..., gt=0, description="Dimensão fractal média"
+    )
 
     # --- Standard error ---
     radius_se: float = Field(..., ge=0, description="Erro padrão do raio")
@@ -64,9 +71,13 @@ class TumorFeatures(BaseModel):
     smoothness_se: float = Field(..., ge=0, description="Erro padrão da suavidade")
     compactness_se: float = Field(..., ge=0, description="Erro padrão da compacidade")
     concavity_se: float = Field(..., ge=0, description="Erro padrão da concavidade")
-    concave_points_se: float = Field(..., ge=0, description="Erro padrão dos pontos côncavos")
+    concave_points_se: float = Field(
+        ..., ge=0, description="Erro padrão dos pontos côncavos"
+    )
     symmetry_se: float = Field(..., ge=0, description="Erro padrão da simetria")
-    fractal_dimension_se: float = Field(..., ge=0, description="Erro padrão da dimensão fractal")
+    fractal_dimension_se: float = Field(
+        ..., ge=0, description="Erro padrão da dimensão fractal"
+    )
 
     # --- Worst (largest) values ---
     radius_worst: float = Field(..., gt=0, description="Raio máximo (pior)")
@@ -76,29 +87,48 @@ class TumorFeatures(BaseModel):
     smoothness_worst: float = Field(..., gt=0, description="Suavidade máxima (pior)")
     compactness_worst: float = Field(..., gt=0, description="Compacidade máxima (pior)")
     concavity_worst: float = Field(..., ge=0, description="Concavidade máxima (pior)")
-    concave_points_worst: float = Field(..., ge=0, description="Pontos côncavos máximos (pior)")
+    concave_points_worst: float = Field(
+        ..., ge=0, description="Pontos côncavos máximos (pior)"
+    )
     symmetry_worst: float = Field(..., gt=0, description="Simetria máxima (pior)")
-    fractal_dimension_worst: float = Field(..., gt=0, description="Dimensão fractal máxima (pior)")
+    fractal_dimension_worst: float = Field(
+        ..., gt=0, description="Dimensão fractal máxima (pior)"
+    )
 
     model_config = {
         "json_schema_extra": {
             "examples": [
                 {
-                    "radius_mean": 17.99, "texture_mean": 10.38,
-                    "perimeter_mean": 122.8, "area_mean": 1001.0,
-                    "smoothness_mean": 0.1184, "compactness_mean": 0.2776,
-                    "concavity_mean": 0.3001, "concave_points_mean": 0.1471,
-                    "symmetry_mean": 0.2419, "fractal_dimension_mean": 0.07871,
-                    "radius_se": 1.095, "texture_se": 0.9053,
-                    "perimeter_se": 8.589, "area_se": 153.4,
-                    "smoothness_se": 0.006399, "compactness_se": 0.04904,
-                    "concavity_se": 0.05373, "concave_points_se": 0.01587,
-                    "symmetry_se": 0.03003, "fractal_dimension_se": 0.006193,
-                    "radius_worst": 25.38, "texture_worst": 17.33,
-                    "perimeter_worst": 184.6, "area_worst": 2019.0,
-                    "smoothness_worst": 0.1622, "compactness_worst": 0.6656,
-                    "concavity_worst": 0.7119, "concave_points_worst": 0.2654,
-                    "symmetry_worst": 0.4601, "fractal_dimension_worst": 0.1189,
+                    "radius_mean": 17.99,
+                    "texture_mean": 10.38,
+                    "perimeter_mean": 122.8,
+                    "area_mean": 1001.0,
+                    "smoothness_mean": 0.1184,
+                    "compactness_mean": 0.2776,
+                    "concavity_mean": 0.3001,
+                    "concave_points_mean": 0.1471,
+                    "symmetry_mean": 0.2419,
+                    "fractal_dimension_mean": 0.07871,
+                    "radius_se": 1.095,
+                    "texture_se": 0.9053,
+                    "perimeter_se": 8.589,
+                    "area_se": 153.4,
+                    "smoothness_se": 0.006399,
+                    "compactness_se": 0.04904,
+                    "concavity_se": 0.05373,
+                    "concave_points_se": 0.01587,
+                    "symmetry_se": 0.03003,
+                    "fractal_dimension_se": 0.006193,
+                    "radius_worst": 25.38,
+                    "texture_worst": 17.33,
+                    "perimeter_worst": 184.6,
+                    "area_worst": 2019.0,
+                    "smoothness_worst": 0.1622,
+                    "compactness_worst": 0.6656,
+                    "concavity_worst": 0.7119,
+                    "concave_points_worst": 0.2654,
+                    "symmetry_worst": 0.4601,
+                    "fractal_dimension_worst": 0.1189,
                 }
             ]
         }
@@ -108,6 +138,7 @@ class TumorFeatures(BaseModel):
 # ---------------------------------------------------------------------------
 # Schema de saída
 # ---------------------------------------------------------------------------
+
 
 class PredictResponse(BaseModel):
     prediction: int = Field(..., description="1 = Maligno, 0 = Benigno")
@@ -124,6 +155,7 @@ class PredictResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Rotas
 # ---------------------------------------------------------------------------
+
 
 @app.get("/health", tags=["Health"])
 def health_check() -> dict:

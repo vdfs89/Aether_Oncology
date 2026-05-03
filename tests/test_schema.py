@@ -25,46 +25,43 @@ from pandera import Check, Column, DataFrameSchema
 WDBC_FEATURE_SCHEMA = DataFrameSchema(
     columns={
         # ── Mean values ───────────────────────────────────────────────────
-        "radius_mean":            Column(float, Check.ge(0)),
-        "texture_mean":           Column(float, Check.ge(0)),
-        "perimeter_mean":         Column(float, Check.ge(0)),
-        "area_mean":              Column(float, Check.ge(0)),
-        "smoothness_mean":        Column(float, Check.between(0, 1)),
-        "compactness_mean":       Column(float, Check.ge(0)),
-        "concavity_mean":         Column(float, Check.ge(0)),
-        "concave_points_mean":    Column(float, Check.ge(0)),
-        "symmetry_mean":          Column(float, Check.ge(0)),
+        "radius_mean": Column(float, Check.ge(0)),
+        "texture_mean": Column(float, Check.ge(0)),
+        "perimeter_mean": Column(float, Check.ge(0)),
+        "area_mean": Column(float, Check.ge(0)),
+        "smoothness_mean": Column(float, Check.between(0, 1)),
+        "compactness_mean": Column(float, Check.ge(0)),
+        "concavity_mean": Column(float, Check.ge(0)),
+        "concave_points_mean": Column(float, Check.ge(0)),
+        "symmetry_mean": Column(float, Check.ge(0)),
         "fractal_dimension_mean": Column(float, Check.ge(0)),
-
         # ── Standard error ────────────────────────────────────────────────
-        "radius_se":              Column(float, Check.ge(0)),
-        "texture_se":             Column(float, Check.ge(0)),
-        "perimeter_se":           Column(float, Check.ge(0)),
-        "area_se":                Column(float, Check.ge(0)),
-        "smoothness_se":          Column(float, Check.ge(0)),
-        "compactness_se":         Column(float, Check.ge(0)),
-        "concavity_se":           Column(float, Check.ge(0)),
-        "concave_points_se":      Column(float, Check.ge(0)),
-        "symmetry_se":            Column(float, Check.ge(0)),
-        "fractal_dimension_se":   Column(float, Check.ge(0)),
-
+        "radius_se": Column(float, Check.ge(0)),
+        "texture_se": Column(float, Check.ge(0)),
+        "perimeter_se": Column(float, Check.ge(0)),
+        "area_se": Column(float, Check.ge(0)),
+        "smoothness_se": Column(float, Check.ge(0)),
+        "compactness_se": Column(float, Check.ge(0)),
+        "concavity_se": Column(float, Check.ge(0)),
+        "concave_points_se": Column(float, Check.ge(0)),
+        "symmetry_se": Column(float, Check.ge(0)),
+        "fractal_dimension_se": Column(float, Check.ge(0)),
         # ── Worst values ──────────────────────────────────────────────────
-        "radius_worst":            Column(float, Check.ge(0)),
-        "texture_worst":           Column(float, Check.ge(0)),
-        "perimeter_worst":         Column(float, Check.ge(0)),
-        "area_worst":              Column(float, Check.ge(0)),
-        "smoothness_worst":        Column(float, Check.between(0, 1)),
-        "compactness_worst":       Column(float, Check.ge(0)),
-        "concavity_worst":         Column(float, Check.ge(0)),
-        "concave_points_worst":    Column(float, Check.ge(0)),
-        "symmetry_worst":          Column(float, Check.ge(0)),
+        "radius_worst": Column(float, Check.ge(0)),
+        "texture_worst": Column(float, Check.ge(0)),
+        "perimeter_worst": Column(float, Check.ge(0)),
+        "area_worst": Column(float, Check.ge(0)),
+        "smoothness_worst": Column(float, Check.between(0, 1)),
+        "compactness_worst": Column(float, Check.ge(0)),
+        "concavity_worst": Column(float, Check.ge(0)),
+        "concave_points_worst": Column(float, Check.ge(0)),
+        "symmetry_worst": Column(float, Check.ge(0)),
         "fractal_dimension_worst": Column(float, Check.ge(0)),
-
         # ── Label ─────────────────────────────────────────────────────────
         "target": Column(int, Check.isin([0, 1])),
     },
-    strict=False,   # permite colunas extras (ex.: 'id') sem falhar
-    coerce=True,    # tenta converter tipos antes de validar
+    strict=False,  # permite colunas extras (ex.: 'id') sem falhar
+    coerce=True,  # tenta converter tipos antes de validar
 )
 
 RAW_DATA_PATH = "data/raw/data.csv"
@@ -73,6 +70,7 @@ RAW_DATA_PATH = "data/raw/data.csv"
 # ---------------------------------------------------------------------------
 # Fixture
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def raw_df() -> pd.DataFrame:
@@ -83,6 +81,7 @@ def raw_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Testes
 # ---------------------------------------------------------------------------
+
 
 def test_input_data_schema(raw_df: pd.DataFrame) -> None:
     """O dataset deve respeitar todos os tipos e restrições do schema WDBC."""
@@ -99,7 +98,9 @@ def test_no_missing_values(raw_df: pd.DataFrame) -> None:
 def test_target_is_binary(raw_df: pd.DataFrame) -> None:
     """A coluna target deve conter apenas 0 (Benigno) ou 1 (Maligno)."""
     unique_vals = set(raw_df["target"].unique())
-    assert unique_vals.issubset({0, 1}), f"Valores inesperados em 'target': {unique_vals}"
+    assert unique_vals.issubset({0, 1}), (
+        f"Valores inesperados em 'target': {unique_vals}"
+    )
 
 
 def test_dataset_has_both_classes(raw_df: pd.DataFrame) -> None:

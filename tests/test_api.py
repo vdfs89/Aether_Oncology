@@ -29,51 +29,84 @@ client = TestClient(app, raise_server_exceptions=False)
 # ---------------------------------------------------------------------------
 
 MALIGNANT_SAMPLE = {
-    "radius_mean": 17.99,          "texture_mean": 10.38,
-    "perimeter_mean": 122.8,       "area_mean": 1001.0,
-    "smoothness_mean": 0.1184,     "compactness_mean": 0.2776,
-    "concavity_mean": 0.3001,      "concave_points_mean": 0.1471,
-    "symmetry_mean": 0.2419,       "fractal_dimension_mean": 0.07871,
-    "radius_se": 1.095,            "texture_se": 0.9053,
-    "perimeter_se": 8.589,         "area_se": 153.4,
-    "smoothness_se": 0.006399,     "compactness_se": 0.04904,
-    "concavity_se": 0.05373,       "concave_points_se": 0.01587,
-    "symmetry_se": 0.03003,        "fractal_dimension_se": 0.006193,
-    "radius_worst": 25.38,         "texture_worst": 17.33,
-    "perimeter_worst": 184.6,      "area_worst": 2019.0,
-    "smoothness_worst": 0.1622,    "compactness_worst": 0.6656,
-    "concavity_worst": 0.7119,     "concave_points_worst": 0.2654,
-    "symmetry_worst": 0.4601,      "fractal_dimension_worst": 0.1189,
+    "radius_mean": 17.99,
+    "texture_mean": 10.38,
+    "perimeter_mean": 122.8,
+    "area_mean": 1001.0,
+    "smoothness_mean": 0.1184,
+    "compactness_mean": 0.2776,
+    "concavity_mean": 0.3001,
+    "concave_points_mean": 0.1471,
+    "symmetry_mean": 0.2419,
+    "fractal_dimension_mean": 0.07871,
+    "radius_se": 1.095,
+    "texture_se": 0.9053,
+    "perimeter_se": 8.589,
+    "area_se": 153.4,
+    "smoothness_se": 0.006399,
+    "compactness_se": 0.04904,
+    "concavity_se": 0.05373,
+    "concave_points_se": 0.01587,
+    "symmetry_se": 0.03003,
+    "fractal_dimension_se": 0.006193,
+    "radius_worst": 25.38,
+    "texture_worst": 17.33,
+    "perimeter_worst": 184.6,
+    "area_worst": 2019.0,
+    "smoothness_worst": 0.1622,
+    "compactness_worst": 0.6656,
+    "concavity_worst": 0.7119,
+    "concave_points_worst": 0.2654,
+    "symmetry_worst": 0.4601,
+    "fractal_dimension_worst": 0.1189,
 }
 
 BENIGN_SAMPLE = {
-    "radius_mean": 13.54,          "texture_mean": 14.36,
-    "perimeter_mean": 87.46,       "area_mean": 566.3,
-    "smoothness_mean": 0.09779,    "compactness_mean": 0.08129,
-    "concavity_mean": 0.06664,     "concave_points_mean": 0.04781,
-    "symmetry_mean": 0.1885,       "fractal_dimension_mean": 0.05766,
-    "radius_se": 0.2699,           "texture_se": 0.7886,
-    "perimeter_se": 2.058,         "area_se": 23.56,
-    "smoothness_se": 0.008462,     "compactness_se": 0.0146,
-    "concavity_se": 0.02387,       "concave_points_se": 0.01315,
-    "symmetry_se": 0.0198,         "fractal_dimension_se": 0.0023,
-    "radius_worst": 15.11,         "texture_worst": 19.26,
-    "perimeter_worst": 99.7,       "area_worst": 711.2,
-    "smoothness_worst": 0.144,     "compactness_worst": 0.1773,
-    "concavity_worst": 0.239,      "concave_points_worst": 0.1288,
-    "symmetry_worst": 0.2977,      "fractal_dimension_worst": 0.07259,
+    "radius_mean": 13.54,
+    "texture_mean": 14.36,
+    "perimeter_mean": 87.46,
+    "area_mean": 566.3,
+    "smoothness_mean": 0.09779,
+    "compactness_mean": 0.08129,
+    "concavity_mean": 0.06664,
+    "concave_points_mean": 0.04781,
+    "symmetry_mean": 0.1885,
+    "fractal_dimension_mean": 0.05766,
+    "radius_se": 0.2699,
+    "texture_se": 0.7886,
+    "perimeter_se": 2.058,
+    "area_se": 23.56,
+    "smoothness_se": 0.008462,
+    "compactness_se": 0.0146,
+    "concavity_se": 0.02387,
+    "concave_points_se": 0.01315,
+    "symmetry_se": 0.0198,
+    "fractal_dimension_se": 0.0023,
+    "radius_worst": 15.11,
+    "texture_worst": 19.26,
+    "perimeter_worst": 99.7,
+    "area_worst": 711.2,
+    "smoothness_worst": 0.144,
+    "compactness_worst": 0.1773,
+    "concavity_worst": 0.239,
+    "concave_points_worst": 0.1288,
+    "symmetry_worst": 0.2977,
+    "fractal_dimension_worst": 0.07259,
 }
 
 # ---------------------------------------------------------------------------
 # Helper para verificar se os artefactos de treino existem
 # ---------------------------------------------------------------------------
 
+
 def _models_exist() -> bool:
     from pathlib import Path
+
     return (
         Path("models/preprocessor.joblib").exists()
         and Path("models/aether_mlp_v1.pth").exists()
     )
+
 
 needs_model = pytest.mark.xfail(
     not _models_exist(),
@@ -85,6 +118,7 @@ needs_model = pytest.mark.xfail(
 # ---------------------------------------------------------------------------
 # 1. Health Check
 # ---------------------------------------------------------------------------
+
 
 def test_health_check() -> None:
     """A rota /health deve retornar 200 e status 'online'."""
@@ -98,6 +132,7 @@ def test_health_check() -> None:
 # ---------------------------------------------------------------------------
 # 2. Testes de Predição (requerem modelo treinado)
 # ---------------------------------------------------------------------------
+
 
 @needs_model
 def test_predict_malignant_sample() -> None:
@@ -151,6 +186,7 @@ def test_predict_response_has_all_fields() -> None:
 # ---------------------------------------------------------------------------
 # 3. Smoke Tests — validação Pydantic (não precisam do modelo)
 # ---------------------------------------------------------------------------
+
 
 def test_predict_invalid_type_returns_422() -> None:
     """Enviar string onde é esperado float deve retornar 422 (Unprocessable Entity)."""

@@ -76,7 +76,9 @@ class PredictorService:
         # Instanciamos a arquitectura e carregamos apenas o state_dict
         # (mais seguro que torch.load() directo em produção)
         self.model = MLP(input_shape=30).to(self.device)
-        state_dict = torch.load(_MODEL_PATH, map_location=self.device, weights_only=True)
+        state_dict = torch.load(
+            _MODEL_PATH, map_location=self.device, weights_only=True
+        )
         self.model.load_state_dict(state_dict)
         self.model.eval()
         logger.info("Modelo PyTorch carregado e em modo eval: %s", _MODEL_PATH)
@@ -105,9 +107,7 @@ class PredictorService:
         processed_data = self.preprocessor.transform(input_data)
 
         # 2. Conversão para tensor PyTorch
-        tensor_data = torch.tensor(
-            processed_data, dtype=torch.float32
-        ).to(self.device)
+        tensor_data = torch.tensor(processed_data, dtype=torch.float32).to(self.device)
 
         # 3. Inferência (sem gradientes)
         with torch.no_grad():
