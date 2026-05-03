@@ -1,7 +1,8 @@
-.PHONY: install train test run clean lint format mlflow-ui setup-and-test docker-build docker-run
+.PHONY: install install-dev train test run clean lint format mlflow-ui setup-and-test docker-build docker-run
 
+# Instala dependências de produção + ferramentas de desenvolvimento (ruff, pytest)
 install:
-	pip install --upgrade pip && pip install .
+	pip install --upgrade pip && pip install ".[dev]"
 
 train:
 	python -m src.train
