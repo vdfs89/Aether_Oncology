@@ -156,7 +156,7 @@ Para simular um ambiente produtivo de dados sensíveis (saúde), a API está pro
 ### Exemplo de teste via Terminal (cURL)
 
 ```bash
-curl -X POST https://seu-app.onrender.com/predict \
+curl -X POST https://api.vitorsilva.engineer/predict \
   -H "access_token: aether-oncology-eval-2026" \
   -H "Content-Type: application/json" \
   -d '{
@@ -192,6 +192,29 @@ curl -X POST https://seu-app.onrender.com/predict \
 
 ---
 
+## 🌐 Deploy em Produção
+
+| Rota | URL | Descrição |
+|---|---|---|
+| Portal Clínico | [api.vitorsilva.engineer](https://api.vitorsilva.engineer/) | Interface web com grid de 30 features |
+| API Docs | [api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo |
+| Health Check | [api.vitorsilva.engineer/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
+| Predict | `POST api.vitorsilva.engineer/predict` | Endpoint de inferência (requer API Key) |
+
+---
+
+## 🖥️ Portal Clínico (`/`)
+
+Além da API REST, o projeto inclui uma interface web integrada acessível em `https://api.vitorsilva.engineer/`.
+
+- Formulário com as **30 features WDBC** em grid de 3 colunas
+- Botões de atalho com **samples reais** maligno e benigno pré-carregados
+- Campo de API Key com a chave de demo pré-preenchida
+- **Resultado animado** com probabilidade, confiança e barra de progresso
+- Erros de autenticação (403) apresentados de forma amigável
+
+---
+
 ## 🐳 Docker
 
 ```bash
@@ -200,8 +223,8 @@ make docker-build
 
 # Subir o container
 make docker-run
-# API disponível em http://localhost:8000
-# Docs em http://localhost:8000/docs
+# Portal clínico em  http://localhost:8000
+# API Docs em        http://localhost:8000/docs
 ```
 
 A imagem usa `python:3.11-slim`, usuário não-root (`appuser`) e `HEALTHCHECK` nativo contra `/health`.
@@ -232,6 +255,7 @@ make test   # pytest + cobertura
 |---|---|
 | `tests/test_schema.py` | Schema Pandera: 30 colunas WDBC, sem NaN, classes presentes, rejeita inválidos |
 | `tests/test_api.py` | Health check, predição maligna/benigna, payload inválido (422) |
+| `tests/test_api.py` | **Segurança**: chave errada → 403, sem header → 403 (validação da API Key) |
 
 > Testes de predição usam `pytest.mark.xfail` automático enquanto os artefatos de treino não existem — o CI não bloqueia antes do primeiro `make train`.
 
@@ -289,11 +313,13 @@ Define thresholds de alerta e **Playbook de Incidentes** com 4 níveis de severi
 | Camada | Tecnologias |
 |---|---|
 | Core ML | Python 3.11 · PyTorch · Scikit-Learn |
-| API | FastAPI · Pydantic · Uvicorn |
+| API | FastAPI · Pydantic · Uvicorn · aiofiles |
+| Frontend | HTML5 · CSS3 · JavaScript (Vanilla) |
+| Segurança | API Key Header · CORS Middleware |
 | MLOps | MLflow · Pandera |
 | Visualização | Seaborn · Matplotlib |
 | Qualidade | Pytest · Ruff |
-| Infra | Docker · Makefile · uv |
+| Infra | Docker · Makefile · uv · GitHub Actions |
 
 ---
 
