@@ -151,13 +151,13 @@ Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train
 Para simular um ambiente produtivo de dados sensíveis (saúde), a API está protegida por uma **API Key**.
 
 - **Header obrigatório:** `access_token`
-- **Chave de acesso:** `vitor-silva-aether-key`
+- **Chave de acesso:** `aether-oncology-eval-2026`
 
 ### Exemplo de teste via Terminal (cURL)
 
 ```bash
 curl -X POST https://seu-app.onrender.com/predict \
-  -H "access_token: vitor-silva-aether-key" \
+  -H "access_token: aether-oncology-eval-2026" \
   -H "Content-Type: application/json" \
   -d '{
     "radius_mean": 17.99, "texture_mean": 10.38, "perimeter_mean": 122.8,
