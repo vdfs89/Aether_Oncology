@@ -245,3 +245,22 @@ def test_predict_invalid_api_key_returns_403(monkeypatch: pytest.MonkeyPatch) ->
     )
     assert response.status_code == 403
     assert "Acesso negado" in response.json()["detail"]
+
+
+def test_predict_forbidden_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sem o header access_token, a API deve retornar 403 quando API_KEY está configurada."""
+    import importlib
+    import os
+    from unittest.mock import patch
+
+    import src.main as main_module
+
+    with patch.dict(os.environ, {"API_KEY": "chave_secreta"}):
+        importlib.reload(main_module)
+        secured_client = TestClient(main_module.app)
+
+        # Requisição sem o header access_token
+        response = secured_client.post("/predict", json=MALIGNANT_SAMPLE)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Acesso negado: API Key inválida"
