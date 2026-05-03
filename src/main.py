@@ -19,7 +19,9 @@ import os
 
 from fastapi import FastAPI, HTTPException, Security, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.services.predictor import predictor
@@ -75,6 +77,22 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# Arquivos estáticos (CSS/JS futuros)
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
+
+
+# ---------------------------------------------------------------------------
+# Frontend — Portal Clínico
+# ---------------------------------------------------------------------------
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def read_index() -> HTMLResponse:
+    """Serve o portal clínico (src/static/index.html)."""
+    index_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    with open(index_path, encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 
 # ---------------------------------------------------------------------------
