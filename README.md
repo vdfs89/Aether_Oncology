@@ -194,24 +194,36 @@ curl -X POST https://api.vitorsilva.engineer/predict \
 
 ## 🌐 Deploy em Produção
 
-| Rota | URL | Descrição |
+| Serviço | URL | Descrição |
 |---|---|---|
-| Portal Clínico | [api.vitorsilva.engineer](https://api.vitorsilva.engineer/) | Interface web com grid de 30 features |
-| API Docs | [api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo |
-| Health Check | [api.vitorsilva.engineer/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
-| Predict | `POST api.vitorsilva.engineer/predict` | Endpoint de inferência (requer API Key) |
+| **Portal Clínico (HTML)** | [api.vitorsilva.engineer](https://api.vitorsilva.engineer/) | Interface nativa rápida com gráficos de explicabilidade (XAI) |
+| **Portal Streamlit** | *(No ar via Streamlit Cloud)* | Dashboard interativo e analítico conectado à API |
+| **API Docs** | [api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo (Testes de Backend) |
+| **Health Check** | [api.vitorsilva.engineer/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
+| **Predict API** | `POST api.vitorsilva.engineer/predict` | Endpoint de inferência (requer API Key) |
 
 ---
 
-## 🖥️ Portal Clínico (`/`)
+## 🖥️ Portais Clínicos (Front-ends)
 
-Além da API REST, o projeto inclui uma interface web integrada acessível em `https://api.vitorsilva.engineer/`.
+O projeto conta com duas interfaces distintas conectadas à mesma API de produção, materializando as melhores práticas de integração de serviços (desacoplamento).
 
-- Formulário com as **30 features WDBC** em grid de 3 colunas
-- Botões de atalho com **samples reais** maligno e benigno pré-carregados
-- Campo de API Key com a chave de demo pré-preenchida
-- **Resultado animado** com probabilidade, confiança e barra de progresso
-- Erros de autenticação (403) apresentados de forma amigável
+### 1. Portal Nativo (`/`)
+Acessível na raiz da API (`https://api.vitorsilva.engineer/`), construído em HTML/CSS/JS puro para máxima performance:
+- Layout em painel duplo (Clinical UI)
+- Input focado nas 5 features primárias (auto-preenchimento inteligente para as outras 25)
+- **Explainable AI (XAI)**: Integração nativa com *Chart.js* mostrando a contribuição (Fator de Impacto) das features morfológicas na predição final da rede neural (vermelho para maligno, verde para benigno).
+- Erros de autenticação (403) mapeados no front.
+
+### 2. Dashboard Streamlit (`app_streamlit.py`)
+Interface analítica SaaS focada na experiência em Ciências de Dados.
+```bash
+# Executar localmente conectando à API na nuvem:
+streamlit run app_streamlit.py
+```
+- Dashboard com componentes nativos do Streamlit (`st.metric`, `st.columns`).
+- Barra lateral dedicada para autenticação segura.
+- Gráficos de sustentação de XAI (Explainable AI) embutidos (`st.bar_chart`).
 
 ---
 
