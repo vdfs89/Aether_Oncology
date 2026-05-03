@@ -79,7 +79,8 @@ app.add_middleware(
 )
 
 # Arquivos estáticos (CSS/JS futuros)
-app.mount("/static", StaticFiles(directory="src/static"), name="static")
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # ---------------------------------------------------------------------------
