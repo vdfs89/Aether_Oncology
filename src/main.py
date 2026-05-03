@@ -15,10 +15,42 @@ Iniciar o servidor:
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, status
+import os
+
+from fastapi import FastAPI, HTTPException, Security, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from src.services.predictor import predictor
+
+# ---------------------------------------------------------------------------
+# Segurança — API Key lida de variável de ambiente
+# Defina API_KEY no painel do Render (Environment > Secret Files ou Env Vars)
+# Em dev local: crie um .env ou exporte: $env:API_KEY="minha-chave"
+# ---------------------------------------------------------------------------
+
+_RAW_API_KEY = os.getenv("API_KEY", "")
+if not _RAW_API_KEY:
+    import warnings
+
+    warnings.warn(
+        "API_KEY não definida. O endpoint /predict aceitará qualquer requisição!",
+        stacklevel=1,
+    )
+
+_api_key_header = APIKeyHeader(name="access_token", auto_error=False)
+
+
+async def get_api_key(key: str = Security(_api_key_header)) -> str:
+    """Valida o header 'access_token'. Retorna 403 se a chave for incorreta."""
+    if _RAW_API_KEY and key != _RAW_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado: API Key inválida",
+        )
+    return key
+
 
 # ---------------------------------------------------------------------------
 # Aplicação
@@ -31,6 +63,17 @@ app = FastAPI(
         "**Nunca deve ser usado para diagnóstico autónomo sem supervisão médica.**"
     ),
     version="1.0.0",
+)
+
+# ---------------------------------------------------------------------------
+# CORS — permite requisições de outros domínios (ex.: frontend no Vercel)
+# Em produção real, substitua "*" pelo domínio específico do frontend
+# ---------------------------------------------------------------------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 
@@ -169,11 +212,13 @@ def health_check():
     status_code=status.HTTP_200_OK,
     tags=["Prediction"],
     summary="Classificar amostra de biópsia tumoral",
+    dependencies=[Security(get_api_key)],
 )
 def make_prediction(features: TumorFeatures) -> PredictResponse:
     """
     Recebe as 30 features morfológicas WDBC e devolve a classificação binária.
 
+    Requer o header ``access_token`` com a API Key configurada no servidor.
     Quando ``confidence == 'Low'``, o campo ``warning`` é preenchido,
     sinalizando revisão manual dupla obrigatória (Model Card — Secção 6).
     """

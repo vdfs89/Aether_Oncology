@@ -15,7 +15,7 @@ Se os artefactos não existirem, os testes de predição são marcados como
 xfail (esperado falhar) para não bloquear o CI antes do primeiro treino.
 """
 
-from __future__ import annotations
+import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +23,11 @@ from fastapi.testclient import TestClient
 from src.main import app
 
 client = TestClient(app)
+
+# Header de autenticação para os testes.
+# Em CI a API_KEY não é definida → bypass ativo → qualquer valor aceito.
+# Em local com API_KEY definida → usa o valor real.
+_TEST_HEADERS = {"access_token": os.getenv("API_KEY", "test-key")}
 
 # ---------------------------------------------------------------------------
 # Payload de referência — primeira linha do WDBC (sabidamente Maligno)
@@ -137,7 +142,7 @@ def test_health_check() -> None:
 @needs_model
 def test_predict_malignant_sample() -> None:
     """Um sample sabidamente maligno deve retornar prediction=1."""
-    response = client.post("/predict", json=MALIGNANT_SAMPLE)
+    response = client.post("/predict", json=MALIGNANT_SAMPLE, headers=_TEST_HEADERS)
     assert response.status_code == 200
     body = response.json()
     assert "prediction" in body
@@ -153,7 +158,7 @@ def test_predict_malignant_sample() -> None:
 @needs_model
 def test_predict_benign_sample() -> None:
     """Um sample sabidamente benigno deve retornar prediction=0."""
-    response = client.post("/predict", json=BENIGN_SAMPLE)
+    response = client.post("/predict", json=BENIGN_SAMPLE, headers=_TEST_HEADERS)
     assert response.status_code == 200
     body = response.json()
     assert body["prediction"] == 0, (
@@ -165,7 +170,7 @@ def test_predict_benign_sample() -> None:
 @needs_model
 def test_predict_probability_in_range() -> None:
     """A probabilidade retornada deve estar sempre entre 0 e 1."""
-    response = client.post("/predict", json=MALIGNANT_SAMPLE)
+    response = client.post("/predict", json=MALIGNANT_SAMPLE, headers=_TEST_HEADERS)
     assert response.status_code == 200
     prob = response.json()["probability"]
     assert 0.0 <= prob <= 1.0, f"Probabilidade fora do intervalo [0,1]: {prob}"
@@ -174,7 +179,7 @@ def test_predict_probability_in_range() -> None:
 @needs_model
 def test_predict_response_has_all_fields() -> None:
     """A resposta deve incluir todos os campos do schema PredictResponse."""
-    response = client.post("/predict", json=MALIGNANT_SAMPLE)
+    response = client.post("/predict", json=MALIGNANT_SAMPLE, headers=_TEST_HEADERS)
     assert response.status_code == 200
     body = response.json()
     required_fields = {"prediction", "label", "probability", "confidence", "status"}
@@ -191,7 +196,7 @@ def test_predict_response_has_all_fields() -> None:
 def test_predict_invalid_type_returns_422() -> None:
     """Enviar string onde é esperado float deve retornar 422 (Unprocessable Entity)."""
     payload = {"radius_mean": "muito_grande"}
-    response = client.post("/predict", json=payload)
+    response = client.post("/predict", json=payload, headers=_TEST_HEADERS)
     assert response.status_code == 422
 
 
@@ -202,18 +207,41 @@ def test_predict_missing_features_returns_422() -> None:
         "texture_mean": 10.38,
         # As outras 28 features estão faltando
     }
-    response = client.post("/predict", json=partial_payload)
+    response = client.post("/predict", json=partial_payload, headers=_TEST_HEADERS)
     assert response.status_code == 422
 
 
 def test_predict_empty_payload_returns_422() -> None:
     """Payload vazio deve ser rejeitado com 422."""
-    response = client.post("/predict", json={})
+    response = client.post("/predict", json={}, headers=_TEST_HEADERS)
     assert response.status_code == 422
 
 
 def test_predict_negative_radius_returns_422() -> None:
     """Raio negativo (fisicamente impossível) deve ser rejeitado pelo Pydantic."""
     bad_payload = {**MALIGNANT_SAMPLE, "radius_mean": -5.0}
-    response = client.post("/predict", json=bad_payload)
+    response = client.post("/predict", json=bad_payload, headers=_TEST_HEADERS)
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# 4. Segurança — API Key
+# ---------------------------------------------------------------------------
+
+
+def test_predict_invalid_api_key_returns_403(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Com API_KEY definida, chave errada deve retornar 403."""
+    monkeypatch.setenv("API_KEY", "chave-correta")
+    import importlib
+
+    import src.main as main_module
+
+    importlib.reload(main_module)
+    patched_client = TestClient(main_module.app)
+    response = patched_client.post(
+        "/predict",
+        json=MALIGNANT_SAMPLE,
+        headers={"access_token": "chave-errada"},
+    )
+    assert response.status_code == 403
+    assert "Acesso negado" in response.json()["detail"]
