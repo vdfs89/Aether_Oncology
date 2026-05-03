@@ -13,10 +13,10 @@ Requisito: data/raw/data.csv deve existir com as 30 colunas WDBC + 'target'.
 
 from __future__ import annotations
 
-import pytest
 import pandas as pd
 import pandera as pa
-from pandera import Column, Check, DataFrameSchema
+import pytest
+from pandera import Check, Column, DataFrameSchema
 
 # ---------------------------------------------------------------------------
 # Schema WDBC — todas as 30 features + coluna target
