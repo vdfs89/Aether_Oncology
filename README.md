@@ -1,5 +1,9 @@
 # Aether Oncology
 
+<p align="center">
+  <img src="src/static/images/Banner.png" alt="Aether Oncology Banner" width="100%">
+</p>
+
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
 **Autor:** Vitor Diogo Fonseca da Silva
