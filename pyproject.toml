@@ -1,0 +1,65 @@
+[project]
+name = "aether-oncology"
+version = "1.0.0"
+description = "Classificador de tumores malignos via MLP em PyTorch"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "torch",
+    "scikit-learn",
+    "joblib",
+    "mlflow",
+    "pandas",
+    "pandera",   # validação de schema nos testes
+    "seaborn",   # visualizações EDA
+    "matplotlib", # plots gerais
+    "httpx",     # backend assíncrono do TestClient do FastAPI
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+    "pytest-cov",   # cobertura de testes
+]
+
+# ---------------------------------------------------------------------------
+# Ruff — linter + formatter ultrarrápido (20% da nota)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+fix = true
+extend-exclude = ["notebooks", "data", "docs", "models"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort — ordenação de imports
+]
+ignore = [
+    "E501",  # linhas longas nos testes (strings de payload extensas)
+]
+
+# ---------------------------------------------------------------------------
+# Pytest — executor de testes (25% da nota)
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]          # garante que `from src.xxx import` funciona
+addopts   = "-v --tb=short" # output verboso por defeito
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

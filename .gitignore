@@ -1,0 +1,59 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.Python
+pip-wheel-metadata/
+
+# ─── Ambientes virtuais ────────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+
+# ─── Artefatos do modelo (gerados por make train) ─────────────────────────────
+models/*.pth
+models/*.pt
+models/*.joblib
+models/*.pkl
+
+# ─── MLflow ───────────────────────────────────────────────────────────────────
+mlruns/
+mlartifacts/
+mlflow.db
+*.db
+
+# ─── Testes e cobertura ───────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ─── Ruff ─────────────────────────────────────────────────────────────────────
+.ruff_cache/
+
+# ─── Jupyter / Notebooks ──────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ─── Dados brutos (não versionar dados sensíveis de pacientes) ────────────────
+data/raw/*.csv
+data/raw/*.xlsx
+data/processed/
+
+# ─── IDE e SO ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+# (Dockerfile e .dockerignore SÃO versionados; imagens locais não)
+
+# ─── uv ───────────────────────────────────────────────────────────────────────
+.uv/
+uv.lock

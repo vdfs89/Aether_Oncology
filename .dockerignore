@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Testes e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# MLflow runs (gerados localmente, não devem ir para a imagem)
+mlruns/
+mlartifacts/
+
+# Notebooks (não são necessários em produção)
+notebooks/
+
+# Dados brutos (montados via volume em produção)
+# Incluímos apenas o data.csv mínimo via COPY no Dockerfile
+data/processed/
+
+# Docs
+docs/
+
+# Ferramentas de desenvolvimento
+.ruff_cache/
+.git/
+.gitignore
