@@ -1,0 +1,12 @@
+# Normaliza line endings para LF em todos os arquivos de texto
+# Evita que ruff format falhe no CI Linux por causa de CRLF do Windows
+
+* text=auto eol=lf
+
+# Binários — sem conversão
+*.pth binary
+*.joblib binary
+*.png binary
+*.jpg binary
+*.db binary
+*.ipynb text eol=lf
