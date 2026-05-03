@@ -36,28 +36,9 @@ RUN pip install --no-cache-dir uv \
 # Stage 4: Código-fonte e artefatos do modelo
 # ─────────────────────────────────────────────────────────────────────────────
 COPY src/ src/
+COPY models/ models/
+COPY data/raw/data.csv data/raw/data.csv
 
-# Gera o dataset WDBC e treina o modelo durante o build
-# (data/raw/ e models/ estão no .gitignore — gerados aqui para produção)
-RUN mkdir -p data/raw models \
-    && python -c "
-from sklearn.datasets import load_breast_cancer
-import pandas as pd
-data = load_breast_cancer()
-def normalize(n):
-    n = n.strip()
-    if n.startswith('mean '): return n[5:].replace(' ','_') + '_mean'
-    if n.endswith(' error'): return n[:-6].replace(' ','_') + '_se'
-    if n.startswith('worst '): return n[6:].replace(' ','_') + '_worst'
-    return n.replace(' ','_')
-cols = [normalize(c) for c in data.feature_names]
-df = __import__('pandas').DataFrame(data.data, columns=cols)
-df['target'] = 1 - data.target
-df.to_csv('data/raw/data.csv', index=False)
-print('Dataset gerado:', df.shape)
-" \
-    && python -m src.train \
-    && echo 'Treino concluido'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 5: Configuração de runtime
