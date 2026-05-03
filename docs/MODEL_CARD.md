@@ -87,3 +87,28 @@ Também foram avaliados fatores de instrumentação (variações nos equipamento
 **Limitações:** O modelo depende de medições celulares perfeitamente extraídas. Imagens de biópsia com baixa resolução ou artefatos de iluminação degradam severamente a predição.
 
 **Recomendações:** Integrar o modelo via API ao sistema de prontuário eletrônico do hospital de forma a gerar uma "segunda opinião" automatizada, exigindo o crivo de um especialista final para assinar o laudo.
+
+---
+
+## 8. Sustentabilidade e Impacto Ambiental (Green AI)
+
+Este modelo foi projetado considerando a **eficiência computacional** como requisito não-funcional prioritário — uma arquitetura MLP leve para dados tabulares minimiza deliberadamente o impacto ambiental tanto no treinamento quanto na inferência.
+
+| Dimensão | Detalhe |
+|---|---|
+| **Hardware de Treinamento** | CPU padrão (ambiente local / Google Colab). Nenhuma GPU ou cluster foi necessário. |
+| **Duração do Treino** | < 2 minutos para 100 épocas com Early Stopping |
+| **Pegada de Carbono (treino)** | < 1 grama de CO₂e — emissão insignificante |
+| **Hospedagem** | Render Free Tier — infraestrutura de nuvem compartilhada |
+| **Latência de Inferência** | < 200 ms por requisição em produção |
+| **Complexidade Computacional** | Baixo número de FLOPs: `Linear(30→64→32→1)` com operações de ponto flutuante na ordem de milhares — desprezível frente a modelos de linguagem ou visão computacional |
+
+### Por que isso importa?
+
+A tendência de usar modelos massivos (LLMs, Vision Transformers) para problemas tabulares binários é um anti-padrão de engenharia. O Aether Oncology demonstra que:
+
+1. **Recall ≥ 0.97** é alcançável com uma MLP de 3 camadas e dados tabulares limpos
+2. **Custo energético de inferência** é ordens de magnitude menor do que um LLM equivalente
+3. **Sustentabilidade como decisão de arquitetura** — não como compliance afterthought
+
+> Esta abordagem está alinhada com as diretrizes do **MLOps Green AI** e com as recomendações do framework **MRM3** para documentação ética e ambiental de modelos em produção clínica.
