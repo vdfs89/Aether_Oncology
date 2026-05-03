@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 
 from src.main import app
 
-client = TestClient(app, raise_server_exceptions=False)
+client = TestClient(app)
 
 # ---------------------------------------------------------------------------
 # Payload de referência — primeira linha do WDBC (sabidamente Maligno)
