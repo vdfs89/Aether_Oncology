@@ -200,7 +200,7 @@ curl -X POST https://api.vitorsilva.engineer/predict \
 | **Portal Streamlit** | *(No ar via Streamlit Cloud)* | Dashboard interativo e analítico conectado à API |
 | **API Docs** | [api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo (Testes de Backend) |
 | **Health Check** | [api.vitorsilva.engineer/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
-| **Predict API** | `POST api.vitorsilva.engineer/predict` | Endpoint de inferência (requer API Key) |
+| **Predict API** | `POST` [https://api.vitorsilva.engineer/predict](https://api.vitorsilva.engineer/predict) | Endpoint de inferência (requer API Key) |
 
 ---
 
