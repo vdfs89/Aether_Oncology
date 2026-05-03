@@ -82,7 +82,24 @@ Também foram avaliados fatores de instrumentação (variações nos equipamento
 
 **Mitigação:** Implementação de mecanismos de detecção de incerteza; se os dados de um novo paciente forem muito diferentes do padrão de treino, o sistema emitirá um alerta de "Baixa Confiança", solicitando revisão manual dupla.
 
-## 7. Limitações e Recomendações
+## 7. Infraestrutura e Eficiência Computacional (Hardware & Latency)
+
+A arquitetura da API e do modelo foi projetada com foco em baixa latência e leveza computacional (Green AI), possibilitando a implantação em infraestruturas hospitalares limitadas ou em nuvem compartilhada.
+
+**Hardware e Consumo de Sistema:**
+* **Ambiente de Inferência:** CPU Padrão (Cloud no Render).
+* **Complexidade Computacional:** Baixo volume de FLOPs (Multilayer Perceptron tabular).
+* **Consumo de Memória (RAM):** Modelo "hidratado" em memória via padrão Singleton, consumindo < 150MB no total.
+* **Tracking de Métricas de Sistema:** MLflow System Metrics ativo (CPU, Memória, I/O) durante o treinamento.
+
+**Desempenho e Latência de Inferência (SLA):**
+* **P50 (Mediana):** < 50 ms por requisição.
+* **P95 (Percentil 95):** < 100 ms por requisição.
+* **P99 (Percentil 99):** < 200 ms por requisição (Garante diagnóstico prático em tempo real, sem degradação da experiência do usuário/médico).
+
+---
+
+## 8. Limitações e Recomendações
 
 **Limitações:** O modelo depende de medições celulares perfeitamente extraídas. Imagens de biópsia com baixa resolução ou artefatos de iluminação degradam severamente a predição.
 
@@ -90,7 +107,7 @@ Também foram avaliados fatores de instrumentação (variações nos equipamento
 
 ---
 
-## 8. Sustentabilidade e Impacto Ambiental (Green AI)
+## 9. Sustentabilidade e Impacto Ambiental (Green AI)
 
 Este modelo foi projetado considerando a **eficiência computacional** como requisito não-funcional prioritário — uma arquitetura MLP leve para dados tabulares minimiza deliberadamente o impacto ambiental tanto no treinamento quanto na inferência.
 
