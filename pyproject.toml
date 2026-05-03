@@ -17,6 +17,7 @@ dependencies = [
     "pandera",   # validação de schema nos testes
     "seaborn",   # visualizações EDA
     "matplotlib", # plots gerais
+    "psutil",    # necessário para MLflow System Metrics
 ]
 
 [project.optional-dependencies]
