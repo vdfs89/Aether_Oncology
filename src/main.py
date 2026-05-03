@@ -157,13 +157,10 @@ class PredictResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/health", tags=["Health"])
-def health_check() -> dict:
-    """Liveness probe — confirma que a API está no ar."""
-    return {
-        "status": "online",
-        "model": "Aether Oncology Tumor Classifier v1.0",
-    }
+@app.get("/health")
+def health_check():
+    # O Render precisa receber este 200 OK para confirmar o deploy
+    return {"status": "online", "model": "Aether Oncology v1.0"}
 
 
 @app.post(
