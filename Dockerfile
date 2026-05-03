@@ -9,8 +9,10 @@ LABEL maintainer="Equipe Aether Oncology" \
       description="Tumor Classifier API — MLP PyTorch via FastAPI"
 
 # Variáveis de ambiente para Python não gerar .pyc e não bufferizar stdout/stderr
+# MLFLOW_TRACKING_URI fixado em /app/mlruns para evitar criação de paths com %20 no host
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    MLFLOW_TRACKING_URI=/app/mlruns
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Dependências de sistema (mínimo necessário para PyTorch CPU)
