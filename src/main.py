@@ -85,6 +85,20 @@ app.add_middleware(
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+# Montagem específica para o portal (permite caminhos relativos limpos no index.html)
+portal_dir = os.path.join(static_dir, "aether-oncology-portal")
+app.mount(
+    "/css", StaticFiles(directory=os.path.join(portal_dir, "css")), name="portal-css"
+)
+app.mount(
+    "/js", StaticFiles(directory=os.path.join(portal_dir, "js")), name="portal-js"
+)
+app.mount(
+    "/images",
+    StaticFiles(directory=os.path.join(portal_dir, "images")),
+    name="portal-images",
+)
+
 
 # ---------------------------------------------------------------------------
 # Frontend — Portal Clínico
@@ -93,8 +107,10 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_index() -> HTMLResponse:
-    """Serve o portal clínico (src/static/index.html)."""
-    index_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    """Serve o portal clínico modular (src/static/aether-oncology-portal/index.html)."""
+    index_path = os.path.join(
+        os.path.dirname(__file__), "static", "aether-oncology-portal", "index.html"
+    )
     with open(index_path, encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
