@@ -73,9 +73,10 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://portal.vitorsilva.engineer"], # O domínio do seu novo portal
+    allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_headers=["*"], # Permite o envio da sua API_KEY no header
 )
 
 # Arquivos estáticos (CSS/JS futuros)
