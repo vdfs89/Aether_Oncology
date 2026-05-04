@@ -3,532 +3,892 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aether Oncology | Clinical Portal</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <title>Aether Oncology – Elevating Cancer Diagnostics with AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      /* Paleta Principal */
-      --bg-dark: #0B1026;         /* Fundo Navy Profundo */
-      --primary-purple: #6C3EFF;  /* Roxo do Logo */
-      --primary-cyan: #00D4FF;    /* Ciano do Logo */
-      --accent-pink: #FF4DB8;     /* Rosa Floral (Destaque/Ação) */
-      --text-light: #F7F9FF;      /* Branco Suave para leitura */
-      
-      /* Gradientes Prontos */
-      --grad-logo: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
-      --grad-button: linear-gradient(90deg, var(--primary-purple), var(--accent-pink));
-      
-      /* UI vars */
-      --border: rgba(255, 255, 255, 0.1);
-      --text-muted: rgba(247, 249, 255, 0.6);
-      --danger: #FF4D4D;
-      --success: #00E676;
+      --navy:   #0B1026;
+      --purple: #6C3EFF;
+      --pink:   #FF4DB8;
+      --cyan:   #00D4FF;
+      --white:  #F7F9FF;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
 
     body {
+      background-color: var(--navy);
+      color: var(--white);
       font-family: 'Montserrat', sans-serif;
-      background-color: var(--bg-dark);
-      color: var(--text-light);
-      min-height: 100vh;
-      padding: 24px 16px 48px;
-      display: flex;
-      justify-content: center;
-      line-height: 1.6;
+      overflow-x: hidden;
     }
 
-    .container {
-      width: 100%;
-      max-width: 1020px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(10px);
-      border-radius: 14px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.3);
-      overflow: hidden;
+    /* ─── CANVAS STARS ─── */
+    #stars-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
     }
 
-    h1, h2, h3 {
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: var(--grad-logo);
+    /* ─── GLOW UTILITIES ─── */
+    .glow-purple { box-shadow: 0 0 30px rgba(108,62,255,.45), 0 0 60px rgba(108,62,255,.2); }
+    .glow-pink   { box-shadow: 0 0 30px rgba(255,77,184,.45), 0 0 60px rgba(255,77,184,.2); }
+    .glow-cyan   { box-shadow: 0 0 30px rgba(0,212,255,.45),  0 0 60px rgba(0,212,255,.2);  }
+
+    .text-glow-cyan   { text-shadow: 0 0 18px rgba(0,212,255,.7); }
+    .text-glow-pink   { text-shadow: 0 0 18px rgba(255,77,184,.7); }
+    .text-glow-purple { text-shadow: 0 0 18px rgba(108,62,255,.7); }
+
+    /* ─── GRADIENT TEXT ─── */
+    .gradient-text {
+      background: linear-gradient(135deg, var(--purple) 0%, var(--pink) 50%, var(--cyan) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    p, label {
-      font-weight: 400;
-      color: var(--text-light);
+    .gradient-text-pb {
+      background: linear-gradient(90deg, var(--pink) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    /* ── HEADER ── */
-    .header {
-      background: rgba(255,255,255,0.05);
-      border-bottom: 1px solid var(--border);
-      padding: 24px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
+    /* ─── ANIMATED GRADIENT BORDER ─── */
+    .border-gradient {
+      position: relative;
+      border-radius: 16px;
     }
-    .header-brand h1 { font-size: 1.4rem; }
-    .header-brand p  { font-size: .8rem; opacity: .75; margin-top: 3px; color: var(--text-light); }
-    .badge-live {
-      font-size: .65rem; font-weight: 700; letter-spacing: .08em;
-      padding: .3rem .8rem; border-radius: 999px;
-      background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3);
-      color: var(--primary-cyan);
+    .border-gradient::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 17px;
+      background: linear-gradient(135deg, var(--purple), var(--pink), var(--cyan));
+      z-index: -1;
+      opacity: .6;
+      transition: opacity .3s;
+    }
+    .border-gradient:hover::before { opacity: 1; }
+
+    /* ─── GLASS CARD ─── */
+    .glass {
+      background: rgba(255,255,255,.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.07);
     }
 
-    /* ── BODY GRID ── */
-    .body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
+    /* ─── PULSE RING ─── */
+    @keyframes pulse-ring {
+      0%   { transform: scale(.95); box-shadow: 0 0 0 0 rgba(0,212,255,.4); }
+      70%  { transform: scale(1);   box-shadow: 0 0 0 18px rgba(0,212,255,0); }
+      100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(0,212,255,0); }
     }
-    @media (max-width: 720px) { .body { grid-template-columns: 1fr; } }
+    .pulse-ring { animation: pulse-ring 2.5s ease-in-out infinite; }
 
-    /* ── LEFT PANEL ── */
-    .left-panel {
-      padding: 28px 32px;
-      border-right: 1px solid var(--border);
+    /* ─── FLOAT ─── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-14px); }
     }
-    .section-title {
-      font-size: .7rem; font-weight: 700; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--primary-cyan);
-      margin-bottom: 16px; padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .form-group { margin-bottom: 14px; }
-    label {
-      display: block; font-size: .75rem; font-weight: 600;
-      margin-bottom: 5px;
-    }
-    input {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 400;
-      width: 100%; 
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 8px;
-      color: white;
-      outline: none;
-      transition: border-color .2s, box-shadow .2s;
-      -moz-appearance: textfield;
-    }
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button { -webkit-appearance: none; }
-    input:focus {
-      border-color: var(--primary-cyan);
-      box-shadow: 0 0 8px var(--primary-cyan);
-    }
-    input[type="password"] { letter-spacing: .1em; }
+    .float { animation: float 5s ease-in-out infinite; }
 
-    .hidden-note {
-      font-size: .68rem; color: var(--text-muted); margin: 10px 0 16px;
-      padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px;
-      border-left: 3px solid var(--primary-cyan);
+    /* ─── GRADIENT SHIFT BG ─── */
+    @keyframes gradshift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    button {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 700;
-      width: 100%; padding: 15px 30px; 
-      border: none; border-radius: 50px;
-      font-size: .9rem; text-transform: uppercase;
-      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    /* ─── SHIMMER ─── */
+    @keyframes shimmer {
+      from { background-position: -200% center; }
+      to   { background-position:  200% center; }
     }
-    .btn-analyze {
-      background: var(--grad-button); 
-      color: white; margin-top: 4px;
+    .shimmer-btn {
+      background: linear-gradient(90deg,
+        var(--pink) 0%, var(--purple) 30%, var(--cyan) 60%, var(--pink) 100%);
+      background-size: 200% auto;
+      animation: shimmer 3s linear infinite;
+      transition: transform .2s, box-shadow .2s;
     }
-    .btn-analyze:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 10px 20px rgba(108, 62, 255, 0.4); 
-    }
-    .btn-analyze:active { transform: translateY(0); }
-    .btn-analyze:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    /* ── TEST SUITE ── */
-    .test-suite {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .test-suite button {
-      flex: 1;
-      padding: 10px 5px;
-      font-size: 0.75rem;
-      border-radius: 8px;
-      font-weight: 600;
-      text-transform: none;
-      min-width: 100px;
-    }
-    .btn-sample {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-light);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .btn-sample:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
-      transform: translateY(-1px);
-    }
-    .btn-clear {
-      background: rgba(255, 77, 77, 0.1);
-      color: var(--danger);
-      border: 1px solid rgba(255, 77, 77, 0.3);
-    }
-    .btn-clear:hover {
-      background: rgba(255, 77, 77, 0.2);
-      transform: translateY(-1px);
+    .shimmer-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 28px rgba(255,77,184,.6), 0 0 56px rgba(0,212,255,.3);
     }
 
-    /* ── RIGHT PANEL ── */
-    .right-panel {
-      padding: 28px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+    /* ─── SLIDE-IN ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up       { animation: fadeUp .7s ease both; }
+    .delay-1       { animation-delay: .15s; }
+    .delay-2       { animation-delay: .3s; }
+    .delay-3       { animation-delay: .45s; }
+    .delay-4       { animation-delay: .6s; }
+
+    /* ─── HEADER BLUR ─── */
+    .header-blur {
+      background: rgba(11,16,38,.75);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(108,62,255,.15);
     }
 
-    /* result badge */
-    #resultBadge {
-      padding: 14px 20px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 1rem;
-      text-align: center;
-      background: rgba(255,255,255,0.03);
-      color: var(--text-muted);
-      border: 2px dashed var(--border);
-      transition: all .35s;
+    /* ─── NAV LINK ─── */
+    .nav-link {
+      position: relative;
+      color: rgba(247,249,255,.65);
+      font-size: .875rem;
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-decoration: none;
+      transition: color .25s;
     }
-    #resultBadge.malignant {
-      background: rgba(255, 77, 77, 0.1); color: var(--danger);
-      border: 2px solid rgba(255, 77, 77, 0.4);
-      animation: pulse .5s ease;
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--cyan));
+      transition: width .3s;
+      border-radius: 2px;
     }
-    #resultBadge.benign {
-      background: rgba(0, 230, 118, 0.1); color: var(--success);
-      border: 2px solid rgba(0, 230, 118, 0.4);
-      animation: pulse .5s ease;
-    }
-    @keyframes pulse {
-      0%   { transform: scale(1); }
-      50%  { transform: scale(1.02); }
-      100% { transform: scale(1); }
+    .nav-link:hover { color: var(--white); }
+    .nav-link:hover::after { width: 100%; }
+
+    /* ─── HERO MESH BG ─── */
+    .hero-mesh {
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 60%, rgba(108,62,255,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 80% 30%, rgba(0,212,255,.14) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 50% 80%, rgba(255,77,184,.12) 0%, transparent 60%);
     }
 
-    #probText {
-      font-size: .8rem; color: var(--text-muted);
-      font-weight: 600; text-align: center;
-      min-height: 1.2em;
+    /* ─── SCANNING LINE ─── */
+    @keyframes scan {
+      0%   { top: 15%; opacity: .8; }
+      50%  { opacity: .3; }
+      100% { top: 85%; opacity: .8; }
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: scan 3s ease-in-out infinite alternate;
+      pointer-events: none;
     }
 
-    .xai-box { flex: 1; }
-    .xai-box h4 {
-      font-size: .75rem; text-align: center;
-      color: var(--text-light); margin-bottom: 2px;
-    }
-    .xai-box p {
-      font-size: .65rem; text-align: center;
-      color: var(--text-muted); margin-bottom: 12px;
+    /* ─── STAT COUNTER ─── */
+    .stat-val {
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1;
     }
 
-    /* ── SPINNER ── */
-    .spinner {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,.4);
-      border-top-color: #fff;
+    /* ─── ICON WRAPPER ─── */
+    .icon-wrap {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .3s;
+    }
+    .card-feat:hover .icon-wrap { transform: scale(1.12) rotate(-4deg); }
+
+    /* ─── WAVE DIVIDER ─── */
+    .wave-divider svg { display: block; }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--navy); }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(var(--purple), var(--cyan));
+      border-radius: 99px;
+    }
+
+    /* ─── MOBILE NAV TOGGLE ─── */
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: flex; }
+
+    /* ─── TESTIMONIAL CARD ─── */
+    .testi-card {
+      background: rgba(108,62,255,.08);
+      border: 1px solid rgba(108,62,255,.25);
+      border-radius: 20px;
+      padding: 2rem;
+      transition: border-color .3s, transform .3s;
+    }
+    .testi-card:hover {
+      border-color: rgba(0,212,255,.5);
+      transform: translateY(-6px);
+    }
+
+    /* ─── STEP CIRCLE ─── */
+    .step-num {
+      width: 48px; height: 48px;
       border-radius: 50%;
-      animation: spin .6s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800;
+      font-size: 1.125rem;
+      flex-shrink: 0;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-<div class="container">
+<!-- STAR CANVAS -->
+<canvas id="stars-canvas"></canvas>
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-brand">
-      <h1 style="display: flex; align-items: center; gap: 8px;">
-        <img src="/static/images/icone.png" alt="Aether Oncology Logo" style="height: 1.2em; width: auto;" />
-        Aether Oncology
-      </h1>
-      <p>Clinical Decision Support System — MLOps v1.0</p>
+<!-- ════════════════════════════════
+     HEADER
+════════════════════════════════ -->
+<header class="header-blur fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-3">
+      <div class="relative w-9 h-9">
+        <!-- A letter SVG logo placeholder -->
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#6C3EFF"/>
+              <stop offset="50%" stop-color="#FF4DB8"/>
+              <stop offset="100%" stop-color="#00D4FF"/>
+            </linearGradient>
+          </defs>
+          <path d="M20 4L34 34H26L20 18L14 34H6L20 4Z" fill="url(#lg1)"/>
+          <ellipse cx="20" cy="34" rx="4" ry="2.5" fill="#00D4FF" opacity=".8"/>
+          <path d="M8 26 Q20 20 32 26" stroke="url(#lg1)" stroke-width="1.5" fill="none" opacity=".6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="text-white font-bold text-base tracking-[.18em] leading-none">AETHER</div>
+        <div class="text-xs tracking-[.35em] leading-none mt-[3px]" style="color:#FF4DB8;">ONCOLOGY</div>
+      </div>
+    </a>
+
+    <!-- Desktop Nav -->
+    <nav class="hidden md:flex items-center gap-8">
+      <a href="#sobre" class="nav-link">Sobre</a>
+      <a href="#beneficios" class="nav-link">Benefícios</a>
+      <a href="#como-funciona" class="nav-link">Como Funciona</a>
+      <a href="#resultados" class="nav-link">Resultados</a>
+      <a href="#contato" class="nav-link">Contato</a>
+    </nav>
+
+    <!-- CTA + Burger -->
+    <div class="flex items-center gap-4">
+      <a href="/static/portal.html" class="hidden md:block shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full">
+        Acessar Portal
+      </a>
+      <button onclick="toggleMenu()" class="md:hidden text-white">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
     </div>
-    <span class="badge-live">🟢 LIVE · api.vitorsilva.engineer</span>
   </div>
 
-  <div class="body">
+  <!-- Mobile Menu -->
+  <div id="mobile-menu" class="md:hidden flex-col px-6 pb-5 gap-4 border-t border-white/5">
+    <a href="#sobre" class="nav-link block pt-4">Sobre</a>
+    <a href="#beneficios" class="nav-link block">Benefícios</a>
+    <a href="#como-funciona" class="nav-link block">Como Funciona</a>
+    <a href="#resultados" class="nav-link block">Resultados</a>
+    <a href="#contato" class="nav-link block">Contato</a>
+    <a href="/static/portal.html" class="shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full inline-block mt-2">Acessar Portal</a>
+  </div>
+</header>
 
-    <!-- LEFT — Formulário -->
-    <div class="left-panel">
-      <div class="section-title">Dados da Biópsia (FNA)</div>
+<!-- ════════════════════════════════
+     HERO
+════════════════════════════════ -->
+<section class="hero-mesh relative min-h-screen flex items-center pt-16" id="sobre">
 
-      <form id="predictForm">
+  <!-- decorative orbs -->
+  <div class="absolute top-24 left-1/4 w-72 h-72 rounded-full blur-[100px] pointer-events-none" style="background:rgba(108,62,255,.22)"></div>
+  <div class="absolute bottom-16 right-1/4 w-64 h-64 rounded-full blur-[90px] pointer-events-none" style="background:rgba(0,212,255,.18)"></div>
+  <div class="absolute top-1/2 left-8 w-48 h-48 rounded-full blur-[80px] pointer-events-none" style="background:rgba(255,77,184,.15)"></div>
 
-        <!-- 5 features visíveis -->
-        <div class="form-group">
-          <label>Radius Mean</label>
-          <input type="number" step="any" id="radius_mean" value="17.99" />
-        </div>
-        <div class="form-group">
-          <label>Texture Mean</label>
-          <input type="number" step="any" id="texture_mean" value="10.38" />
-        </div>
-        <div class="form-group">
-          <label>Perimeter Mean</label>
-          <input type="number" step="any" id="perimeter_mean" value="122.8" />
-        </div>
-        <div class="form-group">
-          <label>Area Mean</label>
-          <input type="number" step="any" id="area_mean" value="1001.0" />
-        </div>
-        <div class="form-group">
-          <label>Smoothness Mean</label>
-          <input type="number" step="any" id="smoothness_mean" value="0.1184" />
-        </div>
+  <div class="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center py-24 w-full relative z-10">
 
-        <div class="hidden-note">
-          ℹ️ As demais 25 features WDBC são enviadas automaticamente com base na biópsia FNA padrão.
-          <a href="/docs" target="_blank" style="color:var(--accent)">Ver API completa →</a>
-        </div>
-
-        <div class="form-group">
-          <label>🔐 API Key (Segurança Clínica)</label>
-          <input type="password" id="api_key" placeholder="Insira a chave de acesso..." />
-        </div>
-
-        <div class="test-suite">
-          <button type="button" class="btn-sample" id="btnMalignant">📋 Sample Maligno</button>
-          <button type="button" class="btn-sample" id="btnBenign">📋 Sample Benigno</button>
-          <button type="button" class="btn-clear" id="btnClear">🗑 Limpar</button>
-        </div>
-
-        <button type="submit" class="btn-analyze" id="btnAnalyze">
-          ⚡ Analisar Amostra de Biópsia
-        </button>
-
-      </form>
-    </div>
-
-    <!-- RIGHT — Resultado + XAI -->
-    <div class="right-panel">
-
-      <div id="resultBadge">⏳ Aguardando análise...</div>
-      <div id="probText"></div>
-
-      <div class="xai-box">
-        <h4>📊 Explainable AI — Desvio de Risco</h4>
-        <p>Contribuição relativa das variáveis morfológicas na decisão da rede neural</p>
-        <canvas id="xaiChart"></canvas>
+    <!-- Left: Copy -->
+    <div>
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest mb-8 fade-up"
+           style="background:rgba(108,62,255,.15); border:1px solid rgba(108,62,255,.35); color:#A78BFF;">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-ring inline-block"></span>
+        INTELIGÊNCIA ARTIFICIAL EM ONCOLOGIA
       </div>
 
+      <h1 class="text-5xl sm:text-6xl xl:text-7xl font-black leading-[1.05] mb-6 fade-up delay-1">
+        Elevando o<br/>
+        <span class="gradient-text">Diagnóstico</span><br/>
+        do Câncer.
+      </h1>
+
+      <p class="text-white/60 text-lg leading-relaxed mb-10 max-w-lg fade-up delay-2">
+        Aether Oncology combina <span style="color:#00D4FF;" class="font-semibold">inteligência artificial de ponta</span>
+        com dados clínicos para elevar a precisão dos diagnósticos e transformar vidas.
+      </p>
+
+      <div class="flex flex-wrap gap-4 mb-14 fade-up delay-3">
+        <a href="/static/portal.html" class="shimmer-btn text-white font-bold px-8 py-4 rounded-full text-base">
+          Acessar Portal Clínico
+        </a>
+        <a href="#como-funciona" class="flex items-center gap-2 text-white/70 font-semibold text-base hover:text-white transition-colors group">
+          <span class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:border-cyan-400 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+          </span>
+          Ver como funciona
+        </a>
+      </div>
+
+      <!-- Stats row -->
+      <div class="flex flex-wrap gap-8 fade-up delay-4">
+        <div>
+          <div class="stat-val gradient-text-pb">97,3%</div>
+          <div class="text-white/50 text-xs mt-1 tracking-wide">Precisão do modelo</div>
+        </div>
+        <div class="w-px h-12 self-center" style="background:rgba(255,255,255,.1)"></div>
+        <div>
+          <div class="stat-val" style="color:#00D4FF;">+1.248</div>
+          <div class="text-white/50 text-xs mt-1 tracking-wide">Análises realizadas</div>
+        </div>
+        <div class="w-px h-12 self-center" style="background:rgba(255,255,255,.1)"></div>
+        <div>
+          <div class="stat-val" style="color:#FF4DB8;">38%</div>
+          <div class="text-white/50 text-xs mt-1 tracking-wide">Casos malignos detectados</div>
+        </div>
+      </div>
     </div>
-  </div><!-- .body -->
-</div><!-- .container -->
+
+    <!-- Right: Visual Card -->
+    <div class="flex justify-center lg:justify-end fade-up delay-2">
+      <div class="relative float">
+        <!-- Outer glow ring -->
+        <div class="absolute inset-0 rounded-3xl blur-2xl" style="background:linear-gradient(135deg,rgba(108,62,255,.3),rgba(0,212,255,.2)); transform:scale(1.08)"></div>
+
+        <!-- Dashboard mockup card -->
+        <div class="glass rounded-3xl p-6 w-full max-w-sm relative overflow-hidden border-gradient">
+          <!-- Header bar -->
+          <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-red-500"></div>
+              <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+              <div class="w-2 h-2 rounded-full bg-green-400"></div>
+            </div>
+            <span class="text-white/40 text-xs font-mono">aether-dashboard</span>
+          </div>
+
+          <!-- Scanning area -->
+          <div class="relative rounded-2xl overflow-hidden mb-5" style="height:180px; background:rgba(0,0,0,.35);">
+            <!-- Grid lines -->
+            <svg class="absolute inset-0 w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                  <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#6C3EFF" stroke-width=".5"/>
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)"/>
+            </svg>
+            <!-- Scanning line -->
+            <div class="scan-line"></div>
+            <!-- Circle reticle -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-24 h-24 rounded-full border-2 flex items-center justify-center" style="border-color:rgba(0,212,255,.5);">
+                <div class="w-16 h-16 rounded-full border flex items-center justify-center" style="border-color:rgba(255,77,184,.6);">
+                  <div class="w-8 h-8 rounded-full" style="background:rgba(255,77,184,.35); box-shadow:0 0 20px rgba(255,77,184,.5)"></div>
+                </div>
+              </div>
+            </div>
+            <div class="absolute top-3 left-3 text-xs font-mono" style="color:#00D4FF;">ANÁLISE EM PROGRESSO</div>
+            <div class="absolute bottom-3 right-3 text-xs font-mono text-white/40">IA v2.4</div>
+          </div>
+
+          <!-- Metric rows -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-white/60 text-sm">Precisão do Modelo</span>
+              <span class="font-bold text-sm" style="color:#00D4FF;">97,3%</span>
+            </div>
+            <div class="w-full rounded-full h-1.5" style="background:rgba(255,255,255,.07)">
+              <div class="h-1.5 rounded-full" style="width:97%; background:linear-gradient(90deg,#6C3EFF,#00D4FF);"></div>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-white/60 text-sm">Diagnóstico</span>
+              <span class="px-2 py-0.5 rounded text-xs font-bold" style="background:rgba(255,77,184,.15); color:#FF4DB8;">MALIGNO — 38%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-white/60 text-sm">Confiança</span>
+              <div class="flex gap-1">
+                <div class="w-2 h-2 rounded-full" style="background:#6C3EFF;"></div>
+                <div class="w-2 h-2 rounded-full" style="background:#FF4DB8;"></div>
+                <div class="w-2 h-2 rounded-full" style="background:#00D4FF;"></div>
+                <div class="w-2 h-2 rounded-full" style="background:#00D4FF;"></div>
+                <div class="w-2 h-2 rounded-full" style="background:#00D4FF;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     BENEFITS / FEATURES
+════════════════════════════════ -->
+<section id="beneficios" class="relative py-28">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 60% 40% at 50% 0%, rgba(108,62,255,.1) 0%, transparent 70%)"></div>
+
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <!-- Section header -->
+    <div class="text-center mb-20">
+      <p class="text-xs font-bold tracking-[.3em] mb-4" style="color:#FF4DB8;">DIFERENCIAIS</p>
+      <h2 class="text-4xl sm:text-5xl font-black mb-5">
+        Tecnologia que <span class="gradient-text">transforma</span><br/> o cuidado oncológico
+      </h2>
+      <p class="text-white/50 text-lg max-w-xl mx-auto leading-relaxed">
+        Quatro pilares que sustentam nossa plataforma de diagnóstico assistido por inteligência artificial.
+      </p>
+    </div>
+
+    <!-- Grid 2x2 -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      <!-- Card 1 -->
+      <div class="card-feat border-gradient glass rounded-2xl p-7 hover:-translate-y-2 transition-transform duration-300">
+        <div class="icon-wrap mb-5" style="background:rgba(108,62,255,.2);">
+          <!-- Brain icon -->
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6C3EFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.96-3.11 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.44-2.11Z"/>
+            <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.96-3.11 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.44-2.11Z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-lg mb-2" style="color:#A78BFF;">Inteligência Artificial</h3>
+        <p class="text-white/55 text-sm leading-relaxed">
+          Algoritmos avançados treinados em milhares de casos oncológicos para análises precisas e rápidas.
+        </p>
+        <div class="mt-5 flex items-center gap-2 text-xs font-semibold" style="color:#6C3EFF;">
+          Saiba mais
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card-feat border-gradient glass rounded-2xl p-7 hover:-translate-y-2 transition-transform duration-300">
+        <div class="icon-wrap mb-5" style="background:rgba(0,212,255,.15);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+            <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-lg mb-2" style="color:#00D4FF;">Precisão Diagnóstica</h3>
+        <p class="text-white/55 text-sm leading-relaxed">
+          97,3% de acurácia nos modelos preditivos, reduzindo falsos negativos e aumentando a assertividade clínica.
+        </p>
+        <div class="mt-5 flex items-center gap-2 text-xs font-semibold" style="color:#00D4FF;">
+          Saiba mais
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card-feat border-gradient glass rounded-2xl p-7 hover:-translate-y-2 transition-transform duration-300">
+        <div class="icon-wrap mb-5" style="background:rgba(255,77,184,.15);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF4DB8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-lg mb-2" style="color:#FF9DE2;">Confiança e Segurança</h3>
+        <p class="text-white/55 text-sm leading-relaxed">
+          Plataforma em conformidade com LGPD, criptografia de ponta a ponta e auditoria completa dos dados.
+        </p>
+        <div class="mt-5 flex items-center gap-2 text-xs font-semibold" style="color:#FF4DB8;">
+          Saiba mais
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="card-feat border-gradient glass rounded-2xl p-7 hover:-translate-y-2 transition-transform duration-300">
+        <div class="icon-wrap mb-5" style="background:rgba(108,62,255,.15);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <defs><linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6C3EFF"/><stop offset="1" stop-color="#FF4DB8"/></linearGradient></defs>
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="url(#hg)"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-lg mb-2 gradient-text">Impacto Humano</h3>
+        <p class="text-white/55 text-sm leading-relaxed">
+          Tecnologia a serviço da vida. Cada diagnóstico precoce representa uma chance maior de cura e qualidade de vida.
+        </p>
+        <div class="mt-5 flex items-center gap-2 text-xs font-semibold gradient-text-pb">
+          Saiba mais
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF4DB8" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════ -->
+<section id="como-funciona" class="py-28 relative">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 50% 60% at 80% 50%, rgba(0,212,255,.07) 0%, transparent 70%)"></div>
+
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+
+      <!-- Left: Steps -->
+      <div>
+        <p class="text-xs font-bold tracking-[.3em] mb-4" style="color:#00D4FF;">COMO FUNCIONA</p>
+        <h2 class="text-4xl sm:text-5xl font-black mb-12 leading-tight">
+          Do exame ao<br/><span class="gradient-text">laudo inteligente</span><br/>em minutos.
+        </h2>
+
+        <div class="space-y-8">
+          <!-- Step 1 -->
+          <div class="flex gap-5 items-start">
+            <div class="step-num" style="background:linear-gradient(135deg,#6C3EFF,#FF4DB8); color:#fff;">1</div>
+            <div>
+              <h4 class="font-bold text-base mb-1 text-white">Envio do Exame</h4>
+              <p class="text-white/50 text-sm leading-relaxed">Imagens de mamografia, ultrassom ou tomografia são carregadas de forma segura na plataforma.</p>
+            </div>
+          </div>
+          <!-- connector -->
+          <div class="ml-6 w-px h-6" style="background:linear-gradient(to bottom,rgba(108,62,255,.5),rgba(0,212,255,.5))"></div>
+          <!-- Step 2 -->
+          <div class="flex gap-5 items-start">
+            <div class="step-num" style="background:linear-gradient(135deg,#FF4DB8,#00D4FF); color:#fff;">2</div>
+            <div>
+              <h4 class="font-bold text-base mb-1 text-white">Análise com IA</h4>
+              <p class="text-white/50 text-sm leading-relaxed">Nosso modelo de deep learning identifica padrões, classifica lesões e calcula probabilidades com alta acurácia.</p>
+            </div>
+          </div>
+          <!-- connector -->
+          <div class="ml-6 w-px h-6" style="background:linear-gradient(to bottom,rgba(0,212,255,.5),rgba(108,62,255,.5))"></div>
+          <!-- Step 3 -->
+          <div class="flex gap-5 items-start">
+            <div class="step-num" style="background:linear-gradient(135deg,#00D4FF,#6C3EFF); color:#fff;">3</div>
+            <div>
+              <h4 class="font-bold text-base mb-1 text-white">Laudo Gerado</h4>
+              <p class="text-white/50 text-sm leading-relaxed">Relatório detalhado entregue ao médico com mapa de calor, scores e recomendações clínicas baseadas em evidências.</p>
+            </div>
+          </div>
+          <!-- connector -->
+          <div class="ml-6 w-px h-6" style="background:linear-gradient(to bottom,rgba(108,62,255,.5),rgba(255,77,184,.5))"></div>
+          <!-- Step 4 -->
+          <div class="flex gap-5 items-start">
+            <div class="step-num" style="background:linear-gradient(135deg,#6C3EFF,#FF4DB8); color:#fff;">4</div>
+            <div>
+              <h4 class="font-bold text-base mb-1 text-white">Decisão Médica</h4>
+              <p class="text-white/50 text-sm leading-relaxed">O especialista revisa, valida e integra os insights ao prontuário. A IA amplia, nunca substitui, o julgamento clínico.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Mini dashboard -->
+      <div class="flex justify-center">
+        <div class="w-full max-w-sm relative">
+          <!-- Glow -->
+          <div class="absolute -inset-4 rounded-3xl blur-3xl pointer-events-none" style="background:radial-gradient(ellipse, rgba(108,62,255,.2) 0%, transparent 70%)"></div>
+          <div class="glass rounded-2xl p-6 relative border border-white/8">
+            <div class="text-xs font-semibold tracking-widest text-white/40 mb-4 uppercase">Relatório de Análise</div>
+
+            <!-- Progress bars -->
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-white/70">Benigno</span><span style="color:#6C3EFF; font-weight:700;">62%</span>
+                </div>
+                <div class="h-2 rounded-full" style="background:rgba(255,255,255,.07)">
+                  <div class="h-2 rounded-full" style="width:62%; background:linear-gradient(90deg,#6C3EFF,#A78BFF)"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-white/70">Maligno</span><span style="color:#FF4DB8; font-weight:700;">38%</span>
+                </div>
+                <div class="h-2 rounded-full" style="background:rgba(255,255,255,.07)">
+                  <div class="h-2 rounded-full" style="width:38%; background:linear-gradient(90deg,#FF4DB8,#FF9DE2)"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-white/70">Confiança</span><span style="color:#00D4FF; font-weight:700;">97,3%</span>
+                </div>
+                <div class="h-2 rounded-full" style="background:rgba(255,255,255,.07)">
+                  <div class="h-2 rounded-full" style="width:97%; background:linear-gradient(90deg,#00D4FF,#6C3EFF)"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chart SVG -->
+            <div class="mt-6 rounded-xl overflow-hidden p-4" style="background:rgba(0,0,0,.3)">
+              <div class="text-xs text-white/40 mb-3">Predições — últimos 6 meses</div>
+              <svg viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg" class="w-full">
+                <defs>
+                  <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#6C3EFF" stop-opacity=".4"/>
+                    <stop offset="100%" stop-color="#6C3EFF" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0 60 L40 50 L80 40 L120 35 L160 25 L200 18 L240 12 L280 8" fill="none" stroke="#6C3EFF" stroke-width="2"/>
+                <path d="M0 60 L40 50 L80 40 L120 35 L160 25 L200 18 L240 12 L280 8 L280 80 L0 80Z" fill="url(#cg)"/>
+                <!-- Points -->
+                <circle cx="40" cy="50" r="3" fill="#6C3EFF"/>
+                <circle cx="120" cy="35" r="3" fill="#FF4DB8"/>
+                <circle cx="200" cy="18" r="3" fill="#00D4FF"/>
+                <circle cx="280" cy="8" r="4" fill="#00D4FF" opacity=".8"/>
+                <!-- X labels -->
+                <text x="0" y="78" fill="#ffffff55" font-size="8" font-family="monospace">Jan</text>
+                <text x="80" y="78" fill="#ffffff55" font-size="8" font-family="monospace">Mar</text>
+                <text x="160" y="78" fill="#ffffff55" font-size="8" font-family="monospace">Mai</text>
+                <text x="248" y="78" fill="#ffffff55" font-size="8" font-family="monospace">Jul</text>
+              </svg>
+            </div>
+
+            <!-- Status badge -->
+            <div class="mt-4 flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-400 pulse-ring"></div>
+              <span class="text-xs text-white/50">Sistema operacional — análise em tempo real</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     RESULTS / NUMBERS
+════════════════════════════════ -->
+<section id="resultados" class="py-24 relative overflow-hidden">
+  <div class="absolute inset-0" style="background:linear-gradient(135deg, rgba(108,62,255,.1) 0%, rgba(0,212,255,.07) 100%)"></div>
+  <div class="absolute inset-0" style="border-top:1px solid rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.05);"></div>
+
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <div class="text-center mb-16">
+      <p class="text-xs font-bold tracking-[.3em] mb-4" style="color:#FF4DB8;">RESULTADOS</p>
+      <h2 class="text-4xl sm:text-5xl font-black">Números que <span class="gradient-text">comprovam</span> o impacto</h2>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="glass rounded-2xl p-8 text-center hover:glow-purple transition-all duration-300">
+        <div class="text-5xl font-black mb-2" style="color:#6C3EFF;">97,3%</div>
+        <div class="text-white/50 text-sm font-medium">Acurácia diagnóstica</div>
+      </div>
+      <div class="glass rounded-2xl p-8 text-center hover:glow-cyan transition-all duration-300">
+        <div class="text-5xl font-black mb-2" style="color:#00D4FF;">+1.248</div>
+        <div class="text-white/50 text-sm font-medium">Análises realizadas</div>
+      </div>
+      <div class="glass rounded-2xl p-8 text-center hover:glow-pink transition-all duration-300">
+        <div class="text-5xl font-black mb-2" style="color:#FF4DB8;">3x</div>
+        <div class="text-white/50 text-sm font-medium">Mais rápido que laudos tradicionais</div>
+      </div>
+      <div class="glass rounded-2xl p-8 text-center" style="transition:all .3s">
+        <div class="text-5xl font-black mb-2 gradient-text">100%</div>
+        <div class="text-white/50 text-sm font-medium">Conformidade com LGPD</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     CTA BANNER
+════════════════════════════════ -->
+<section id="contato" class="py-20 relative overflow-hidden">
+  <div class="absolute inset-0" style="background:linear-gradient(135deg, rgba(108,62,255,.25) 0%, rgba(255,77,184,.15) 50%, rgba(0,212,255,.2) 100%)"></div>
+  <div class="absolute inset-0 border border-white/8 rounded-none"></div>
+
+  <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
+    <div class="mb-3">
+      <span class="w-2 h-2 rounded-full inline-block bg-green-400 mr-2 pulse-ring"></span>
+      <span class="text-white/60 text-sm">Demonstrações disponíveis</span>
+    </div>
+    <h2 class="text-4xl sm:text-5xl font-black mb-5 leading-tight">
+      Pronto para <span class="gradient-text">elevar</span> seus<br/>diagnósticos?
+    </h2>
+    <p class="text-white/55 text-lg mb-10 leading-relaxed">
+      Agende uma demonstração gratuita e veja a Aether Oncology em ação no seu fluxo clínico.
+    </p>
+
+    <form onsubmit="handleForm(event)" class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+      <input
+        type="email"
+        placeholder="seu@email.com.br"
+        class="flex-1 px-5 py-3.5 rounded-full text-white placeholder-white/30 text-sm font-medium outline-none focus:ring-2 focus:ring-purple-500"
+        style="background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);"
+      />
+      <button type="submit" class="shimmer-btn text-white font-bold px-7 py-3.5 rounded-full text-sm whitespace-nowrap">
+        Solicitar Demo
+      </button>
+    </form>
+    <p id="form-msg" class="mt-4 text-sm font-semibold" style="color:#00D4FF; display:none;">✓ Recebemos seu contato! Em breve nossa equipe te responde.</p>
+    <p class="text-white/30 text-xs mt-5">Sem spam. Sem compromisso. 100% gratuito.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════
+     FOOTER
+════════════════════════════════ -->
+<footer style="background:rgba(5,8,20,.9); border-top:1px solid rgba(255,255,255,.06);">
+  <div class="max-w-7xl mx-auto px-6 py-16">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+      <!-- Brand -->
+      <div class="lg:col-span-1">
+        <div class="flex items-center gap-3 mb-4">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8">
+            <defs><linearGradient id="lg2" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#6C3EFF"/><stop offset=".5" stop-color="#FF4DB8"/><stop offset="1" stop-color="#00D4FF"/></linearGradient></defs>
+            <path d="M20 4L34 34H26L20 18L14 34H6L20 4Z" fill="url(#lg2)"/>
+            <ellipse cx="20" cy="34" rx="4" ry="2.5" fill="#00D4FF" opacity=".8"/>
+          </svg>
+          <div>
+            <div class="text-white font-bold text-sm tracking-[.18em]">AETHER</div>
+            <div class="text-xs tracking-[.3em]" style="color:#FF4DB8;">ONCOLOGY</div>
+          </div>
+        </div>
+        <p class="text-white/40 text-xs leading-relaxed mb-5">Elevating Cancer Diagnostics with AI.</p>
+        <!-- Social icons -->
+        <div class="flex gap-3">
+          <a href="#" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-purple-600/30" style="background:rgba(255,255,255,.06);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </a>
+          <a href="#" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-pink-600/30" style="background:rgba(255,255,255,.06);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="white" stroke="none"/></svg>
+          </a>
+          <a href="#" class="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-cyan-600/30" style="background:rgba(255,255,255,.06);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div>
+        <h4 class="font-bold text-sm text-white mb-5 tracking-wide">Plataforma</h4>
+        <ul class="space-y-3 text-white/45 text-sm">
+          <li><a href="/static/portal.html" class="hover:text-white transition-colors">Portal Clínico</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Análise de Imagens</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Relatórios</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Integrações</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">API</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-sm text-white mb-5 tracking-wide">Empresa</h4>
+        <ul class="space-y-3 text-white/45 text-sm">
+          <li><a href="#" class="hover:text-white transition-colors">Sobre nós</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Pesquisa</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Parceiros</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Blog</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Carreiras</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="font-bold text-sm text-white mb-5 tracking-wide">Suporte</h4>
+        <ul class="space-y-3 text-white/45 text-sm">
+          <li><a href="#" class="hover:text-white transition-colors">Documentação</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">LGPD e Privacidade</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Termos de Uso</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Contato</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-white/6 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <p class="text-white/25 text-xs">© 2024 Aether Oncology. Todos os direitos reservados.</p>
+      <p class="text-white/25 text-xs">Elevating Cancer Diagnostics with AI.</p>
+    </div>
+  </div>
+</footer>
 
 <script>
-// ── Chart.js — XAI horizontal bar chart ──────────────────────────────────────
-const ctx = document.getElementById('xaiChart').getContext('2d');
-const LABELS = ['Radius', 'Texture', 'Perimeter', 'Area', 'Smoothness'];
-const NEUTRAL_COLOR = 'rgba(255,255,255,0.2)';
+  // ─── STAR CANVAS ───────────────────────────────
+  (function() {
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, stars = [];
 
-const xaiChart = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: LABELS,
-    datasets: [{
-      label: 'Fator de Impacto',
-      data: [0, 0, 0, 0, 0],
-      backgroundColor: NEUTRAL_COLOR,
-      borderRadius: 5,
-      borderSkipped: false,
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    animation: { duration: 600, easing: 'easeInOutQuart' },
-    scales: {
-      x: { 
-        beginAtZero: true, 
-        grid: { color: 'rgba(255,255,255,.05)' },
-        ticks: { color: 'rgba(247, 249, 255, 0.6)' }
-      },
-      y: { 
-        grid: { display: false },
-        ticks: { color: 'rgba(247, 249, 255, 0.8)' }
-      }
-    },
-    plugins: { legend: { display: false } }
-  }
-});
-
-function updateChart(data, color) {
-  xaiChart.data.datasets[0].data = data;
-  xaiChart.data.datasets[0].backgroundColor = color;
-  xaiChart.update();
-}
-
-// ── WDBC sample — 30 features (as restantes com valores típicos, não zeros) ──
-const BASE_SAMPLE_MALIGNANT = {
-  compactness_mean: 0.2776, concavity_mean: 0.3001, concave_points_mean: 0.1471,
-  symmetry_mean: 0.2419, fractal_dimension_mean: 0.07871,
-  radius_se: 1.095, texture_se: 0.9053, perimeter_se: 8.589, area_se: 153.4,
-  smoothness_se: 0.006399, compactness_se: 0.04904, concavity_se: 0.05373,
-  concave_points_se: 0.01587, symmetry_se: 0.03003, fractal_dimension_se: 0.006193,
-  radius_worst: 25.38, texture_worst: 17.33, perimeter_worst: 184.6, area_worst: 2019.0,
-  smoothness_worst: 0.1622, compactness_worst: 0.6656, concavity_worst: 0.7119,
-  concave_points_worst: 0.2654, symmetry_worst: 0.4601, fractal_dimension_worst: 0.1189
-};
-
-const BASE_SAMPLE_BENIGN = {
-  compactness_mean: 0.08129, concavity_mean: 0.06664, concave_points_mean: 0.04781,
-  symmetry_mean: 0.1885, fractal_dimension_mean: 0.05766,
-  radius_se: 0.2699, texture_se: 0.7886, perimeter_se: 2.058, area_se: 23.56,
-  smoothness_se: 0.008462, compactness_se: 0.0146, concavity_se: 0.02387,
-  concave_points_se: 0.01315, symmetry_se: 0.0198, fractal_dimension_se: 0.0023,
-  radius_worst: 15.11, texture_worst: 19.26, perimeter_worst: 99.7, area_worst: 711.2,
-  smoothness_worst: 0.144, compactness_worst: 0.1773, concavity_worst: 0.239,
-  concave_points_worst: 0.1288, symmetry_worst: 0.2977, fractal_dimension_worst: 0.07259
-};
-
-let current_base_sample = { ...BASE_SAMPLE_BENIGN }; // Default to benign to be safe
-
-// ── TEST SUITE ACTIONS ────────────────────────────────────────────────────────
-document.getElementById('btnMalignant').addEventListener('click', () => {
-  current_base_sample = { ...BASE_SAMPLE_MALIGNANT };
-  document.getElementById('radius_mean').value = 17.99;
-  document.getElementById('texture_mean').value = 10.38;
-  document.getElementById('perimeter_mean').value = 122.8;
-  document.getElementById('area_mean').value = 1001.0;
-  document.getElementById('smoothness_mean').value = 0.1184;
-});
-
-document.getElementById('btnBenign').addEventListener('click', () => {
-  current_base_sample = { ...BASE_SAMPLE_BENIGN };
-  document.getElementById('radius_mean').value = 13.54;
-  document.getElementById('texture_mean').value = 14.36;
-  document.getElementById('perimeter_mean').value = 87.46;
-  document.getElementById('area_mean').value = 566.3;
-  document.getElementById('smoothness_mean').value = 0.09779;
-});
-
-document.getElementById('btnClear').addEventListener('click', () => {
-  document.getElementById('radius_mean').value = '';
-  document.getElementById('texture_mean').value = '';
-  document.getElementById('perimeter_mean').value = '';
-  document.getElementById('area_mean').value = '';
-  document.getElementById('smoothness_mean').value = '';
-  
-  // reset badge and chart
-  document.getElementById('resultBadge').className = '';
-  document.getElementById('resultBadge').style.cssText = 'background:rgba(255,255,255,0.03);color:var(--text-muted);border:2px dashed var(--border);';
-  document.getElementById('resultBadge').innerText = '⏳ Aguardando análise...';
-  document.getElementById('probText').innerText = '';
-  updateChart([0,0,0,0,0], NEUTRAL_COLOR);
-});
-
-// ── Form submit ───────────────────────────────────────────────────────────────
-document.getElementById('predictForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const btn = document.getElementById('btnAnalyze');
-  const badge = document.getElementById('resultBadge');
-  const probText = document.getElementById('probText');
-  const apiKey = document.getElementById('api_key').value.trim();
-
-  const r  = parseFloat(document.getElementById('radius_mean').value)    || 0;
-  const tx = parseFloat(document.getElementById('texture_mean').value)    || 0;
-  const p  = parseFloat(document.getElementById('perimeter_mean').value)  || 0;
-  const a  = parseFloat(document.getElementById('area_mean').value)       || 0;
-  const s  = parseFloat(document.getElementById('smoothness_mean').value) || 0;
-
-  const payload = {
-    ...current_base_sample,
-    radius_mean: r, texture_mean: tx,
-    perimeter_mean: p, area_mean: a, smoothness_mean: s
-  };
-
-  // Loading state
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Processando...';
-  badge.className = '';
-  badge.style.cssText = 'background:rgba(255,255,255,0.03);color:rgba(247, 249, 255, 0.6);border:2px dashed rgba(255,255,255,0.1);';
-  badge.innerText = '⏳ Analisando padrões neurais...';
-  probText.innerText = '';
-  updateChart([0,0,0,0,0], NEUTRAL_COLOR);
-
-  try {
-    const resp = await fetch('/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'access_token': apiKey },
-      body: JSON.stringify(payload)
-    });
-
-    btn.disabled = false;
-    btn.innerHTML = '⚡ Analisar Amostra de Biópsia';
-
-    if (resp.ok) {
-      const data = await resp.json();
-      const isMaligno = data.prediction === 1;
-      const pct = (data.probability * 100).toFixed(2);
-
-      badge.className = isMaligno ? 'malignant' : 'benign';
-      badge.style.cssText = '';
-      badge.innerText = isMaligno
-        ? `⚠️ ALTO RISCO (Maligno)`
-        : `✅ BAIXO RISCO (Benigno)`;
-
-      probText.innerText =
-        `Probabilidade: ${pct}% · Confiança: ${data.confidence} · Status: ${data.status}`;
-
-      // XAI mock — escala normalizada por tipo de feature
-      const xaiData = isMaligno
-        ? [r * 0.80, tx * 1.20, p * 0.50, a * 0.05, s * 100]
-        : [r * 0.20, tx * 0.40, p * 0.10, a * 0.01, s *  20];
-
-      const xaiColor = isMaligno
-        ? 'rgba(255, 77, 77, 0.8)'
-        : 'rgba(0, 230, 118, 0.8)';
-
-      updateChart(xaiData, xaiColor);
-
-      if (data.warning) {
-        probText.innerText += ` · ⚠️ ${data.warning}`;
-      }
-
-    } else {
-      const err = await resp.json().catch(() => ({ detail: `HTTP ${resp.status}` }));
-      badge.className = '';
-      badge.style.cssText = 'background:rgba(255,77,77,0.1);color:#FF4D4D;border:2px solid rgba(255,77,77,0.4);';
-      badge.innerText = resp.status === 403
-        ? '🔒 Acesso Negado — API Key inválida'
-        : `❌ Erro ${resp.status}: ${err.detail}`;
-      probText.innerText = 'Verifique a API Key ou os dados.';
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = document.body.scrollHeight;
     }
 
-  } catch (err) {
-    btn.disabled = false;
-    btn.innerHTML = '⚡ Analisar Amostra de Biópsia';
-    badge.style.cssText = 'background:rgba(255, 179, 71, 0.1);color:#FFB347;border:2px solid rgba(255, 179, 71, 0.4);';
-    badge.innerText = '❌ Erro de Conexão com a API';
-    probText.innerText = err.message;
+    function makeStar() {
+      return {
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.2 + .2,
+        a: Math.random(),
+        da: (Math.random() - .5) * .003
+      };
+    }
+
+    function init() {
+      resize();
+      stars = Array.from({length: 160}, makeStar);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      stars.forEach(s => {
+        s.a = Math.max(0, Math.min(1, s.a + s.da));
+        if (s.a <= 0 || s.a >= 1) s.da *= -1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(247,249,255,${s.a * .7})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', init);
+    init();
+    draw();
+  })();
+
+  // ─── MOBILE MENU ───────────────────────────────
+  function toggleMenu() {
+    const m = document.getElementById('mobile-menu');
+    m.classList.toggle('open');
   }
-});
+
+  // ─── FORM ──────────────────────────────────────
+  function handleForm(e) {
+    e.preventDefault();
+    const msg = document.getElementById('form-msg');
+    msg.style.display = 'block';
+    e.target.reset();
+  }
+
+  // ─── SCROLL REVEAL ─────────────────────────────
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(el => {
+      if (el.isIntersecting) {
+        el.target.style.opacity = '1';
+        el.target.style.transform = 'translateY(0)';
+        io.unobserve(el.target);
+      }
+    });
+  }, { threshold: .15 });
+
+  document.querySelectorAll('.card-feat, .testi-card, .glass').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'opacity .6s ease, transform .6s ease';
+    io.observe(el);
+  });
 </script>
 </body>
 </html>
