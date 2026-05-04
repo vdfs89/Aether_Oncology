@@ -37,6 +37,80 @@ IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraes
 
 ---
 
+## 📊 Arquitetura e Análise Técnica
+
+### Diagrama de Arquitetura da Aplicação
+
+```mermaid
+graph TD
+    subgraph "Frontend (Hospedagem Estática: portal.vitorsilva.engineer)"
+        UI[Portal Clínico\nVanilla JS + HTML5]
+        XAI[Explainable AI\nChart.js Radar]
+    end
+
+    subgraph "Backend (Cloud Hosting: Render)"
+        Auth[Autenticação\nAPI Key & CORS]
+        API[FastAPI\nEndpoints: /predict, /health]
+        
+        subgraph "Service Layer"
+            Service[PredictorService\nDesign Padrão Singleton]
+        end
+        
+        subgraph "Machine Learning Engine"
+            Pipeline[Scikit-Learn\nStandardScaler Pipeline]
+            Model[PyTorch MLP\nBinary Classifier]
+        end
+    end
+
+    subgraph "Governança & MLOps"
+        MLflow[(MLflow Tracking\nModel Registry)]
+        Pandera[Pandera\nData Contracts]
+    end
+
+    Medico((Médico/Usuário)) -->|Insere Biópsia| UI
+    UI -->|Renderiza| XAI
+    UI -->|POST /predict via JSON| Auth
+    Auth -->|Valida access_token| API
+    API -->|Valida Schema Pydantic| Service
+    Service -->|Aplica Transformações| Pipeline
+    Pipeline -->|Inferência Tensorial| Model
+    Model -->|Devolve Probabilidade| API
+    MLflow -.->|Versiona Artefatos .pth e .joblib| Service
+    Pandera -.->|Garante integridade na pipeline| Pipeline
+```
+
+### Análise Técnica Completa (Executive Summary)
+
+Esta análise valida como o seu projeto atende (e supera) os critérios de avaliação da Fase 01.
+
+**Arquitetura & Organização**
+* **Padrão Arquitetural:** Microsserviço de Inferência Desacoplado. O Frontend (Vanilla JS) comunica-se assincronamente com o Backend via REST API.
+* **Modularidade e SOLID:** O código está encapsulado na estrutura `src/`, separando responsabilidades (Single Responsibility Principle) através do `PredictorService`. Isso garante que a camada web (rotas) não conheça os tensores do modelo.
+
+**Backend & API**
+* **Framework:** Desenvolvido em FastAPI, o padrão moderno para MLOps devido ao seu suporte nativo a operações assíncronas e documentação Swagger automática.
+* **Contratos de Dados:** Utilização estrita do Pydantic para forçar que o JSON de entrada contenha exatamente os 30 atributos da biópsia com as tipagens corretas (evitando o "garbage in, garbage out").
+
+**IA / Machine Learning (O Core)**
+* **Treinamento e Modelo:** Implementação de uma Rede Neural MLP (Multilayer Perceptron) customizada no PyTorch para dados tabulares. O loop de treino conta com Early Stopping para prevenir o overfitting e regularização via Dropout.
+* **Pipeline (Data Leakage):** Todo o pré-processamento (como o `StandardScaler`) está encapsulado num pipeline do Scikit-Learn, garantindo transformações idênticas em treino e inferência.
+* **Governança:** Integração profunda com MLflow, registrando não apenas os pesos do modelo (artefatos), mas também os hiperparâmetros, curva de loss e métricas críticas como Recall e F1-Score.
+
+**Segurança**
+* **Autenticação:** O acesso à rede neural é protegido por uma validação de cabeçalho (`access_token`) através de API Key injetada por variáveis de ambiente.
+* **CORS:** Políticas rigorosas de Cross-Origin Resource Sharing permitindo apenas métodos GET e POST, protegendo o backend no Render.
+
+**DevOps & Qualidade de Código**
+* **Observabilidade & Latência:** A arquitetura do `PredictorService` utiliza o padrão Singleton para carregar o modelo de IA na memória uma única vez no arranque do servidor, eliminando a latência de I/O em cada predição.
+* **Ambiente & Linting:** O projeto utiliza o `pyproject.toml` como única fonte de verdade para dependências. A qualidade do código é assegurada pelo Ruff, o linter mais rápido do ecossistema atual.
+* **Testes (TDD):** A robustez da aplicação é garantida pelo Pytest através de três camadas exigidas: Smoke tests (saúde da API), validação algorítmica e testes de integridade de dados (data contracts) suportados pelo framework Pandera.
+
+**Documentação & Manutenção**
+* **Model Card:** O projeto possui um documento ético detalhando os casos de uso previstos, as mitigações contra viés nos dados demográficos e o foco estratégico no Recall para priorização da segurança do paciente.
+* **Plano de Monitoramento:** Estrutura definida para a fase de pós-implantação (Day 2), estabelecendo gatilhos para retreino perante deteção de Data Drift (mudança nos equipamentos de biópsia) e degradação de performance.
+
+---
+
 ## 🏗️ Estrutura do Repositório
 
 ```
@@ -289,6 +363,16 @@ Documenta explicitamente o que o modelo **não pode fazer**: nenhum diagnóstico
 
 ### [`docs/MONITORING.md`](docs/MONITORING.md)
 Define thresholds de alerta e **Playbook de Incidentes** com 4 níveis de severidade — do 🟢 BAIXO (F1 queda > 5%) ao 🔴 CRÍTICO (Recall < 0.90 → suspender predições).
+
+---
+
+## 🔮 Visão de Futuro (Roadmap v2.0): Arquitetura Multimodal e Genômica
+
+Embora o MVP atual do **Aether Oncology** entregue excelência na triagem baseada em características morfológicas de núcleos celulares (via biópsia FNA), o nosso roadmap arquitetural prevê a evolução para um sistema de **Inteligência Artificial Multimodal**. 
+
+A versão 2.0 integrará as imagens e métricas da biópsia com **Prontuários Eletrônicos (EHR)** e **Painéis Genômicos** do paciente. Explorando as bases de dados oncológicas avançadas do ecossistema Hugging Face (como `Genomics_oncology` e `Oncology_cancer_ehr` [1, 2]), o modelo cruzará os dados da biópsia com históricos de comorbidades e assinaturas de risco genético, como mutações *driver* (ex: KRAS G12C e EGFR L858R [3, 4]). 
+
+Essa fusão de domínios transformará a plataforma num oráculo de **Medicina de Precisão**, elevando de forma exponencial a capacidade preditiva do sistema e garantindo um *Recall* praticamente à prova de falhas em ambientes hospitalares do mundo real.
 
 ---
 

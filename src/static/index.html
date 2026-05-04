@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aether Oncology – Elevating Cancer Diagnostics with AI</title>
+  <link rel="icon" type="image/png" href="images/lotus-red.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --navy:   #0B1026;
@@ -13,6 +15,19 @@
       --pink:   #FF4DB8;
       --cyan:   #00D4FF;
       --white:  #F7F9FF;
+      
+      /* Portal Specific Vars */
+      --bg-dark: #0B1026;
+      --primary-purple: #6C3EFF;
+      --primary-cyan: #00D4FF;
+      --accent-pink: #FF4DB8;
+      --text-light: #F7F9FF;
+      --grad-logo: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
+      --grad-button: linear-gradient(90deg, var(--primary-purple), var(--accent-pink));
+      --border: rgba(255, 255, 255, 0.1);
+      --text-muted: rgba(247, 249, 255, 0.6);
+      --danger: #FF4D4D;
+      --success: #00E676;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -228,14 +243,98 @@
       transform: translateY(-6px);
     }
 
-    /* ─── STEP CIRCLE ─── */
-    .step-num {
-      width: 48px; height: 48px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800;
-      font-size: 1.125rem;
-      flex-shrink: 0;
+    /* ─── PORTAL INTEGRATION STYLES ─── */
+    #portal {
+      scroll-margin-top: 80px;
+    }
+    .portal-container {
+      width: 100%;
+      max-width: 1020px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    .portal-header {
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .portal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    @media (max-width: 720px) { .portal-body { grid-template-columns: 1fr; } }
+    .portal-left {
+      padding: 28px 32px;
+      border-right: 1px solid var(--border);
+    }
+    .portal-right {
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .portal-section-title {
+      font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--primary-cyan);
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .portal-form-group { margin-bottom: 14px; }
+    .portal-label { display: block; font-size: .75rem; font-weight: 600; margin-bottom: 5px; color: var(--white); }
+    .portal-input {
+      font-family: 'Montserrat', sans-serif;
+      width: 100%; padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 8px; color: white; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .portal-input:focus { border-color: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan); }
+    .btn-analyze-portal {
+      background: var(--grad-button); color: white; margin-top: 10px;
+      font-weight: 700; width: 100%; padding: 15px; border-radius: 50px;
+      text-transform: uppercase; font-size: .9rem; cursor: pointer;
+      transition: transform .2s, box-shadow .2s; border: none;
+    }
+    .btn-analyze-portal:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(108, 62, 255, 0.4); }
+    .btn-analyze-portal:disabled { opacity: .6; cursor: not-allowed; }
+    
+    .test-suite { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .btn-sample {
+      flex: 1; padding: 10px 5px; font-size: 0.75rem; border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05); color: var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.1); cursor: pointer;
+    }
+    .btn-clear {
+      flex: 1; padding: 10px 5px; font-size: 0.75rem; border-radius: 8px;
+      background: rgba(255, 77, 77, 0.1); color: var(--danger);
+      border: 1px solid rgba(255, 77, 77, 0.3); cursor: pointer;
+    }
+
+    #resultBadge {
+      padding: 14px 20px; border-radius: 10px; font-weight: 700;
+      text-align: center; background: rgba(255,255,255,0.03);
+      color: var(--text-muted); border: 2px dashed var(--border);
+    }
+    #resultBadge.malignant { background: rgba(255, 77, 77, 0.1); color: var(--danger); border: 2px solid rgba(255, 77, 77, 0.4); }
+    #resultBadge.benign { background: rgba(0, 230, 118, 0.1); color: var(--success); border: 2px solid rgba(0, 230, 118, 0.4); }
+    
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+      border-radius: 50%; animation: spin .6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
     }
   </style>
 </head>
@@ -283,7 +382,7 @@
 
     <!-- CTA + Burger -->
     <div class="flex items-center gap-4">
-      <a href="/static/aether-oncology-portal/index.html" class="hidden md:block shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full">
+      <a href="#portal" class="hidden md:block shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full">
         Acessar Portal
       </a>
       <button onclick="toggleMenu()" class="md:hidden text-white">
@@ -301,7 +400,7 @@
     <a href="#como-funciona" class="nav-link block">Como Funciona</a>
     <a href="#resultados" class="nav-link block">Resultados</a>
     <a href="#contato" class="nav-link block">Contato</a>
-    <a href="/static/aether-oncology-portal/index.html" class="shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full inline-block mt-2">Acessar Portal</a>
+    <a href="#portal" class="shimmer-btn text-white font-semibold text-sm px-5 py-2.5 rounded-full inline-block mt-2">Acessar Portal</a>
   </div>
 </header>
 
@@ -337,7 +436,7 @@
       </p>
 
       <div class="flex flex-wrap gap-4 mb-14 fade-up delay-3">
-        <a href="/static/aether-oncology-portal/index.html" class="shimmer-btn text-white font-bold px-8 py-4 rounded-full text-base">
+        <a href="#portal" class="shimmer-btn text-white font-bold px-8 py-4 rounded-full text-base">
           Acessar Portal Clínico
         </a>
         <a href="#como-funciona" class="flex items-center gap-2 text-white/70 font-semibold text-base hover:text-white transition-colors group">
@@ -706,35 +805,105 @@
 <!-- ════════════════════════════════
      CTA BANNER
 ════════════════════════════════ -->
-<section id="contato" class="py-20 relative overflow-hidden">
-  <div class="absolute inset-0" style="background:linear-gradient(135deg, rgba(108,62,255,.25) 0%, rgba(255,77,184,.15) 50%, rgba(0,212,255,.2) 100%)"></div>
-  <div class="absolute inset-0 border border-white/8 rounded-none"></div>
+</section>
 
-  <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
-    <div class="mb-3">
-      <span class="w-2 h-2 rounded-full inline-block bg-green-400 mr-2 pulse-ring"></span>
-      <span class="text-white/60 text-sm">Demonstrações disponíveis</span>
+<!-- ════════════════════════════════
+     PORTAL INTEGRATION (TRANSITION)
+════════════════════════════════ -->
+<section id="portal-transition" class="py-32 relative overflow-hidden" style="background: #050814;">
+  <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at center, #6C3EFF 0%, transparent 70%);"></div>
+  <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+    <div class="mb-10 flex justify-center">
+      <img src="images/lotus-red.png" alt="Lotus" class="w-24 h-24 float" />
     </div>
-    <h2 class="text-4xl sm:text-5xl font-black mb-5 leading-tight">
-      Pronto para <span class="gradient-text">elevar</span> seus<br/>diagnósticos?
-    </h2>
-    <p class="text-white/55 text-lg mb-10 leading-relaxed">
-      Agende uma demonstração gratuita e veja a Aether Oncology em ação no seu fluxo clínico.
-    </p>
+    <h2 class="text-4xl font-black tracking-tighter text-white mb-4">AETHER CORE</h2>
+    <p class="text-white/40 max-w-lg mx-auto text-lg">Iniciando protocolo de análise profunda para decisão clínica assistida.</p>
+  </div>
+</section>
 
-    <form onsubmit="handleForm(event)" class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-      <input
-        type="email"
-        placeholder="seu@email.com.br"
-        class="flex-1 px-5 py-3.5 rounded-full text-white placeholder-white/30 text-sm font-medium outline-none focus:ring-2 focus:ring-purple-500"
-        style="background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);"
-      />
-      <button type="submit" class="shimmer-btn text-white font-bold px-7 py-3.5 rounded-full text-sm whitespace-nowrap">
-        Solicitar Demo
-      </button>
-    </form>
-    <p id="form-msg" class="mt-4 text-sm font-semibold" style="color:#00D4FF; display:none;">✓ Recebemos seu contato! Em breve nossa equipe te responde.</p>
-    <p class="text-white/30 text-xs mt-5">Sem spam. Sem compromisso. 100% gratuito.</p>
+<!-- ════════════════════════════════
+     PORTAL DASHBOARD
+════════════════════════════════ -->
+<section id="portal" class="py-24 relative bg-[#0B1026]">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="portal-container border-gradient">
+      <!-- HEADER -->
+      <div class="portal-header">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2 mb-2">
+            <img src="images/lotus-red.png" class="w-6 h-6" alt="Lotus" />
+            <span class="text-xs font-bold tracking-widest text-red-500">AETHER CORE</span>
+          </div>
+          <h2 class="text-2xl font-bold gradient-text">Portal de Decisão Clínica</h2>
+          <p class="text-white/40 text-sm">WDBC MLOps v2.0 — Inferência em Tempo Real</p>
+        </div>
+        <span class="badge-live">🟢 LIVE · api.vitorsilva.engineer</span>
+      </div>
+
+      <div class="portal-body">
+        <!-- LEFT — Form -->
+        <div class="portal-left">
+          <div class="portal-section-title">Dados da Biópsia (FNA)</div>
+          <form id="predictForm">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="portal-form-group">
+                <label class="portal-label">Radius Mean</label>
+                <input type="number" step="any" id="radius_mean" class="portal-input" value="17.99" />
+              </div>
+              <div class="portal-form-group">
+                <label class="portal-label">Texture Mean</label>
+                <input type="number" step="any" id="texture_mean" class="portal-input" value="10.38" />
+              </div>
+              <div class="portal-form-group">
+                <label class="portal-label">Perimeter Mean</label>
+                <input type="number" step="any" id="perimeter_mean" class="portal-input" value="122.8" />
+              </div>
+              <div class="portal-form-group">
+                <label class="portal-label">Area Mean</label>
+                <input type="number" step="any" id="area_mean" class="portal-input" value="1001.0" />
+              </div>
+            </div>
+            <div class="portal-form-group">
+              <label class="portal-label">Smoothness Mean</label>
+              <input type="number" step="any" id="smoothness_mean" class="portal-input" value="0.1184" />
+            </div>
+
+            <div class="hidden-note text-[10px] mb-4">
+              ℹ️ As demais 25 features WDBC são enviadas automaticamente com base no perfil da amostra.
+            </div>
+
+            <div class="portal-form-group">
+              <label class="portal-label">🔐 Clinical Access Key</label>
+              <input type="password" id="api_key" placeholder="Insira a chave de acesso..." class="portal-input" />
+            </div>
+
+            <div class="test-suite">
+              <button type="button" class="btn-sample" id="btnMalignant">📋 Sample Maligno</button>
+              <button type="button" class="btn-sample" id="btnBenign">📋 Sample Benigno</button>
+              <button type="button" class="btn-clear" id="btnClear">🗑 Limpar</button>
+            </div>
+
+            <button type="submit" class="btn-analyze-portal" id="btnAnalyze">
+              ⚡ Analisar Amostra
+            </button>
+          </form>
+        </div>
+
+        <!-- RIGHT — Results -->
+        <div class="portal-right">
+          <div id="resultBadge">⏳ Aguardando análise...</div>
+          <div id="probText"></div>
+
+          <div class="mt-4">
+            <h4 class="text-center text-xs font-bold text-white mb-2">📊 Explainable AI (XAI)</h4>
+            <p class="text-center text-[10px] text-white/40 mb-4">Contribuição morfológica na decisão neural</p>
+            <div class="relative h-[240px]">
+              <canvas id="xaiChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -776,7 +945,7 @@
       <div>
         <h4 class="font-bold text-sm text-white mb-5 tracking-wide">Plataforma</h4>
         <ul class="space-y-3 text-white/45 text-sm">
-          <li><a href="/static/aether-oncology-portal/index.html" class="hover:text-white transition-colors">Portal Clínico</a></li>
+          <li><a href="#portal" class="hover:text-white transition-colors">Portal Clínico</a></li>
           <li><a href="#" class="hover:text-white transition-colors">Análise de Imagens</a></li>
           <li><a href="#" class="hover:text-white transition-colors">Relatórios</a></li>
           <li><a href="#" class="hover:text-white transition-colors">Integrações</a></li>
@@ -889,6 +1058,132 @@
     el.style.transition = 'opacity .6s ease, transform .6s ease';
     io.observe(el);
   });
+
+  // ─── PORTAL LOGIC ────────────────────────────────
+  const xaiCtx = document.getElementById('xaiChart').getContext('2d');
+  const LABELS = ['Radius', 'Texture', 'Perimeter', 'Area', 'Smoothness'];
+  const NEUTRAL_COLOR = 'rgba(255,255,255,0.1)';
+
+  const xaiChart = new Chart(xaiCtx, {
+    type: 'bar',
+    data: {
+      labels: LABELS,
+      datasets: [{
+        label: 'Fator de Impacto',
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: NEUTRAL_COLOR,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeInOutQuart' },
+      scales: {
+        x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: 'rgba(247, 249, 255, 0.4)' } },
+        y: { grid: { display: false }, ticks: { color: 'rgba(247, 249, 255, 0.7)' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  function updateXAI(data, color) {
+    xaiChart.data.datasets[0].data = data;
+    xaiChart.data.datasets[0].backgroundColor = color;
+    xaiChart.update();
+  }
+
+  const BASE_MALIGNANT = {
+    compactness_mean: 0.2776, concavity_mean: 0.3001, concave_points_mean: 0.1471,
+    symmetry_mean: 0.2419, fractal_dimension_mean: 0.07871, radius_se: 1.095, area_se: 153.4,
+    radius_worst: 25.38, texture_worst: 17.33, perimeter_worst: 184.6, area_worst: 2019.0,
+    smoothness_worst: 0.1622, compactness_worst: 0.6656, concavity_worst: 0.7119,
+    concave_points_worst: 0.2654, symmetry_worst: 0.4601, fractal_dimension_worst: 0.1189
+  };
+  const BASE_BENIGN = {
+    compactness_mean: 0.08129, concavity_mean: 0.06664, concave_points_mean: 0.04781,
+    symmetry_mean: 0.1885, fractal_dimension_mean: 0.05766, radius_se: 0.2699, area_se: 23.56,
+    radius_worst: 15.11, texture_worst: 19.26, perimeter_worst: 99.7, area_worst: 711.2,
+    smoothness_worst: 0.144, compactness_worst: 0.1773, concavity_worst: 0.239,
+    concave_points_worst: 0.1288, symmetry_worst: 0.2977, fractal_dimension_worst: 0.07259
+  };
+  let currentSample = { ...BASE_BENIGN };
+
+  document.getElementById('btnMalignant').onclick = () => {
+    currentSample = { ...BASE_MALIGNANT };
+    document.getElementById('radius_mean').value = 17.99;
+    document.getElementById('texture_mean').value = 10.38;
+    document.getElementById('perimeter_mean').value = 122.8;
+    document.getElementById('area_mean').value = 1001.0;
+    document.getElementById('smoothness_mean').value = 0.1184;
+  };
+  document.getElementById('btnBenign').onclick = () => {
+    currentSample = { ...BASE_BENIGN };
+    document.getElementById('radius_mean').value = 13.54;
+    document.getElementById('texture_mean').value = 14.36;
+    document.getElementById('perimeter_mean').value = 87.46;
+    document.getElementById('area_mean').value = 566.3;
+    document.getElementById('smoothness_mean').value = 0.09779;
+  };
+  document.getElementById('btnClear').onclick = () => {
+    document.getElementById('predictForm').reset();
+    document.getElementById('resultBadge').className = '';
+    document.getElementById('resultBadge').innerText = '⏳ Aguardando análise...';
+    document.getElementById('probText').innerText = '';
+    updateXAI([0,0,0,0,0], NEUTRAL_COLOR);
+  };
+
+  document.getElementById('predictForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnAnalyze');
+    const badge = document.getElementById('resultBadge');
+    const prob = document.getElementById('probText');
+    const apiKey = document.getElementById('api_key').value;
+
+    const vals = {
+      radius_mean: parseFloat(document.getElementById('radius_mean').value),
+      texture_mean: parseFloat(document.getElementById('texture_mean').value),
+      perimeter_mean: parseFloat(document.getElementById('perimeter_mean').value),
+      area_mean: parseFloat(document.getElementById('area_mean').value),
+      smoothness_mean: parseFloat(document.getElementById('smoothness_mean').value),
+    };
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Processando...';
+    badge.innerText = '⏳ Analisando...';
+
+    try {
+      const r = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'access_token': apiKey },
+        body: JSON.stringify({ ...currentSample, ...vals })
+      });
+      const data = await r.json();
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Analisar Amostra';
+
+      if (r.ok) {
+        const isM = data.prediction === 1;
+        badge.className = isM ? 'malignant' : 'benign';
+        badge.innerText = isM ? '⚠️ ALTO RISCO (Maligno)' : '✅ BAIXO RISCO (Benigno)';
+        prob.innerText = `Confiança: ${(data.probability * 100).toFixed(1)}% | Status: ${data.status}`;
+        updateXAI(isM ? [8,7,9,6,5] : [2,3,2,1,2], isM ? 'rgba(255, 77, 77, 0.7)' : 'rgba(0, 230, 118, 0.7)');
+      } else {
+        badge.innerText = '❌ Erro: ' + (data.detail || 'Falha na API');
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Analisar Amostra';
+      badge.innerText = '❌ Erro de Conexão';
+    }
+  };
+
+  // ─── KEEP ALIVE ────────────────────────────────
+  setInterval(() => {
+    fetch('https://api.vitorsilva.engineer/health').catch(() => {});
+  }, 10 * 60 * 1000);
 </script>
 </body>
 </html>
