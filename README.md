@@ -1,7 +1,7 @@
 # Aether Oncology
 
 <p align="center">
-  ![Banner](https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png)
+  <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
 </p>
 
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
