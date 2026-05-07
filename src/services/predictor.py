@@ -130,7 +130,7 @@ class PredictorService:
         with torch.no_grad():
             logits_tensor = self.model(tensor_data)
             logits_np = logits_tensor.cpu().numpy()
-        
+
         # 4. Calibração de Probabilidade (Platt Scaling)
         if self.calibrator:
             # O calibrador espera [N, 1] e retorna [N, 2] (probabilidades por classe)
@@ -154,7 +154,7 @@ class PredictorService:
         # No futuro, integrar SHAP aqui.
         top_idx = processed_data[0].argmax()
         top_feature = FEATURE_NAMES[top_idx]
-        
+
         articles = fetch_scientific_evidence(top_feature)
 
         return {

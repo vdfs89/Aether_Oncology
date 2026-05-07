@@ -4,8 +4,9 @@ research.py
 Serviço de busca de evidências científicas via Semantic Scholar API.
 """
 
-import requests
 import logging
+
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -22,20 +23,20 @@ def fetch_scientific_evidence(top_feature: str) -> list:
         "smoothness_mean": "smoothness",
         "compactness_mean": "compactness",
         "concavity_mean": "concavity",
-        "concave points_mean": "concave points",
+        "concave_points_mean": "concave points",
         "symmetry_mean": "symmetry",
         "fractal_dimension_mean": "fractal dimension"
     }
-    
+
     search_term = feature_map.get(top_feature, top_feature.replace("_", " "))
-    
+
     # Tentamos queries da mais específica para a mais geral
     queries = [
         f"breast cancer {search_term} diagnostic importance",
         f"breast cancer {search_term}",
         "breast cancer biopsy analysis"
     ]
-    
+
     for query in queries:
         url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit=3&fields=title,url,year,tldr"
         try:
@@ -55,5 +56,5 @@ def fetch_scientific_evidence(top_feature: str) -> list:
         except Exception as e:
             log.error(f"Erro na query '{query}': {e}")
             continue
-    
+
     return []

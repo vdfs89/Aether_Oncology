@@ -28,14 +28,14 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
+    brier_score_loss,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
-    brier_score_loss,
 )
-from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -230,23 +230,23 @@ def train() -> None:
         best_model.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, weights_only=True))
 
         metrics = _evaluate(best_model, test_tensor, y_test.tolist())
-        
+
         # 8.5 Calibração de Probabilidades (Platt Scaling) ────────────────
         log.info("Calibrando probabilidades (Platt Scaling)...")
         best_model.eval()
         with torch.no_grad():
             test_logits = best_model(test_tensor).numpy()
-        
+
         calibrator = LogisticRegression()
         calibrator.fit(test_logits, y_test)
-        
+
         joblib.dump(calibrator, CALIBRATOR_PATH)
         mlflow.log_artifact(str(CALIBRATOR_PATH))
-        
+
         # Calcula Brier Score (métrica de calibração)
         calibrated_probs = calibrator.predict_proba(test_logits)[:, 1]
         metrics["brier_score"] = brier_score_loss(y_test, calibrated_probs)
-        
+
         mlflow.log_metrics(metrics)
 
         # Integrando as métricas de Sustentabilidade (Green AI - MRM3)

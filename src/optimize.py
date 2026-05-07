@@ -3,8 +3,8 @@ optimize.py
 ===========
 Busca automatizada de hiperparâmetros usando Optuna.
 
-Este script executa múltiplos experimentos (trials) para encontrar a 
-arquitectura de rede neural e os parâmetros de treino que maximizam 
+Este script executa múltiplos experimentos (trials) para encontrar a
+arquitectura de rede neural e os parâmetros de treino que maximizam
 a métrica F1 (equilíbrio entre Precisão e Recall) para o diagnóstico.
 
 Integração:
@@ -13,16 +13,17 @@ Integração:
 """
 
 import logging
+from pathlib import Path
+
 import mlflow
 import optuna
 import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from pathlib import Path
+from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import f1_score
 
 from src.models.mlp import MLP
 
@@ -36,7 +37,7 @@ def objective(trial):
     # 1. Definição do Espaço de Busca
     lr = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
     dropout = trial.suggest_float("dropout_rate", 0.1, 0.5)
-    
+
     # Arquitectura dinâmica
     n_layers = trial.suggest_int("n_layers", 1, 3)
     hidden_dims = []
@@ -47,17 +48,17 @@ def objective(trial):
     df = pd.read_csv(RAW_DATA_PATH)
     X = df.drop("target", axis=1)
     y = df["target"]
-    
+
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
-    
+
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
-    
+
     train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
     val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32)
     target_train = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)
-    
+
     # 3. Cálculo de Pesos para o Trial (MRM3)
     num_pos = y_train.sum()
     num_neg = len(y_train) - num_pos
@@ -89,18 +90,18 @@ def objective(trial):
 
 def run_optimization(n_trials=20):
     log.info("Iniciando optimização com Optuna (%d trials)...", n_trials)
-    
+
     mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment("Aether_Oncology_Optimization")
 
     study = optuna.create_study(direction="maximize")
-    
+
     with mlflow.start_run(run_name="optuna_study_main"):
         study.optimize(objective, n_trials=n_trials)
-        
+
         log.info("Melhor F1: %.4f", study.best_value)
         log.info("Melhores Parâmetros: %s", study.best_params)
-        
+
         # Loga os melhores resultados no MLflow
         mlflow.log_params(study.best_params)
         mlflow.log_metric("best_f1_score", study.best_value)
