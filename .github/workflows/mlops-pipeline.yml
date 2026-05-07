@@ -36,10 +36,15 @@ jobs:
           data = load_breast_cancer()
           def normalize(name: str) -> str:
               name = name.strip()
-              if name.startswith("mean "): return name[5:].replace(" ", "_") + "_mean"
-              if name.endswith(" error"): return name[:-6].replace(" ", "_") + "_se"
-              if name.startswith("worst "): return name[6:].replace(" ", "_") + "_worst"
-              return name.replace(" ", "_")
+              if name.startswith("mean "): n = name[5:].strip()
+              elif name.endswith(" error"): n = name[:-6].strip()
+              elif name.startswith("worst "): n = name[6:].strip()
+              else: n = name
+              if "fractal dimension" in n: n = n.replace(" ", "_")
+              if name.startswith("mean "): return n + "_mean"
+              if name.endswith(" error"): return n + "_se"
+              if name.startswith("worst "): return n + "_worst"
+              return n
           cols = [normalize(c) for c in data.feature_names]
           df = pd.DataFrame(data.data, columns=cols)
           df["target"] = 1 - data.target
@@ -80,8 +85,28 @@ jobs:
 
       - name: Generate Dataset
         run: |
-          # Re-usa a lógica de geração para o treino
-          python -c "from sklearn.datasets import load_breast_cancer; import pandas as pd, pathlib; pathlib.Path('data/raw').mkdir(parents=True, exist_ok=True); data = load_breast_cancer(); cols = [c.lower().replace(' ','_') for c in data.feature_names]; df = pd.DataFrame(data.data, columns=cols); df['target'] = 1 - data.target; df.to_csv('data/raw/data.csv', index=False)"
+          # Re-usa a lógica de geração para o treino garantindo consistência de nomes
+          python - <<'EOF'
+          from sklearn.datasets import load_breast_cancer
+          import pandas as pd, pathlib
+          pathlib.Path("data/raw").mkdir(parents=True, exist_ok=True)
+          data = load_breast_cancer()
+          def normalize(name: str) -> str:
+              name = name.strip()
+              if name.startswith("mean "): n = name[5:].strip()
+              elif name.endswith(" error"): n = name[:-6].strip()
+              elif name.startswith("worst "): n = name[6:].strip()
+              else: n = name
+              if "fractal dimension" in n: n = n.replace(" ", "_")
+              if name.startswith("mean "): return n + "_mean"
+              if name.endswith(" error"): return n + "_se"
+              if name.startswith("worst "): return n + "_worst"
+              return n
+          cols = [normalize(c) for c in data.feature_names]
+          df = pd.DataFrame(data.data, columns=cols)
+          df["target"] = 1 - data.target
+          df.to_csv("data/raw/data.csv", index=False)
+          EOF
 
       - name: Train and Register Model
         env:

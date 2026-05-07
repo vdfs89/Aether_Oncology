@@ -12,6 +12,7 @@ Usa mocking para evitar chamadas reais às APIs externas.
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+from Bio import Entrez
 
 from src.services.research import (
     _cache,
@@ -89,7 +90,7 @@ def setup_function() -> None:
 # ---------------------------------------------------------------------------
 
 
-@patch("Bio.Entrez")
+@patch("Bio.Entrez", create=True)
 def test_pubmed_returns_articles(mock_entrez: MagicMock) -> None:
     """Deve retornar artigos do PubMed quando a busca tem resultados."""
     # Mock do esearch
@@ -121,7 +122,7 @@ def test_pubmed_returns_articles(mock_entrez: MagicMock) -> None:
     assert result[0]["url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")
 
 
-@patch("Bio.Entrez")
+@patch("Bio.Entrez", create=True)
 def test_pubmed_returns_empty_on_no_results(mock_entrez: MagicMock) -> None:
     """Deve retornar lista vazia quando PubMed não encontra resultados."""
     mock_handle = MagicMock()
@@ -133,7 +134,7 @@ def test_pubmed_returns_empty_on_no_results(mock_entrez: MagicMock) -> None:
     assert result == []
 
 
-@patch("Bio.Entrez")
+@patch("Bio.Entrez", create=True)
 def test_pubmed_handles_error_gracefully(mock_entrez: MagicMock) -> None:
     """Deve tratar erros do Entrez sem lançar exceção."""
     mock_entrez.esearch.side_effect = Exception("Network error")

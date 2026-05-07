@@ -25,38 +25,38 @@ from pandera.pandas import Check, Column, DataFrameSchema
 WDBC_FEATURE_SCHEMA = DataFrameSchema(
     columns={
         # ── Mean values ───────────────────────────────────────────────────
-        "mean_radius": Column(float, Check.ge(0)),
-        "mean_texture": Column(float, Check.ge(0)),
-        "mean_perimeter": Column(float, Check.ge(0)),
-        "mean_area": Column(float, Check.ge(0)),
-        "mean_smoothness": Column(float, Check.between(0, 1)),
-        "mean_compactness": Column(float, Check.ge(0)),
-        "mean_concavity": Column(float, Check.ge(0)),
-        "mean_concave_points": Column(float, Check.ge(0)),
-        "mean_symmetry": Column(float, Check.ge(0)),
-        "mean_fractal_dimension": Column(float, Check.ge(0)),
+        "radius_mean": Column(float, Check.ge(0)),
+        "texture_mean": Column(float, Check.ge(0)),
+        "perimeter_mean": Column(float, Check.ge(0)),
+        "area_mean": Column(float, Check.ge(0)),
+        "smoothness_mean": Column(float, Check.between(0, 1)),
+        "compactness_mean": Column(float, Check.ge(0)),
+        "concavity_mean": Column(float, Check.ge(0)),
+        "concave points_mean": Column(float, Check.ge(0)),
+        "symmetry_mean": Column(float, Check.ge(0)),
+        "fractal_dimension_mean": Column(float, Check.ge(0)),
         # ── Standard error ────────────────────────────────────────────────
-        "radius_error": Column(float, Check.ge(0)),
-        "texture_error": Column(float, Check.ge(0)),
-        "perimeter_error": Column(float, Check.ge(0)),
-        "area_error": Column(float, Check.ge(0)),
-        "smoothness_error": Column(float, Check.ge(0)),
-        "compactness_error": Column(float, Check.ge(0)),
-        "concavity_error": Column(float, Check.ge(0)),
-        "concave_points_error": Column(float, Check.ge(0)),
-        "symmetry_error": Column(float, Check.ge(0)),
-        "fractal_dimension_error": Column(float, Check.ge(0)),
+        "radius_se": Column(float, Check.ge(0)),
+        "texture_se": Column(float, Check.ge(0)),
+        "perimeter_se": Column(float, Check.ge(0)),
+        "area_se": Column(float, Check.ge(0)),
+        "smoothness_se": Column(float, Check.ge(0)),
+        "compactness_se": Column(float, Check.ge(0)),
+        "concavity_se": Column(float, Check.ge(0)),
+        "concave points_se": Column(float, Check.ge(0)),
+        "symmetry_se": Column(float, Check.ge(0)),
+        "fractal_dimension_se": Column(float, Check.ge(0)),
         # ── Worst values ──────────────────────────────────────────────────
-        "worst_radius": Column(float, Check.ge(0)),
-        "worst_texture": Column(float, Check.ge(0)),
-        "worst_perimeter": Column(float, Check.ge(0)),
-        "worst_area": Column(float, Check.ge(0)),
-        "worst_smoothness": Column(float, Check.between(0, 1)),
-        "worst_compactness": Column(float, Check.ge(0)),
-        "worst_concavity": Column(float, Check.ge(0)),
-        "worst_concave_points": Column(float, Check.ge(0)),
-        "worst_symmetry": Column(float, Check.ge(0)),
-        "worst_fractal_dimension": Column(float, Check.ge(0)),
+        "radius_worst": Column(float, Check.ge(0)),
+        "texture_worst": Column(float, Check.ge(0)),
+        "perimeter_worst": Column(float, Check.ge(0)),
+        "area_worst": Column(float, Check.ge(0)),
+        "smoothness_worst": Column(float, Check.between(0, 1)),
+        "compactness_worst": Column(float, Check.ge(0)),
+        "concavity_worst": Column(float, Check.ge(0)),
+        "concave points_worst": Column(float, Check.ge(0)),
+        "symmetry_worst": Column(float, Check.ge(0)),
+        "fractal_dimension_worst": Column(float, Check.ge(0)),
         # ── Label ─────────────────────────────────────────────────────────
         "target": Column(int, Check.isin([0, 1])),
     },
@@ -111,9 +111,9 @@ def test_dataset_has_both_classes(raw_df: pd.DataFrame) -> None:
 
 
 def test_schema_rejects_negative_radius() -> None:
-    """O schema deve rejeitar linhas com mean_radius negativo."""
+    """O schema deve rejeitar linhas com radius_mean negativo."""
     bad_row = pd.DataFrame([{col: 0.5 for col in WDBC_FEATURE_SCHEMA.columns}])
-    bad_row["mean_radius"] = -1.0
+    bad_row["radius_mean"] = -1.0
     bad_row["target"] = 0
 
     with pytest.raises(pa.errors.SchemaError):
