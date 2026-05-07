@@ -169,7 +169,32 @@ class PredictorService:
 
 
 # ---------------------------------------------------------------------------
-# Singleton — instanciado UMA vez quando o módulo é importado pelo uvicorn
+# Singleton com inicialização lazy — evita crash na importação do módulo
+# quando os artefactos ainda não existem (ex.: antes do primeiro treino).
 # ---------------------------------------------------------------------------
 
-predictor = PredictorService()
+
+class _LazyPredictor:
+    """Proxy que instancia PredictorService apenas na primeira chamada."""
+
+    def __init__(self) -> None:
+        self._instance: PredictorService | None = None
+
+    def _get_instance(self) -> PredictorService:
+        if self._instance is None:
+            self._instance = PredictorService()
+        return self._instance
+
+    def predict(self, input_data: list[list[float]]) -> dict:
+        return self._get_instance().predict(input_data)
+
+    @property
+    def model(self) -> MLP:
+        return self._get_instance().model
+
+    @property
+    def preprocessor(self) -> object:
+        return self._get_instance().preprocessor
+
+
+predictor = _LazyPredictor()

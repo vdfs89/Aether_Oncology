@@ -28,12 +28,15 @@ from sklearn.preprocessing import StandardScaler
 from src.models.mlp import MLP
 
 # Configuração de logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s"
+)
 log = logging.getLogger(__name__)
 
 RAW_DATA_PATH = Path("data/raw/data.csv")
 
-def objective(trial):
+
+def objective(trial, X_train, X_val, y_train, y_val):
     # 1. Definição do Espaço de Busca
     lr = trial.suggest_float("learning_rate", 1e-4, 1e-2, log=True)
     dropout = trial.suggest_float("dropout_rate", 0.1, 0.5)
@@ -44,13 +47,7 @@ def objective(trial):
     for i in range(n_layers):
         hidden_dims.append(trial.suggest_int(f"n_units_l{i}", 16, 128))
 
-    # 2. Preparação de Dados (Simplificada para a busca)
-    df = pd.read_csv(RAW_DATA_PATH)
-    X = df.drop("target", axis=1)
-    y = df["target"]
-
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
-
+    # 2. Pré-processamento (scaler por trial para evitar data leakage)
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
@@ -91,13 +88,24 @@ def objective(trial):
 def run_optimization(n_trials=20):
     log.info("Iniciando optimização com Optuna (%d trials)...", n_trials)
 
+    # Carrega dados UMA vez (evita re-leitura a cada trial)
+    df = pd.read_csv(RAW_DATA_PATH)
+    X = df.drop("target", axis=1)
+    y = df["target"]
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=42
+    )
+
     mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment("Aether_Oncology_Optimization")
 
     study = optuna.create_study(direction="maximize")
 
     with mlflow.start_run(run_name="optuna_study_main"):
-        study.optimize(objective, n_trials=n_trials)
+        study.optimize(
+            lambda trial: objective(trial, X_train, X_val, y_train, y_val),
+            n_trials=n_trials,
+        )
 
         log.info("Melhor F1: %.4f", study.best_value)
         log.info("Melhores Parâmetros: %s", study.best_params)
