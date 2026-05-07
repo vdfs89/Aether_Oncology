@@ -1,0 +1,10 @@
+name: Keep Render Awake
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Roda a cada 10 minutos
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render App
+        run: curl -s https://aether-oncology-api.onrender.com/health
