@@ -30,6 +30,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.services.predictor import predictor
+from src.services.audit import log_prediction, calculate_drift, AUDIT_FILE
 
 # ---------------------------------------------------------------------------
 # Segurança — API Key lida de variável de ambiente
@@ -274,6 +275,10 @@ def make_prediction(features: TumorFeatures) -> PredictResponse:
     try:
         data_list = [list(features.model_dump().values())]
         result = predictor.predict(data_list)
+        
+        # 3. Persistência de Auditoria (Governança — Aula 7)
+        log_prediction(features.model_dump(), result)
+        
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -293,3 +298,24 @@ def make_prediction(features: TumorFeatures) -> PredictResponse:
         )
 
     return PredictResponse(**result, warning=warning)
+
+
+@app.get("/analytics", tags=["MLOps"])
+def get_mlops_analytics():
+    """
+    Endpoint de Observabilidade e Monitoramento de Drift (Aula 5).
+    Retorna desvios estatísticos das amostras recebidas em produção.
+    """
+    return calculate_drift()
+
+
+@app.get("/audit", tags=["Governance"], dependencies=[Security(get_api_key)])
+def get_audit_trail():
+    """
+    Retorna o rastro de auditoria para fins de regulação e governança.
+    """
+    if not AUDIT_FILE.exists():
+        return []
+    
+    with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+        return [json.loads(line) for line in f.readlines()[-100:]] # Últimas 100

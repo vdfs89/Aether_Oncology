@@ -20,20 +20,38 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install ".[dev]"
 
-      # ETAPA 1: Rodar Testes Unitários (Qualidade do Código)
+      # ETAPA 1: Gerar Dataset (Necessário para o treino)
+      - name: Generate Dataset
+        run: |
+          python - <<'EOF'
+          from sklearn.datasets import load_breast_cancer
+          import pandas as pd, pathlib
+          pathlib.Path("data/raw").mkdir(parents=True, exist_ok=True)
+          data = load_breast_cancer()
+          def normalize(name: str) -> str:
+              name = name.strip()
+              if name.startswith("mean "): return name[5:].replace(" ", "_") + "_mean"
+              if name.endswith(" error"): return name[:-6].replace(" ", "_") + "_se"
+              if name.startswith("worst "): return name[6:].replace(" ", "_") + "_worst"
+              return name.replace(" ", "_")
+          cols = [normalize(c) for c in data.feature_names]
+          df = pd.DataFrame(data.data, columns=cols)
+          df["target"] = 1 - data.target
+          df.to_csv("data/raw/data.csv", index=False)
+          EOF
+
+      # ETAPA 2: Rodar Testes Unitários (Qualidade do Código)
       - name: Run Unit Tests
         run: pytest tests/
 
-      # ETAPA 2: Treinar o modelo (Executa se os testes passarem)
+      # ETAPA 3: Treinar o modelo (Executa se os testes passarem)
       - name: Train and Evaluate Model
         env:
-          # Variáveis para o MLflow (Configure nos Secrets do GitHub)
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
           MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
           API_KEY: ${{ secrets.API_KEY }}
         run: |
-          # O script de treino deve retornar erro (exit 1) se a acurácia for baixa
-          python src/train.py --register-mlflow true
+          python -m src.train

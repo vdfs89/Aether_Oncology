@@ -1,0 +1,21 @@
+fastapi
+uvicorn
+aiofiles
+pydantic
+torch
+scikit-learn
+joblib
+mlflow
+pandas
+pandera
+seaborn
+matplotlib
+psutil
+optuna
+biopython
+diskcache
+# Dev dependencies
+ruff
+pytest
+pytest-cov
+httpx

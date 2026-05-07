@@ -176,7 +176,11 @@
               <h3 class="text-lg font-bold">Diagnóstico Biomecânico</h3>
               <p class="text-xs text-white/40">Insira os dados da biópsia FNA para análise neural + RAG</p>
            </div>
-           <div class="flex gap-2">
+           <div class="flex gap-2 items-center">
+              <button onclick="checkModelHealth()" class="text-[10px] font-bold text-cyan-400/60 hover:text-cyan-400 transition flex items-center gap-1 bg-cyan-400/5 px-2 py-1 rounded border border-cyan-400/10">
+                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                 MLOps MONITOR
+              </button>
               <span class="badge-live">MODEL: Aether-V2</span>
               <span class="badge-live">RAG: PubMed+Cochrane</span>
            </div>
@@ -291,6 +295,22 @@
                         </div>
                     </div>
                  </div>
+                  <!-- ─── MLOPS MONITORING v2.0 ─── -->
+                  <div id="mlopsMonitor" class="mt-8 pt-6 border-t border-white/10 hidden">
+                     <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                           <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                           <span class="text-[10px] font-bold text-white/60 tracking-widest uppercase">Relatório de Saúde (Active Drift)</span>
+                        </div>
+                        <span id="driftStatusBadge" class="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold uppercase">Estável</span>
+                     </div>
+                     <div id="driftDetails" class="grid grid-cols-2 gap-2 mb-4">
+                        <!-- Preenchido via JS -->
+                     </div>
+                     <p class="text-[9px] text-white/30 leading-snug">
+                        *O monitoramento de drift compara a média móvel das requisições com os dados de treino (WDBC). Desvios acima de 30% sinalizam "Data Decay".
+                     </p>
+                  </div>
               </div>
            </div>
         </div>

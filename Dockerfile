@@ -41,17 +41,24 @@ COPY src/ src/
 COPY models/ models/
 COPY data/raw/data.csv data/raw/data.csv
 
+# Cria diretórios para persistência (Auditoria e Cache RAG)
+RUN mkdir -p logs .cache/research \
+    && chown -R appuser:appuser /app
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 5: Configuração de runtime
 # ─────────────────────────────────────────────────────────────────────────────
-# Usuário não-root para segurança (best practice NVIDIA/Docker)
-RUN useradd --create-home appuser
+# Usuário não-root para segurança
 USER appuser
+
+# Volumes para persistência de dados críticos (Aula 7 e Otimização)
+# - logs: Audit Trail e Governança
+# - .cache: Cache RAG (PubMed/Cochrane)
+VOLUME ["/app/logs", "/app/.cache"]
 
 EXPOSE 8000
 
-# Healthcheck nativo do Docker — evita que o container fique "Up" sem estar pronto
+# Healthcheck nativo do Docker
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 

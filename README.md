@@ -45,7 +45,7 @@ model-index:
 
 | Status | Recall | F1-Score | ROC-AUC | Versão |
 | :---: | :---: | :---: | :---: | :---: |
-| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v1.0.1` |
+| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.0.0` |
 
 </div>
 
@@ -62,7 +62,7 @@ Em 2017, o IBM Watson for Oncology foi descontinuado em vários hospitais após 
 
 O Aether Oncology nasce como resposta direta a esse erro.
 
-Em vez de recomendar tratamentos de forma autônoma, o sistema propõe um paradigma diferente: **triagem de segurança assistida**. O modelo aponta risco; o médico decide. A IA como ferramenta — não como oráculo.
+Em vez de recomendar tratamentos de forma autônoma, o sistema propõe um paradigma diferente: **triagem de segurança assistida**. O modelo aponta risco; o médico decide. A IA como ferramenta — não como oráculo. A versão 2.0 introduz o **MLOps Ativo**, garantindo que o modelo nunca opere em regime de "Data Decay" sem alerta imediato.
 
 ---
 
@@ -78,7 +78,8 @@ IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraes
 
 - **Contratos de dados** via Pydantic e Pandera — nenhum dado entra no modelo sem validação explícita
 - **Rastreabilidade total** via MLflow — cada experimento, parâmetro e métrica é auditável
-- **Reprodutibilidade garantida** — qualquer predição pode ser explicada e replicada
+- **Auditoria Médica (Audit Trail)** — log imutável de todas as predições para governança clínica (Aula 7)
+- **Monitoramento de Drift** — detecção proativa de desvios estatísticos nos dados de entrada (Aula 5)
 
 ---
 
@@ -95,10 +96,11 @@ graph TD
 
     subgraph "Backend (Cloud Hosting: Render)"
         Auth[Autenticação\nAPI Key & CORS]
-        API[FastAPI\nEndpoints: /predict, /health]
+        API[FastAPI\nEndpoints: /predict, /analytics, /audit]
         
         subgraph "Service Layer"
             Service[PredictorService\nDesign Padrão Singleton]
+            Audit[AuditService\nAudit Trail & Drift Detection]
         end
         
         subgraph "Machine Learning Engine"
@@ -109,19 +111,20 @@ graph TD
 
     subgraph "Governança & MLOps"
         MLflow[(MLflow Tracking\nModel Registry)]
-        Pandera[Pandera\nData Contracts]
+        Logs[(Audit Logs\n.jsonl Persistence)]
     end
 
     Medico((Médico/Usuário)) -->|Insere Biópsia| UI
     UI -->|Renderiza| XAI
-    UI -->|POST /predict via JSON| Auth
+    UI -->|Check Health| API
+    UI -->|POST /predict| Auth
     Auth -->|Valida access_token| API
-    API -->|Valida Schema Pydantic| Service
-    Service -->|Aplica Transformações| Pipeline
-    Pipeline -->|Inferência Tensorial| Model
-    Model -->|Devolve Probabilidade| API
-    MLflow -.->|Versiona Artefatos .pth e .joblib| Service
-    Pandera -.->|Garante integridade na pipeline| Pipeline
+    API -->|Valida Schema| Service
+    Service -->|Invocação| Audit
+    Audit -->|Grava Log| Logs
+    Audit -->|Calcula Drift| API
+    Service -->|Inferência| Model
+    MLflow -.->|Versiona Artefatos| Service
 ```
 
 ### Análise Técnica Completa (Executive Summary)
@@ -131,12 +134,10 @@ Esta análise valida como o projeto atende (e supera) os requisitos de excelênc
 | Pilar | Implementação | Diferencial Clínico/Técnico |
 | :--- | :--- | :--- |
 | **🧠 Engine de IA** | PyTorch MLP + Platt Scaling | Probabilidades calibradas para decisão médica segura |
-| **⚡ Performance** | Singleton Predictor Pattern | Inferência ultra-rápida com modelo pré-carregado em memória |
-| **🛡️ Governança** | Pandera Data Contracts | Rejeição automática de entradas fora de limites biológicos |
-| **📈 MLOps** | MLflow + Optuna Tracking | Rastreabilidade total de experimentos e busca de hiperparâmetros |
-| **🔒 Segurança** | API Key Auth + Strict CORS | Proteção de dados sensíveis e controle de origem rigoroso |
-| **🧪 Qualidade** | Pytest (TDD) + Ruff Linter | Cobertura de testes em camadas e padronização absoluta |
-| **📖 Ética** | Model Card + Bias Audit | Foco estratégico em **Recall** para maximizar a segurança |
+| **🛡️ Governança** | Audit Trail (.jsonl) | Rastreabilidade imutável de todas as decisões médicas |
+| **📈 MLOps Ativo** | Monitoramento de Drift | Alertas automáticos caso os dados clínicos sofram desvio |
+| **🔒 Segurança** | API Key Auth + Non-root Docker | Proteção de dados e hardening de container |
+| **📖 Ética** | Clinical XAI Narrative | Tradução de métricas SHAP para linguagem médica natural |
 
 ---
 
@@ -237,10 +238,12 @@ Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train
 
 ### 📊 Endpoints da API
 
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/health` | Liveness probe — usado pelo HEALTHCHECK do Docker |
-| `POST` | `/predict` | Classifica amostra (30 features WDBC) |
+| Método | Rota | Descrição | Autenticação |
+|---|---|---|---|
+| `GET` | `/health` | Liveness probe — monitoramento de status | Público |
+| `POST` | `/predict` | Classifica amostra e gera Audit Log | API Key |
+| `GET` | `/analytics` | Report de Data Drift (Média Móvel) | API Key |
+| `GET` | `/audit` | Extração do Audit Trail completo | API Key |
 
 **Response de exemplo:**
 ```json

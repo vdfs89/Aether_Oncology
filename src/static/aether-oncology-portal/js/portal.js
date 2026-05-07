@@ -348,6 +348,50 @@ function displayEvidence(topFeature, articles, isMalignant) {
   section.classList.add('fade-up');
 }
 
+// ─── MLOps Monitoring Logic ───
+
+async function checkModelHealth() {
+  const monitor = document.getElementById('mlopsMonitor');
+  const details = document.getElementById('driftDetails');
+  const statusBadge = document.getElementById('driftStatusBadge');
+  
+  monitor.classList.remove('hidden');
+  details.innerHTML = '<p class="text-[10px] text-white/40 col-span-2">Sincronizando com Aether Core...</p>';
+
+  try {
+    const response = await fetch('/analytics', {
+      headers: { 'access_token': API_KEY }
+    });
+    
+    if (!response.ok) throw new Error('Falha no monitoramento');
+    
+    const data = await response.json();
+    details.innerHTML = '';
+    
+    const driftFound = data.drift_detected;
+    statusBadge.innerText = driftFound ? 'ATENÇÃO: DRIFT' : 'ESTÁVEL';
+    statusBadge.className = driftFound 
+      ? 'text-[9px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold uppercase animate-pulse'
+      : 'text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold uppercase';
+
+    // Show top features drift
+    Object.entries(data.feature_drifts).slice(0, 4).forEach(([feat, val]) => {
+      const percentage = (val * 100).toFixed(1);
+      const isHigh = val > 0.3;
+      const card = `
+        <div class="p-2 rounded bg-white/5 border ${isHigh ? 'border-red-500/20' : 'border-white/5'}">
+           <p class="text-[8px] text-white/40 truncate">${feat.replace(/_/g, ' ')}</p>
+           <p class="text-xs font-bold ${isHigh ? 'text-red-400' : 'text-white/80'}">${percentage}%</p>
+        </div>
+      `;
+      details.insertAdjacentHTML('beforeend', card);
+    });
+
+  } catch (err) {
+    details.innerHTML = '<p class="text-[10px] text-red-400 col-span-2">Erro ao acessar métricas de governança.</p>';
+  }
+}
+
 function getSourceBadge(source) {
   const badges = {
     'PubMed': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold">PubMed</span>',
