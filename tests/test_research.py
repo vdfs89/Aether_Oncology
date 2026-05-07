@@ -12,7 +12,6 @@ Usa mocking para evitar chamadas reais às APIs externas.
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
-from Bio import Entrez
 
 from src.services.research import (
     _cache,
