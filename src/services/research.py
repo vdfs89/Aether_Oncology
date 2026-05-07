@@ -1,25 +1,44 @@
 """
 research.py
 ===========
-Serviço de busca de evidências científicas via Semantic Scholar API.
+Serviço RAG v2.0 — Busca de evidências científicas multi-fonte.
 
-Melhorias implementadas:
-  - Logging sem f-strings (evita G004 do ruff)
-  - Cache de resultados para evitar chamadas repetidas
-  - Tratamento de erros mais granular
-  - Type hints completos
+Fontes integradas:
+  1. PubMed (via Biopython Entrez) — artigos primários
+  2. Cochrane (via PubMed filtro)  — revisões sistemáticas de alta evidência
+  3. Semantic Scholar              — TL;DRs automáticos e links DOI
+
+Otimização:
+  - Caching persistente via diskcache (sobrevive a restarts do servidor)
+  - Fallback em cascata: PubMed → Cochrane → Semantic Scholar
 """
 
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
+import os
+from pathlib import Path
+from typing import Any
 
+import diskcache
 import requests
 
 log = logging.getLogger(__name__)
 
-# Mapeamento amigável para busca científica
+# ---------------------------------------------------------------------------
+# Cache persistente — armazenado em disco para sobreviver a restarts
+# ---------------------------------------------------------------------------
+
+_CACHE_DIR = Path(__file__).resolve().parents[2] / ".cache" / "research"
+_cache = diskcache.Cache(str(_CACHE_DIR), size_limit=50_000_000)  # 50 MB max
+
+# TTL padrão: 24 horas (86400 s)
+_CACHE_TTL = 86_400
+
+# ---------------------------------------------------------------------------
+# Mapeamento amigável feature → termo de busca
+# ---------------------------------------------------------------------------
+
 _FEATURE_MAP: dict[str, str] = {
     "radius_mean": "tumor size",
     "texture_mean": "texture",
@@ -33,8 +52,119 @@ _FEATURE_MAP: dict[str, str] = {
     "fractal_dimension_mean": "fractal dimension",
 }
 
-_BASE_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
-_TIMEOUT = 5  # segundos
+_TIMEOUT = 8  # segundos por requisição
+
+# ---------------------------------------------------------------------------
+# PubMed (Entrez via Biopython)
+# ---------------------------------------------------------------------------
+
+
+def _search_pubmed(
+    query: str, max_results: int = 5, journal_filter: str | None = None
+) -> list[dict[str, Any]]:
+    """
+    Busca artigos no PubMed via Entrez (NCBI E-Utilities).
+
+    Args:
+        query: Termo de busca livre.
+        max_results: Número máximo de artigos.
+        journal_filter: Filtro de journal (ex.: "Cochrane Database Syst Rev").
+
+    Returns:
+        Lista de dicts com: title, url, year, abstract, source.
+    """
+    try:
+        from Bio import Entrez
+    except ImportError:
+        log.warning("biopython não instalado — PubMed indisponível")
+        return []
+
+    # Configura email (obrigatório para Entrez)
+    Entrez.email = os.getenv("ENTREZ_EMAIL", "aether-oncology@placeholder.edu")
+
+    search_term = query
+    if journal_filter:
+        search_term = f'{query} AND "{journal_filter}"[journal]'
+
+    try:
+        log.info("PubMed search: %s", search_term)
+        handle = Entrez.esearch(
+            db="pubmed",
+            term=search_term,
+            retmax=max_results,
+            sort="relevance",
+            retmode="xml",
+        )
+        id_list = Entrez.read(handle)["IdList"]
+        handle.close()
+
+        if not id_list:
+            return []
+
+        # Busca detalhes dos artigos
+        fetch_handle = Entrez.efetch(
+            db="pubmed", id=",".join(id_list), rettype="xml", retmode="xml"
+        )
+        records = Entrez.read(fetch_handle)
+        fetch_handle.close()
+
+        articles: list[dict[str, Any]] = []
+        for article in records.get("PubmedArticle", []):
+            medline = article["MedlineCitation"]
+            art = medline["Article"]
+            title = str(art.get("ArticleTitle", ""))
+            abstract_parts = art.get("Abstract", {}).get("AbstractText", [])
+            abstract = (
+                " ".join(str(p) for p in abstract_parts) if abstract_parts else ""
+            )
+            pub_date = art.get("Journal", {}).get("JournalIssue", {}).get("PubDate", {})
+            year_raw = pub_date.get("Year", pub_date.get("MedlineDate", ""))
+            year = int(str(year_raw)[:4]) if str(year_raw)[:4].isdigit() else None
+            pmid = str(medline.get("PMID", ""))
+
+            articles.append(
+                {
+                    "title": title,
+                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                    "year": year,
+                    "abstract": abstract[:300] if abstract else None,
+                    "tldr": None,
+                    "source": "PubMed",
+                }
+            )
+
+        log.info("PubMed retornou %d artigos", len(articles))
+        return articles
+
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Erro na busca PubMed: %s", exc)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Cochrane (via PubMed filtro de journal)
+# ---------------------------------------------------------------------------
+
+
+def _search_cochrane(query: str, max_results: int = 3) -> list[dict[str, Any]]:
+    """
+    Busca revisões sistemáticas da Cochrane via PubMed.
+
+    A Cochrane Database of Systematic Reviews (CDSR) é indexada no PubMed.
+    Filtramos pelo journal para obter apenas revisões Cochrane.
+    """
+    return _search_pubmed(
+        query=query,
+        max_results=max_results,
+        journal_filter="Cochrane Database Syst Rev",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Semantic Scholar (mantido como fonte de TL;DR)
+# ---------------------------------------------------------------------------
+
+_S2_BASE_URL = "https://api.semanticscholar.org/graph/v1/paper/search"
 
 
 def _normalize_tldr(paper: dict) -> dict:
@@ -45,48 +175,105 @@ def _normalize_tldr(paper: dict) -> dict:
     return paper
 
 
-@lru_cache(maxsize=32)
-def fetch_scientific_evidence(top_feature: str) -> list[dict]:
+def _search_semantic_scholar(query: str, limit: int = 3) -> list[dict[str, Any]]:
+    """Busca artigos no Semantic Scholar."""
+    params = {"query": query, "limit": str(limit), "fields": "title,url,year,tldr"}
+    try:
+        log.info("Semantic Scholar search: %s", query)
+        response = requests.get(_S2_BASE_URL, params=params, timeout=_TIMEOUT)
+        response.raise_for_status()
+        data = response.json().get("data", [])
+        papers = [_normalize_tldr(p) for p in data]
+        for p in papers:
+            p["source"] = "Semantic Scholar"
+        return papers
+    except requests.exceptions.Timeout:
+        log.warning("Semantic Scholar timeout na query '%s'", query)
+    except requests.exceptions.ConnectionError:
+        log.warning("Semantic Scholar erro de conexão")
+    except requests.exceptions.RequestException as exc:
+        log.warning("Semantic Scholar erro: %s", exc)
+    except (ValueError, KeyError) as exc:
+        log.warning("Semantic Scholar parse error: %s", exc)
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Interface pública — RAG com cache
+# ---------------------------------------------------------------------------
+
+
+def fetch_scientific_evidence(top_feature: str) -> list[dict[str, Any]]:
     """
-    Busca artigos baseados na feature de maior impacto detectada pelo XAI.
+    Busca evidência científica multi-fonte para a feature de maior impacto (XAI).
+
+    Fluxo:
+      1. Verifica cache persistente (diskcache)
+      2. Busca PubMed (artigos primários)
+      3. Busca Cochrane (revisões sistemáticas — nível mais alto de evidência)
+      4. Busca Semantic Scholar (TL;DRs automáticos)
+      5. Consolida e cacheia resultados
 
     Args:
-        top_feature: Nome da feature (ex.: "radius_mean").
+        top_feature: Feature WDBC (ex.: "radius_mean", "concavity_mean").
 
     Returns:
-        Lista de dicts com keys: title, url, year, tldr.
-        Retorna lista vazia se nenhuma evidência for encontrada.
+        Lista de dicts com: title, url, year, abstract/tldr, source.
     """
+    # 1. Verifica cache
+    cache_key = f"evidence:{top_feature}"
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        log.info("Cache hit para feature '%s'", top_feature)
+        return cached
+
     search_term = _FEATURE_MAP.get(top_feature, top_feature.replace("_", " "))
+    base_query = f"breast cancer {search_term}"
 
-    # Queries da mais específica para a mais geral
-    queries = [
-        f"breast cancer {search_term} diagnostic importance",
-        f"breast cancer {search_term}",
-        "breast cancer biopsy analysis",
-    ]
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
 
-    for query in queries:
-        url = _BASE_URL
-        params = {"query": query, "limit": "3", "fields": "title,url,year,tldr"}
-        try:
-            log.info("Buscando evidência científica (Query: %s)", query)
-            response = requests.get(url, params=params, timeout=_TIMEOUT)
-            response.raise_for_status()
+    # 2. PubMed (artigos primários)
+    pubmed_articles = _search_pubmed(base_query, max_results=3)
+    for art in pubmed_articles:
+        if art["url"] not in seen_urls:
+            results.append(art)
+            seen_urls.add(art["url"])
 
-            data = response.json().get("data", [])
-            if data:
-                papers = [_normalize_tldr(p) for p in data]
-                log.info("Encontrados %d artigos para query: %s", len(papers), query)
-                return papers
+    # 3. Cochrane (revisões sistemáticas)
+    cochrane_articles = _search_cochrane(base_query, max_results=2)
+    for art in cochrane_articles:
+        if art["url"] not in seen_urls:
+            art["source"] = "Cochrane"
+            results.append(art)
+            seen_urls.add(art["url"])
 
-        except requests.exceptions.Timeout:
-            log.warning("Timeout na query '%s' após %ds", query, _TIMEOUT)
-        except requests.exceptions.ConnectionError:
-            log.warning("Erro de conexão na query '%s'", query)
-        except requests.exceptions.RequestException as exc:
-            log.warning("Erro na query '%s': %s", query, exc)
-        except (ValueError, KeyError) as exc:
-            log.warning("Erro ao parsear resposta da query '%s': %s", query, exc)
+    # 4. Semantic Scholar (fallback + TL;DRs)
+    if len(results) < 3:
+        s2_query = f"breast cancer {search_term} diagnostic importance"
+        s2_papers = _search_semantic_scholar(s2_query, limit=3)
+        for p in s2_papers:
+            url = p.get("url", "")
+            if url and url not in seen_urls:
+                results.append(p)
+                seen_urls.add(url)
 
-    return []
+    # 5. Fallback final — query genérica
+    if not results:
+        s2_papers = _search_semantic_scholar("breast cancer biopsy analysis", limit=3)
+        for p in s2_papers:
+            results.append(p)
+
+    log.info(
+        "Total de %d evidências para '%s' (PubMed=%d, Cochrane=%d)",
+        len(results),
+        top_feature,
+        len(pubmed_articles),
+        len(cochrane_articles),
+    )
+
+    # Cacheia resultado (TTL 24h)
+    if results:
+        _cache.set(cache_key, results, expire=_CACHE_TTL)
+
+    return results

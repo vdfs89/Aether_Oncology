@@ -78,6 +78,40 @@ const featureNames = [
   "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
 ];
 
+// ─── Mapeamento amigável feature → explicação para pacientes ───
+const featureExplanations = {
+  "radius_mean": "o tamanho médio das células tumorais",
+  "texture_mean": "a irregularidade na textura das células",
+  "perimeter_mean": "o contorno médio das células",
+  "area_mean": "a área média ocupada pelas células",
+  "smoothness_mean": "a suavidade das bordas celulares",
+  "compactness_mean": "o quão compactas são as células",
+  "concavity_mean": "a profundidade das concavidades nas células",
+  "concave points_mean": "a quantidade de pontos côncavos no contorno celular",
+  "symmetry_mean": "o grau de simetria das células",
+  "fractal_dimension_mean": "a complexidade da forma celular",
+  "radius_se": "a variação no tamanho das células",
+  "texture_se": "a variação na textura celular",
+  "perimeter_se": "a variação no contorno celular",
+  "area_se": "a variação na área celular",
+  "smoothness_se": "a variação na suavidade celular",
+  "compactness_se": "a variação na compacidade celular",
+  "concavity_se": "a variação na concavidade celular",
+  "concave_points_se": "a variação nos pontos côncavos",
+  "symmetry_se": "a variação na simetria celular",
+  "fractal_dimension_se": "a variação na complexidade celular",
+  "radius_worst": "o maior tamanho celular encontrado",
+  "texture_worst": "a maior irregularidade celular encontrada",
+  "perimeter_worst": "o maior contorno celular encontrado",
+  "area_worst": "a maior área celular encontrada",
+  "smoothness_worst": "a menor suavidade celular encontrada",
+  "compactness_worst": "a maior compacidade celular encontrada",
+  "concavity_worst": "a maior concavidade celular encontrada",
+  "concave_points_worst": "o maior número de pontos côncavos encontrado",
+  "symmetry_worst": "a maior assimetria celular encontrada",
+  "fractal_dimension_worst": "a maior complexidade celular encontrada"
+};
+
 function fillSample(type) {
   const data = currentSample[type];
   document.getElementById('radius').value = data[0];
@@ -93,6 +127,31 @@ function clearForm() {
   document.getElementById('resultBadge').className = '';
   if(xaiChart) xaiChart.destroy();
   xaiChart = null;
+  // Limpa seção de evidência
+  document.getElementById('articlesSection').classList.add('hidden');
+  document.getElementById('medicoArticles').innerHTML = '';
+  document.getElementById('pacienteExplicacao').textContent = '';
+  document.getElementById('pacienteReferences').innerHTML = '';
+}
+
+// ─── Tab Switching ───
+function switchTab(tab) {
+  const tabMedico = document.getElementById('tabMedico');
+  const tabPaciente = document.getElementById('tabPaciente');
+  const medicoPanel = document.getElementById('medicoPanel');
+  const pacientePanel = document.getElementById('pacientePanel');
+
+  if (tab === 'medico') {
+    tabMedico.classList.add('active');
+    tabPaciente.classList.remove('active');
+    medicoPanel.classList.remove('hidden');
+    pacientePanel.classList.add('hidden');
+  } else {
+    tabMedico.classList.remove('active');
+    tabPaciente.classList.add('active');
+    medicoPanel.classList.add('hidden');
+    pacientePanel.classList.remove('hidden');
+  }
 }
 
 async function runAnalysis() {
@@ -114,7 +173,7 @@ async function runAnalysis() {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Analisando Rede Neural...';
+  btn.innerHTML = '<span class="spinner"></span> Analisando Rede Neural + RAG...';
   
   // Mix user data with benign baseline for complete feature set
   const fullFeaturesArray = [...currentSample.benign];
@@ -151,14 +210,14 @@ async function runAnalysis() {
     }
 
     renderXAI(values, isMalignant);
-    displayArticles(result.articles);
+    displayEvidence(result.top_feature, result.articles, isMalignant);
     
   } catch (err) {
     resText.innerText = "Erro na conexão com o Aether Core.";
     console.error(err);
   } finally {
     btn.disabled = false;
-    btn.innerText = 'INICIAR ANÁLISE IA';
+    btn.innerText = 'INICIAR ANÁLISE IA + RAG';
   }
 }
 
@@ -203,30 +262,106 @@ function renderXAI(values, isMalignant) {
     }
   });
 }
-function displayArticles(articles) {
+
+// ─── Evidência Científica v2.0 — Espaço Médico + Paciente ───
+
+function displayEvidence(topFeature, articles, isMalignant) {
   const section = document.getElementById('articlesSection');
-  const list = document.getElementById('articlesList');
+  const topFeatureText = document.getElementById('topFeatureText');
   
-  list.innerHTML = ''; // Limpa lista anterior
-  
-  if (articles && articles.length > 0) {
-      section.classList.remove('hidden');
-      articles.forEach(art => {
-          const card = `
-              <a href="${art.url}" target="_blank" class="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition group">
-                  <p class="text-[10px] text-cyan-400 font-bold mb-1 underline group-hover:text-cyan-300">
-                      PubMed/Semantic Scholar ${art.year}
-                  </p>
-                  <h5 class="text-xs font-semibold text-white/80 leading-tight mb-2">${art.title}</h5>
-                  <p class="text-[9px] text-white/40 italic leading-snug">
-                      ${art.tldr ? art.tldr : 'Resumo técnico disponível no link.'}
-                  </p>
-              </a>
-          `;
-          list.insertAdjacentHTML('beforeend', card);
-      });
-      section.classList.add('fade-up');
-  } else {
-      section.classList.add('hidden');
+  // Limpa painéis anteriores
+  document.getElementById('medicoArticles').innerHTML = '';
+  document.getElementById('pacienteExplicacao').textContent = '';
+  document.getElementById('pacienteReferences').innerHTML = '';
+
+  // Exibe banner do top feature
+  if (topFeature) {
+    const readableName = topFeature.replace(/_/g, ' ').replace(' points', ' points');
+    topFeatureText.innerHTML = `<span class="text-cyan-400">${readableName}</span> — característica com maior impacto na decisão do modelo (Integrated Gradients)`;
   }
+
+  if (!articles || articles.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  section.classList.remove('hidden');
+
+  // ─── Espaço Médico: Artigos técnicos com fontes distintas ───
+  const medicoList = document.getElementById('medicoArticles');
+  
+  articles.forEach(art => {
+    const sourceBadge = getSourceBadge(art.source);
+    const snippet = art.abstract || art.tldr || 'Resumo técnico disponível no link.';
+    
+    const card = `
+      <a href="${art.url}" target="_blank" class="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition group">
+          <div class="flex items-center gap-2 mb-1">
+              ${sourceBadge}
+              ${art.year ? `<span class="text-[9px] text-white/30">${art.year}</span>` : ''}
+          </div>
+          <h5 class="text-xs font-semibold text-white/80 leading-tight mb-2">${art.title}</h5>
+          <p class="text-[9px] text-white/40 italic leading-snug line-clamp-3">
+              ${snippet}
+          </p>
+      </a>
+    `;
+    medicoList.insertAdjacentHTML('beforeend', card);
+  });
+
+  // ─── Espaço Paciente: Explicação simplificada ───
+  const pacienteExplicacao = document.getElementById('pacienteExplicacao');
+  const pacienteReferences = document.getElementById('pacienteReferences');
+  
+  const featureLabel = (topFeature || '').replace(/_/g, ' ');
+  const friendlyExplanation = featureExplanations[topFeature] || featureLabel;
+  
+  const diagLabel = isMalignant ? 'maligno (câncer)' : 'benigno (não é câncer)';
+  const diagColor = isMalignant ? 'text-red-400' : 'text-green-400';
+  
+  pacienteExplicacao.innerHTML = `
+    O resultado da sua análise apontou um diagnóstico <strong class="${diagColor}">${diagLabel}</strong>. 
+    Para chegar a essa conclusão, a inteligência artificial identificou que <strong class="text-cyan-400">${friendlyExplanation}</strong> 
+    foi o fator mais importante na análise das suas células.
+    <br><br>
+    Para entender melhor sobre esse biomarcador, consultamos bases médicas internacionais como 
+    <strong>PubMed</strong> (biblioteca oficial de medicina dos EUA) e a <strong>Cochrane</strong> 
+    (referência mundial em revisões sistemáticas de saúde). Abaixo estão algumas referências acessíveis.
+    <br><br>
+    <span class="text-yellow-400 font-bold text-[11px]">⚠️ Importante:</span> 
+    <span class="text-white/50">Este resultado é um apoio à decisão clínica e <strong>não substitui</strong> a avaliação de um médico especialista. 
+    Consulte sempre um profissional de saúde para interpretar seus exames.</span>
+  `;
+
+  // Links simplificados para pacientes
+  articles.slice(0, 3).forEach(art => {
+    const refCard = `
+      <a href="${art.url}" target="_blank" class="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
+          <span class="text-xs">${getSourceEmoji(art.source)}</span>
+          <span class="text-[10px] text-white/60 leading-tight flex-1">${art.title}</span>
+          <svg class="w-3 h-3 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+      </a>
+    `;
+    pacienteReferences.insertAdjacentHTML('beforeend', refCard);
+  });
+
+  section.classList.add('fade-up');
+}
+
+function getSourceBadge(source) {
+  const badges = {
+    'PubMed': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold">PubMed</span>',
+    'Cochrane': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold">Cochrane</span>',
+    'Semantic Scholar': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold">Semantic Scholar</span>'
+  };
+  return badges[source] || `<span class="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white/40 font-bold">${source}</span>`;
+}
+
+function getSourceEmoji(source) {
+  const emojis = {
+    'PubMed': '🏛️',
+    'Cochrane': '🔬',
+    'Semantic Scholar': '🤖'
+  };
+  return emojis[source] || '📄';
 }

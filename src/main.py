@@ -1,13 +1,18 @@
 """
 main.py
 =======
-Camada web thin da Aether Oncology Tumor Classifier API.
+Camada web thin da Aether Oncology Tumor Classifier API v2.0.
 
 O FastAPI NÃO conhece PyTorch, tensores ou Scikit-Learn.
 Ele apenas:
   1. Valida o JSON de entrada via Pydantic (todas as 30 features WDBC)
   2. Delega para predictor.predict()
   3. Devolve uma resposta estruturada — com alerta quando confidence == 'Low'
+
+RAG v2.0:
+  - Integrated Gradients (XAI) identifica a feature de maior impacto
+  - PubMed + Cochrane + Semantic Scholar fornecem evidência científica
+  - Caching persistente via diskcache
 
 Iniciar o servidor:
     uvicorn src.main:app --reload
@@ -28,8 +33,6 @@ from src.services.predictor import predictor
 
 # ---------------------------------------------------------------------------
 # Segurança — API Key lida de variável de ambiente
-# Defina API_KEY no painel do Render (Environment > Secret Files ou Env Vars)
-# Em dev local: crie um .env ou exporte: $env:API_KEY="minha-chave"
 # ---------------------------------------------------------------------------
 
 _RAW_API_KEY = os.getenv("API_KEY", "aether-oncology-eval-2026")
@@ -37,7 +40,8 @@ if _RAW_API_KEY == "aether-oncology-eval-2026":
     import warnings
 
     warnings.warn(
-        "Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção.",
+        "Utilizando API_KEY padrão de avaliação. "
+        "Defina a variável de ambiente 'API_KEY' para produção.",
         stacklevel=1,
     )
 
@@ -62,14 +66,14 @@ app = FastAPI(
     title="Aether Oncology API",
     description=(
         "API de suporte à decisão clínica para classificação de biópsias tumorais. "
+        "**v2.0**: RAG com PubMed, Cochrane e Integrated Gradients (XAI). "
         "**Nunca deve ser usado para diagnóstico autónomo sem supervisão médica.**"
     ),
-    version="1.0.0",
+    version="2.0.0",
 )
 
 # ---------------------------------------------------------------------------
-# CORS — permite requisições de outros domínios (ex.: frontend no Vercel)
-# Em produção real, substitua "*" pelo domínio específico do frontend
+# CORS
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -77,18 +81,17 @@ app.add_middleware(
         "https://portal.vitorsilva.engineer",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "http://localhost:5173",  # Caso usem Vite no futuro
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
-# Arquivos estáticos (CSS/JS futuros)
+# Arquivos estáticos
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# Montagem específica para o portal (permite caminhos relativos limpos no index.html)
 portal_dir = os.path.join(static_dir, "aether-oncology-portal")
 app.mount(
     "/css", StaticFiles(directory=os.path.join(portal_dir, "css")), name="portal-css"
@@ -110,7 +113,7 @@ app.mount(
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def read_index() -> HTMLResponse:
-    """Serve o portal clínico modular (src/static/aether-oncology-portal/index.html)."""
+    """Serve o portal clínico modular."""
     index_path = os.path.join(
         os.path.dirname(__file__), "static", "aether-oncology-portal", "index.html"
     )
@@ -119,26 +122,18 @@ async def read_index() -> HTMLResponse:
 
 
 # ---------------------------------------------------------------------------
-# Schema de entrada — todas as 30 features WDBC com nomes explícitos
+# Schema de entrada — 30 features WDBC
 # ---------------------------------------------------------------------------
 
 
 class TumorFeatures(BaseModel):
-    """
-    30 atributos morfológicos numéricos extraídos de núcleos celulares
-    (Wisconsin Diagnostic Breast Cancer — WDBC dataset).
-    """
+    """30 atributos morfológicos numéricos (WDBC dataset)."""
 
-    # --- Mean values ---
     radius_mean: float = Field(..., gt=0, description="Raio médio do núcleo")
-    texture_mean: float = Field(
-        ..., gt=0, description="Textura média (desvio padrão de intensidades)"
-    )
+    texture_mean: float = Field(..., gt=0, description="Textura média")
     perimeter_mean: float = Field(..., gt=0, description="Perímetro médio")
     area_mean: float = Field(..., gt=0, description="Área média")
-    smoothness_mean: float = Field(
-        ..., gt=0, description="Suavidade média (variação local do raio)"
-    )
+    smoothness_mean: float = Field(..., gt=0, description="Suavidade média")
     compactness_mean: float = Field(..., gt=0, description="Compacidade média")
     concavity_mean: float = Field(..., ge=0, description="Concavidade média")
     concave_points_mean: float = Field(..., ge=0, description="Pontos côncavos médios")
@@ -146,8 +141,6 @@ class TumorFeatures(BaseModel):
     fractal_dimension_mean: float = Field(
         ..., gt=0, description="Dimensão fractal média"
     )
-
-    # --- Standard error ---
     radius_se: float = Field(..., ge=0, description="Erro padrão do raio")
     texture_se: float = Field(..., ge=0, description="Erro padrão da textura")
     perimeter_se: float = Field(..., ge=0, description="Erro padrão do perímetro")
@@ -162,8 +155,6 @@ class TumorFeatures(BaseModel):
     fractal_dimension_se: float = Field(
         ..., ge=0, description="Erro padrão da dimensão fractal"
     )
-
-    # --- Worst (largest) values ---
     radius_worst: float = Field(..., gt=0, description="Raio máximo (pior)")
     texture_worst: float = Field(..., gt=0, description="Textura máxima (pior)")
     perimeter_worst: float = Field(..., gt=0, description="Perímetro máximo (pior)")
@@ -220,17 +211,21 @@ class TumorFeatures(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Schema de saída
+# Schema de saída — v2.0 com multi-fonte de evidência
 # ---------------------------------------------------------------------------
 
 
 class ResearchArticle(BaseModel):
-    """Estrutura para evidências científicas do Semantic Scholar."""
+    """Evidências científicas (PubMed, Cochrane, Semantic Scholar)."""
 
-    title: str = Field(..., description="Título do artigo acadêmico")
+    title: str = Field(..., description="Título do artigo")
     url: str = Field(..., description="Link para o artigo")
     year: int | None = Field(None, description="Ano de publicação")
     tldr: str | None = Field(None, description="Resumo executivo (TL;DR)")
+    abstract: str | None = Field(None, description="Resumo (PubMed)")
+    source: str = Field(
+        ..., description="Fonte: 'PubMed', 'Cochrane' ou 'Semantic Scholar'"
+    )
 
 
 class PredictResponse(BaseModel):
@@ -240,15 +235,15 @@ class PredictResponse(BaseModel):
     confidence: str = Field(..., description="'High' | 'Medium' | 'Low'")
     status: str
     top_feature: str | None = Field(
-        None, description="Característica de maior impacto na predição (XAI)"
+        None, description="Feature de maior impacto (XAI — Integrated Gradients)"
     )
     articles: list[ResearchArticle] = Field(
         default_factory=list,
-        description="Artigos científicos relacionados à top_feature",
+        description="Evidências científicas multi-fonte (PubMed, Cochrane, S2)",
     )
     warning: str | None = Field(
         default=None,
-        description="Alerta de baixa confiança — revisão manual obrigatória",
+        description="Alerta de baixa confiança",
     )
 
 
@@ -259,8 +254,7 @@ class PredictResponse(BaseModel):
 
 @app.get("/health")
 def health_check():
-    # O Render precisa receber este 200 OK para confirmar o deploy
-    return {"status": "online", "model": "Aether Oncology v1.0"}
+    return {"status": "online", "model": "Aether Oncology v2.0"}
 
 
 @app.post(
@@ -273,14 +267,11 @@ def health_check():
 )
 def make_prediction(features: TumorFeatures) -> PredictResponse:
     """
-    Recebe as 30 features morfológicas WDBC e devolve a classificação binária.
+    Recebe as 30 features WDBC e devolve classificação binária + RAG.
 
-    Requer o header ``access_token`` com a API Key configurada no servidor.
-    Quando ``confidence == 'Low'``, o campo ``warning`` é preenchido,
-    sinalizando revisão manual dupla obrigatória (Model Card — Secção 6).
+    v2.0: top_feature via Integrated Gradients → busca PubMed + Cochrane.
     """
     try:
-        # Converte Pydantic → lista ordenada de floats (preserva ordem WDBC)
         data_list = [list(features.model_dump().values())]
         result = predictor.predict(data_list)
     except FileNotFoundError as exc:

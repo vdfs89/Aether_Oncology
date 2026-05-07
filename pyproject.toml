@@ -1,7 +1,7 @@
 [project]
 name = "aether-oncology"
-version = "1.0.0"
-description = "Classificador de tumores malignos via MLP em PyTorch"
+version = "2.0.0"
+description = "Classificador de tumores malignos via MLP em PyTorch com RAG"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,6 +19,8 @@ dependencies = [
     "matplotlib", # plots gerais
     "psutil",    # necessário para MLflow System Metrics
     "optuna",    # otimização de hiperparâmetros
+    "biopython", # PubMed Entrez API (RAG v2.0)
+    "diskcache", # caching persistente (RAG v2.0)
 ]
 
 [project.optional-dependencies]

@@ -1,18 +1,21 @@
 """
 predictor.py
 ============
-Camada de serviço de ML da Aether Oncology.
+Camada de serviço de ML da Aether Oncology v2.0.
 
 Responsabilidades:
   - Carregar o Pipeline Scikit-Learn (StandardScaler → persisted via joblib)
   - Carregar os pesos da TumorMLP (PyTorch .pth)
   - Expor predict() como única interface pública para a camada web
+  - Calcular Integrated Gradients para explicabilidade (XAI)
 
 Design decisions:
   - Singleton instanciado no nível do módulo: o modelo é carregado UMA vez
     quando o worker do uvicorn sobe, não em cada requisição.
   - O preprocessor (sklearn Pipeline) é mantido separado dos pesos torch para
     facilitar versionamento independente dos artefactos.
+  - Integrated Gradients implementado manualmente (sem dependência do Captum)
+    para reduzir footprint de dependências.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import logging
 from pathlib import Path
 
 import joblib
+import numpy as np
 import torch
 
 # Importa a ÚNICA fonte de verdade da arquitectura — elimina duplicação
@@ -75,6 +79,57 @@ _MODEL_PATH = _ROOT / "models" / "aether_mlp_v1.pth"
 
 
 # ---------------------------------------------------------------------------
+# Integrated Gradients (implementação manual — sem Captum)
+# ---------------------------------------------------------------------------
+
+
+def _integrated_gradients(
+    model: MLP,
+    input_tensor: torch.Tensor,
+    baseline: torch.Tensor | None = None,
+    steps: int = 50,
+) -> np.ndarray:
+    """
+    Calcula Integrated Gradients para uma amostra de entrada.
+
+    Implementação do algoritmo proposto em:
+    Sundararajan et al., "Axiomatic Attribution for Deep Networks", ICML 2017.
+
+    Args:
+        model: Modelo PyTorch em modo eval.
+        input_tensor: Tensor de entrada (1, n_features) já pré-processado.
+        baseline: Tensor baseline (default: zeros). Ponto de referência.
+        steps: Número de etapas de interpolação (mais = mais preciso).
+
+    Returns:
+        Array numpy com a importância (attribution) de cada feature.
+    """
+    if baseline is None:
+        baseline = torch.zeros_like(input_tensor)
+
+    # Interpolação linear entre baseline e input
+    scaled_inputs = []
+    for i in range(steps + 1):
+        alpha = i / steps
+        scaled = baseline + alpha * (input_tensor - baseline)
+        scaled_inputs.append(scaled)
+
+    # Calcula gradientes para cada interpolação
+    gradients = []
+    for scaled in scaled_inputs:
+        scaled = scaled.clone().detach().requires_grad_(True)
+        model.zero_grad()
+        output = model(scaled)
+        output.backward()
+        gradients.append(scaled.grad.detach().clone())
+
+    # Média dos gradientes × (input - baseline)
+    avg_gradients = torch.mean(torch.stack(gradients), dim=0)
+    attributions = (input_tensor.detach() - baseline) * avg_gradients
+    return attributions.squeeze().cpu().numpy()
+
+
+# ---------------------------------------------------------------------------
 # Serviço de predição
 # ---------------------------------------------------------------------------
 
@@ -86,7 +141,8 @@ class PredictorService:
     Fluxo de inferência:
         raw_input  →  preprocessor.transform()  →  torch.Tensor
                    →  model.forward()            →  sigmoid probability
-                   →  dict  (label + probability + confidence)
+                   →  Integrated Gradients        →  feature importance
+                   →  dict  (label + probability + confidence + top_feature)
     """
 
     def __init__(self) -> None:
@@ -142,6 +198,8 @@ class PredictorService:
               - ``label``       : 'Malignant' ou 'Benign'
               - ``probability`` : score sigmoid arredondado (0–1)
               - ``confidence``  : 'High' | 'Medium' | 'Low'
+              - ``top_feature`` : feature de maior impacto (XAI — Integrated Gradients)
+              - ``articles``    : evidências científicas (PubMed + Cochrane + S2)
               - ``status``      : 'sucesso'
         """
         # 1. Pré-processamento via Pipeline Sklearn
@@ -165,7 +223,7 @@ class PredictorService:
         prediction = 1 if probability >= 0.5 else 0
         label = "Malignant" if prediction == 1 else "Benign"
 
-        # 4. Tier de confiança (alinhado ao Model Card — Secção 6)
+        # 5. Tier de confiança (alinhado ao Model Card — Secção 6)
         if probability >= 0.85 or probability <= 0.15:
             confidence = "High"
         elif probability >= 0.65 or probability <= 0.35:
@@ -173,12 +231,16 @@ class PredictorService:
         else:
             confidence = "Low"  # dispara revisão manual dupla na camada web
 
-        # 5. Busca de Evidência Científica (XAI Contextual)
-        # Identificamos a feature de maior impacto (simplificado: maior valor normalizado)
-        # No futuro, integrar SHAP aqui.
-        top_idx = processed_data[0].argmax()
+        # 6. XAI via Integrated Gradients
+        #    Identifica a feature com maior attribution (impacto na decisão)
+        self.model.eval()
+        attributions = _integrated_gradients(self.model, tensor_data, steps=50)
+        # Valor absoluto = magnitude do impacto (positivo ou negativo)
+        top_idx = int(np.argmax(np.abs(attributions)))
         top_feature = FEATURE_NAMES[top_idx]
 
+        # 7. Busca de Evidência Científica (RAG v2.0)
+        #    Gatilho contextual: top_feature → PubMed + Cochrane + Semantic Scholar
         articles = fetch_scientific_evidence(top_feature)
 
         return {
