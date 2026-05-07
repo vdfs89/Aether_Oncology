@@ -1,37 +1,3 @@
----
-language:
-- pt
-license: mit
-tags:
-- tabular-classification
-- pytorch
-- scikit-learn
-- medical
-- oncology
-- health
-datasets:
-- scikit-learn/breast-cancer-wisconsin
-pipeline_tag: tabular-classification
-model-index:
-- name: Aether Oncology Tumor Classifier v1.0
-  results:
-  - task:
-      type: tabular-classification
-      name: Classificação Tabular
-    dataset:
-      name: Breast Cancer Wisconsin Diagnostic
-      type: scikit-learn/breast-cancer-wisconsin
-    metrics:
-    - type: recall
-      value: 0.97
-      name: Recall (Sensibilidade)
-    - type: f1
-      value: 0.96
-      name: F1-Score
-    - type: roc_auc
-      value: 0.99
-      name: ROC-AUC
----
 
 # Aether Oncology
 
@@ -478,3 +444,37 @@ Desenvolvido por **Vitor Diogo Fonseca da Silva** — 2026
 Ciência da Computação | Pós-Tech FIAP — Engenharia de Machine Learning
 
 </div>
+---
+language:
+- pt
+license: mit
+tags:
+- tabular-classification
+- pytorch
+- scikit-learn
+- medical
+- oncology
+- health
+datasets:
+- scikit-learn/breast-cancer-wisconsin
+pipeline_tag: tabular-classification
+model-index:
+- name: Aether Oncology Tumor Classifier v1.0
+  results:
+  - task:
+      type: tabular-classification
+      name: Classificação Tabular
+    dataset:
+      name: Breast Cancer Wisconsin Diagnostic
+      type: scikit-learn/breast-cancer-wisconsin
+    metrics:
+    - type: recall
+      value: 0.97
+      name: Recall (Sensibilidade)
+    - type: f1
+      value: 0.96
+      name: F1-Score
+    - type: roc_auc
+      value: 0.99
+      name: ROC-AUC
+---
