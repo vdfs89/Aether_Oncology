@@ -243,7 +243,8 @@ class PredictResponse(BaseModel):
         None, description="Característica de maior impacto na predição (XAI)"
     )
     articles: list[ResearchArticle] = Field(
-        default_factory=list, description="Artigos científicos relacionados à top_feature"
+        default_factory=list,
+        description="Artigos científicos relacionados à top_feature",
     )
     warning: str | None = Field(
         default=None,

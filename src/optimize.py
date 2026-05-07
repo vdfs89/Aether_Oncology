@@ -85,6 +85,7 @@ def objective(trial, X_train, X_val, y_train, y_val):
 
     return score
 
+
 def run_optimization(n_trials=20):
     log.info("Iniciando optimização com Optuna (%d trials)...", n_trials)
 
@@ -113,6 +114,7 @@ def run_optimization(n_trials=20):
         # Loga os melhores resultados no MLflow
         mlflow.log_params(study.best_params)
         mlflow.log_metric("best_f1_score", study.best_value)
+
 
 if __name__ == "__main__":
     run_optimization()
