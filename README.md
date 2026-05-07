@@ -41,6 +41,16 @@ model-index:
 
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
+<div align="center">
+
+| Status | Recall | F1-Score | ROC-AUC | Versão |
+| :---: | :---: | :---: | :---: | :---: |
+| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v1.0.1` |
+
+</div>
+
+---
+
 **Autor:** Vitor Diogo Fonseca da Silva
 **Tech Challenge 01 — FIAP Pós-Tech · Engenharia de Machine Learning**
 
@@ -116,34 +126,17 @@ graph TD
 
 ### Análise Técnica Completa (Executive Summary)
 
-Esta análise valida como o seu projeto atende (e supera) os critérios de avaliação da Fase 01.
+Esta análise valida como o projeto atende (e supera) os requisitos de excelência da Fase 01.
 
-**Arquitetura & Organização**
-* **Padrão Arquitetural:** Microsserviço de Inferência Desacoplado. O Frontend (Vanilla JS) comunica-se assincronamente com o Backend via REST API.
-* **Modularidade e SOLID:** O código está encapsulado na estrutura `src/`, separando responsabilidades (Single Responsibility Principle) através do `PredictorService`. Isso garante que a camada web (rotas) não conheça os tensores do modelo.
-
-**Backend & API**
-* **Framework:** Desenvolvido em FastAPI, o padrão moderno para MLOps devido ao seu suporte nativo a operações assíncronas e documentação Swagger automática.
-* **Contratos de Dados:** Utilização estrita do Pydantic para forçar que o JSON de entrada contenha exatamente os 30 atributos da biópsia com as tipagens corretas (evitando o "garbage in, garbage out").
-
-**IA / Machine Learning (O Core)**
-* **Treinamento e Modelo:** Implementação de uma Rede Neural MLP (Multilayer Perceptron) customizada no PyTorch para dados tabulares. O loop de treino conta com Early Stopping para prevenir o overfitting e regularização via Dropout.
-* **Pipeline (Data Leakage):** Todo o pré-processamento (como o `StandardScaler`) está encapsulado num pipeline do Scikit-Learn, garantindo transformações idênticas em treino e inferência.
-* **Governança:** Integração profunda com MLflow, registrando não apenas os pesos do modelo (artefatos), mas também os hiperparâmetros, curva de loss e métricas críticas como Recall e F1-Score.
-
-**Segurança**
-* **Autenticação:** O acesso à rede neural é protegido por uma validação de cabeçalho (`access_token`) através de API Key injetada por variáveis de ambiente.
-* **CORS:** Políticas rigorosas de Cross-Origin Resource Sharing permitindo apenas métodos GET e POST, protegendo o backend no Render.
-
-**DevOps & Qualidade de Código**
-* **Observabilidade & Latência:** A arquitetura do `PredictorService` utiliza o padrão Singleton para carregar o modelo de IA na memória uma única vez no arranque do servidor, eliminando a latência de I/O em cada predição.
-* **Ambiente & Linting:** O projeto utiliza o `pyproject.toml` como única fonte de verdade para dependências. A qualidade do código é assegurada pelo Ruff, o linter mais rápido do ecossistema atual.
-* **Testes (TDD):** A robustez da aplicação é garantida pelo Pytest através de três camadas exigidas: Smoke tests (saúde da API), validação algorítmica e testes de integridade de dados (data contracts) suportados pelo framework Pandera.
-* **Otimização & Calibração (MRM3):** O projeto utiliza **Optuna** para busca automatizada de hiperparâmetros (arquitetura dinâmica) e **Platt Scaling** para calibração de probabilidades, garantindo que a confiança do modelo seja estatisticamente válida para uso clínico.
-
-**Documentação & Manutenção**
-* **Model Card:** O projeto possui um documento ético detalhando os casos de uso previstos, as mitigações contra viés nos dados demográficos e o foco estratégico no Recall para priorização da segurança do paciente.
-* **Plano de Monitoramento:** Estrutura definida para a fase de pós-implantação (Day 2), estabelecendo gatilhos para retreino perante deteção de Data Drift (mudança nos equipamentos de biópsia) e degradação de performance.
+| Pilar | Implementação | Diferencial Clínico/Técnico |
+| :--- | :--- | :--- |
+| **🧠 Engine de IA** | PyTorch MLP + Platt Scaling | Probabilidades calibradas para decisão médica segura |
+| **⚡ Performance** | Singleton Predictor Pattern | Inferência ultra-rápida com modelo pré-carregado em memória |
+| **🛡️ Governança** | Pandera Data Contracts | Rejeição automática de entradas fora de limites biológicos |
+| **📈 MLOps** | MLflow + Optuna Tracking | Rastreabilidade total de experimentos e busca de hiperparâmetros |
+| **🔒 Segurança** | API Key Auth + Strict CORS | Proteção de dados sensíveis e controle de origem rigoroso |
+| **🧪 Qualidade** | Pytest (TDD) + Ruff Linter | Cobertura de testes em camadas e padronização absoluta |
+| **📖 Ética** | Model Card + Bias Audit | Foco estratégico em **Recall** para maximizar a segurança |
 
 ---
 
