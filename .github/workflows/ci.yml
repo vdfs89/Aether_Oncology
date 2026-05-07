@@ -59,3 +59,9 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest tests/ --cov=src --cov-report=term-missing -q
+      
+      - name: Upload Trained Model
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: models/  # Ou a pasta onde seu src.train salva os arquivos
