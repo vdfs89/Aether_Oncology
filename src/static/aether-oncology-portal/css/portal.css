@@ -388,3 +388,35 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ─── AUDIT TRAIL TABLE ─── */
+.audit-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+.audit-row {
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s;
+}
+.audit-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.audit-cell {
+  padding: 8px 10px;
+  font-size: 9px;
+  color: rgba(247, 249, 255, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.audit-cell:first-child { border-left: 1px solid rgba(255, 255, 255, 0.03); border-radius: 6px 0 0 6px; }
+.audit-cell:last-child { border-right: 1px solid rgba(255, 255, 255, 0.03); border-radius: 0 6px 6px 0; }
+
+.audit-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.audit-malignant { background: rgba(255, 77, 77, 0.15); color: #FF4D4D; }
+.audit-benign { background: rgba(0, 230, 118, 0.15); color: #00E676; }

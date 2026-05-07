@@ -387,6 +387,36 @@ async function checkModelHealth() {
       details.insertAdjacentHTML('beforeend', card);
     });
 
+    // --- Audit Trail Logic ---
+    const auditBody = document.getElementById('auditTrailBody');
+    auditBody.innerHTML = '<tr><td class="audit-cell">Carregando Auditoria...</td></tr>';
+
+    try {
+      const auditRes = await fetch('/audit', { headers: { 'access_token': API_KEY } });
+      const text = await auditRes.text();
+      const lines = text.trim().split('\n').filter(l => l).reverse().slice(0, 5);
+      
+      auditBody.innerHTML = '';
+      lines.forEach(line => {
+        const entry = JSON.parse(line);
+        const date = new Date(entry.timestamp).toLocaleTimeString();
+        const badgeClass = entry.prediction === 1 ? 'audit-malignant' : 'audit-benign';
+        const label = entry.prediction === 1 ? 'MAL' : 'BEN';
+        
+        const row = `
+          <tr class="audit-row">
+            <td class="audit-cell font-bold text-white/40">${date}</td>
+            <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
+            <td class="audit-cell italic truncate max-w-[80px]">${entry.top_feature.replace('_mean','')}</td>
+            <td class="audit-cell text-right">${(entry.probability * 100).toFixed(0)}%</td>
+          </tr>
+        `;
+        auditBody.insertAdjacentHTML('beforeend', row);
+      });
+    } catch (e) {
+      auditBody.innerHTML = '<tr><td class="audit-cell text-red-400">Erro na auditoria.</td></tr>';
+    }
+
   } catch (err) {
     details.innerHTML = '<p class="text-[10px] text-red-400 col-span-2">Erro ao acessar métricas de governança.</p>';
   }
