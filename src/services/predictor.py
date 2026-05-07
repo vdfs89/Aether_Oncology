@@ -26,8 +26,18 @@ import torch
 # Importa a ÚNICA fonte de verdade da arquitectura — elimina duplicação
 # e garante que train.py e predictor.py usem exactamente o mesmo modelo.
 from src.models.mlp import MLP
+from src.services.research import fetch_scientific_evidence
 
 logger = logging.getLogger(__name__)
+
+FEATURE_NAMES = [
+    "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
+    "compactness_mean", "concavity_mean", "concave points_mean", "symmetry_mean", "fractal_dimension_mean",
+    "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
+    "compactness_se", "concavity_se", "concave points_se", "symmetry_se", "fractal_dimension_se",
+    "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
+    "compactness_worst", "concavity_worst", "concave points_worst", "symmetry_worst", "fractal_dimension_worst"
+]
 
 
 # ---------------------------------------------------------------------------
@@ -35,8 +45,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _ROOT = Path(__file__).resolve().parents[2]
-_MODEL_PATH = _ROOT / "models" / "aether_mlp_v1.pth"
 _PIPELINE_PATH = _ROOT / "models" / "preprocessor.joblib"
+_CALIBRATOR_PATH = _ROOT / "models" / "calibrator.joblib"
+_MODEL_PATH = _ROOT / "models" / "aether_mlp_v1.pth"
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +94,12 @@ class PredictorService:
         self.model.eval()
         logger.info("Modelo PyTorch carregado e em modo eval: %s", _MODEL_PATH)
 
+        # --- Calibrador (opcional, gerado no treino) ---
+        self.calibrator = None
+        if _CALIBRATOR_PATH.exists():
+            self.calibrator = joblib.load(_CALIBRATOR_PATH)
+            logger.info("Calibrador de probabilidades carregado: %s", _CALIBRATOR_PATH)
+
     # ------------------------------------------------------------------
     # Interface pública
     # ------------------------------------------------------------------
@@ -111,8 +128,15 @@ class PredictorService:
 
         # 3. Inferência (sem gradientes)
         with torch.no_grad():
-            logits = self.model(tensor_data)
-            probability: float = torch.sigmoid(logits).squeeze().item()
+            logits_tensor = self.model(tensor_data)
+            logits_np = logits_tensor.cpu().numpy()
+        
+        # 4. Calibração de Probabilidade (Platt Scaling)
+        if self.calibrator:
+            # O calibrador espera [N, 1] e retorna [N, 2] (probabilidades por classe)
+            probability = float(self.calibrator.predict_proba(logits_np)[0, 1])
+        else:
+            probability = float(torch.sigmoid(logits_tensor).squeeze().item())
 
         prediction = 1 if probability >= 0.5 else 0
         label = "Malignant" if prediction == 1 else "Benign"
@@ -125,11 +149,21 @@ class PredictorService:
         else:
             confidence = "Low"  # dispara revisão manual dupla na camada web
 
+        # 5. Busca de Evidência Científica (XAI Contextual)
+        # Identificamos a feature de maior impacto (simplificado: maior valor normalizado)
+        # No futuro, integrar SHAP aqui.
+        top_idx = processed_data[0].argmax()
+        top_feature = FEATURE_NAMES[top_idx]
+        
+        articles = fetch_scientific_evidence(top_feature)
+
         return {
             "prediction": prediction,
             "label": label,
             "probability": round(probability, 4),
             "confidence": confidence,
+            "top_feature": top_feature,
+            "articles": articles,
             "status": "sucesso",
         }
 

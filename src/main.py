@@ -32,12 +32,12 @@ from src.services.predictor import predictor
 # Em dev local: crie um .env ou exporte: $env:API_KEY="minha-chave"
 # ---------------------------------------------------------------------------
 
-_RAW_API_KEY = os.getenv("API_KEY", "")
-if not _RAW_API_KEY:
+_RAW_API_KEY = os.getenv("API_KEY", "aether-oncology-eval-2026")
+if _RAW_API_KEY == "aether-oncology-eval-2026":
     import warnings
 
     warnings.warn(
-        "API_KEY não definida. O endpoint /predict aceitará qualquer requisição!",
+        "Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção.",
         stacklevel=1,
     )
 
@@ -49,7 +49,7 @@ async def get_api_key(key: str = Security(_api_key_header)) -> str:
     if _RAW_API_KEY and key != _RAW_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado: API Key inválida",
+            detail="Acesso negado: API Key inválida ou ausente",
         )
     return key
 
@@ -74,11 +74,14 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://portal.vitorsilva.engineer"
-    ],  # O domínio do seu novo portal
+        "https://portal.vitorsilva.engineer",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:5173",  # Caso usem Vite no futuro
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],  # Permite o envio da sua API_KEY no header
+    allow_headers=["*"],
 )
 
 # Arquivos estáticos (CSS/JS futuros)
@@ -221,12 +224,27 @@ class TumorFeatures(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ResearchArticle(BaseModel):
+    """Estrutura para evidências científicas do Semantic Scholar."""
+
+    title: str = Field(..., description="Título do artigo acadêmico")
+    url: str = Field(..., description="Link para o artigo")
+    year: int | None = Field(None, description="Ano de publicação")
+    tldr: str | None = Field(None, description="Resumo executivo (TL;DR)")
+
+
 class PredictResponse(BaseModel):
     prediction: int = Field(..., description="1 = Maligno, 0 = Benigno")
     label: str = Field(..., description="'Malignant' ou 'Benign'")
     probability: float = Field(..., ge=0.0, le=1.0)
     confidence: str = Field(..., description="'High' | 'Medium' | 'Low'")
     status: str
+    top_feature: str | None = Field(
+        None, description="Característica de maior impacto na predição (XAI)"
+    )
+    articles: list[ResearchArticle] = Field(
+        default_factory=list, description="Artigos científicos relacionados à top_feature"
+    )
     warning: str | None = Field(
         default=None,
         description="Alerta de baixa confiança — revisão manual obrigatória",

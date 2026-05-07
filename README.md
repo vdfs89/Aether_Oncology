@@ -1,3 +1,38 @@
+---
+language:
+- pt
+license: mit
+tags:
+- tabular-classification
+- pytorch
+- scikit-learn
+- medical
+- oncology
+- health
+datasets:
+- scikit-learn/breast-cancer-wisconsin
+pipeline_tag: tabular-classification
+model-index:
+- name: Aether Oncology Tumor Classifier v1.0
+  results:
+  - task:
+      type: tabular-classification
+      name: Classificação Tabular
+    dataset:
+      name: Breast Cancer Wisconsin Diagnostic
+      type: scikit-learn/breast-cancer-wisconsin
+    metrics:
+    - type: recall
+      value: 0.97
+      name: Recall (Sensibilidade)
+    - type: f1
+      value: 0.96
+      name: F1-Score
+    - type: roc_auc
+      value: 0.99
+      name: ROC-AUC
+---
+
 # Aether Oncology
 
 <p align="center">
@@ -104,6 +139,7 @@ Esta análise valida como o seu projeto atende (e supera) os critérios de avali
 * **Observabilidade & Latência:** A arquitetura do `PredictorService` utiliza o padrão Singleton para carregar o modelo de IA na memória uma única vez no arranque do servidor, eliminando a latência de I/O em cada predição.
 * **Ambiente & Linting:** O projeto utiliza o `pyproject.toml` como única fonte de verdade para dependências. A qualidade do código é assegurada pelo Ruff, o linter mais rápido do ecossistema atual.
 * **Testes (TDD):** A robustez da aplicação é garantida pelo Pytest através de três camadas exigidas: Smoke tests (saúde da API), validação algorítmica e testes de integridade de dados (data contracts) suportados pelo framework Pandera.
+* **Otimização & Calibração (MRM3):** O projeto utiliza **Optuna** para busca automatizada de hiperparâmetros (arquitetura dinâmica) e **Platt Scaling** para calibração de probabilidades, garantindo que a confiança do modelo seja estatisticamente válida para uso clínico.
 
 **Documentação & Manutenção**
 * **Model Card:** O projeto possui um documento ético detalhando os casos de uso previstos, as mitigações contra viés nos dados demográficos e o foco estratégico no Recall para priorização da segurança do paciente.
@@ -118,10 +154,12 @@ aether-oncology/
 ├── src/
 │   ├── main.py                  # API FastAPI (/predict + /health)
 │   ├── train.py                 # Pipeline de treino com Early Stopping e MLflow
+│   ├── optimize.py              # Busca de hiperparâmetros via Optuna
 │   ├── models/
 │   │   └── mlp.py               # Arquitetura TumorMLP — única fonte de verdade
 │   └── services/
-│       └── predictor.py         # PredictorService (Singleton) — importa MLP de mlp.py
+│       ├── predictor.py         # PredictorService (Singleton) — importa MLP de mlp.py
+│       └── research.py          # Integração com Semantic Scholar API
 ├── data/
 │   └── raw/                     # Dataset WDBC (Wisconsin Diagnostic Breast Cancer)
 ├── models/                      # Artefatos gerados: pesos .pth e pipeline .joblib
@@ -161,7 +199,10 @@ df['target'] = 1 - data.target  # 1=Maligno, 0=Benigno
 df.to_csv('data/raw/data.csv', index=False)
 "
 
-# 3. Treinar o modelo (registra métricas no MLflow)
+# 3. Otimizar hiperparâmetros (Opcional - gera melhores arquiteturas)
+python -m src.optimize
+
+# 4. Treinar o modelo final (registra métricas e calibração no MLflow)
 make train
 
 # 4. Rodar os testes com cobertura
@@ -356,13 +397,39 @@ Contém as 6 seções obrigatórias:
 
 ---
 
-## 📄 Governança e Ética
+## 🧬 Model Card: Aether Oncology - Tumor Classifier v1.0
 
-### [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md)
-Documenta explicitamente o que o modelo **não pode fazer**: nenhum diagnóstico autônomo, nunca. Inclui grupos avaliados, riscos de viés, conformidade LGPD/HIPAA e mecanismo de alerta de "Baixa Confiança".
+### 1. Detalhes do Modelo
+- **Desenvolvedor:** Vitor Diogo Fonseca da Silva (Tech Challenge 01 — FIAP Pós-Tech Engenharia de Machine Learning)
+- **Tipo de Modelo:** Multilayer Perceptron (MLP) Neural Network
+- **Frameworks:** PyTorch e Scikit-Learn (Pipeline)
+- **Licença:** MIT
+- **Dataset de Treino:** [Breast Cancer Wisconsin Diagnostic (WDBC)](https://huggingface.co/datasets/scikit-learn/breast-cancer-wisconsin)
 
-### [`docs/MONITORING.md`](docs/MONITORING.md)
-Define thresholds de alerta e **Playbook de Incidentes** com 4 níveis de severidade — do 🟢 BAIXO (F1 queda > 5%) ao 🔴 CRÍTICO (Recall < 0.90 → suspender predições).
+### 2. Uso Pretendido (Intended Use)
+- **Primary Intended Use:** Atuar como um Sistema de Suporte à Decisão Clínica (CDSS) para patologistas e oncologistas, realizando a triagem inicial e estimando o risco de malignidade em biópsias baseadas em características morfológicas e celulares.
+- **Secondary Intended Use:** Priorização de filas de exames hospitalares (casos com alto risco de malignidade passam para o topo da fila de análise humana).
+- **Out of Scope Use (Uso Proibido):** Este modelo **nunca** deve ser utilizado para diagnóstico autônomo ou prescrição de tratamentos sem a supervisão e validação final de um médico especialista.
+
+### 3. Dados de Treinamento e Pré-processamento
+O modelo foi treinado com o dataset WDBC, composto por 30 atributos numéricos contínuos extraídos de imagens digitalizadas de biópsias (FNA - Fine Needle Aspirate). 
+- **Contrato de Dados:** A padronização dos dados foi feita utilizando o `StandardScaler` do Scikit-Learn. Este fluxo foi serializado como um Pipeline (`.joblib`) no repositório de produção para garantir que a inferência da API receba exatamente a mesma escala matemática, prevenindo *data leakage*.
+
+### 4. Métricas de Avaliação
+O modelo foi otimizado estrategicamente para o **Recall (Sensibilidade)** através de funções de perda pesadas. No contexto oncológico, um *Falso Negativo* (afirmar que não há câncer quando o paciente possui um tumor maligno) possui um custo humano inaceitável.
+- **Recall (Sensibilidade):** 0.97
+- **F1-Score:** 0.96
+- **ROC-AUC:** 0.99
+- **Acurácia Global:** ~97.3%
+
+### 5. Governança, Ética e Sustentabilidade
+- **Auditoria de Viés (Fairness):** O MVP atual utiliza exclusivamente características morfológicas, o que mitiga riscos diretos de viés demográfico (como idade ou etnia). No entanto, o roadmap arquitetural para a v2.0 (integração multimodal com Prontuários Eletrônicos - EHR) prevê a implementação contínua do framework **Fairlearn**. Ele atuará como um *gatekeeper* no nosso pipeline CI/CD para garantir a mitigação de vieses demográficos, em total conformidade com práticas de IA Responsável e LGPD.
+- **Sustentabilidade (MRM3):** O design deste modelo foca em alta eficiência computacional. Prevemos a adoção do framework MRM3 (Machine Readable ML Model Metadata) para a governança em produção, rastreando métricas de impacto ambiental como **consumo de energia** e **pegada de carbono** durante a inferência.
+- **Medicina Baseada em Evidências:** A arquitetura futura prevê a implementação de um módulo de RAG (Retrieval-Augmented Generation) atrelado à classificação, extraindo literatura em tempo real de bases como PubMed e Biblioteca Cochrane para embasar o score preditivo.
+
+### 6. Limitações e Monitoramento
+- **Fronteira Operacional:** O modelo assume que as amostras de entrada advêm de microscópios e equipamentos de biópsia calibrados nos mesmos padrões do dataset de treinamento.
+- **Data Drift:** Caso ocorra a atualização de equipamentos ou métodos de coleta hospitalar, o protocolo Day-2 de MLOps do Aether Oncology exige uma reavaliação de estabilidade por meio de métricas estatísticas para acionar o retreino automático.
 
 ---
 

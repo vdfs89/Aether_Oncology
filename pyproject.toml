@@ -18,6 +18,7 @@ dependencies = [
     "seaborn",   # visualizações EDA
     "matplotlib", # plots gerais
     "psutil",    # necessário para MLflow System Metrics
+    "optuna",    # otimização de hiperparâmetros
 ]
 
 [project.optional-dependencies]

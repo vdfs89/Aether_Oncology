@@ -38,27 +38,28 @@ class MLP(nn.Module):
     def __init__(
         self,
         input_shape: int = 30,
-        hidden_dim: int = 64,
+        hidden_dims: list[int] | None = None,
         dropout_rate: float = 0.3,
     ) -> None:
         super().__init__()
 
-        self.net = nn.Sequential(
-            # --- Camada 1 ---
-            nn.Linear(input_shape, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
+        if hidden_dims is None:
+            hidden_dims = [64, 32]
 
-            # --- Camada 2 ---
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.BatchNorm1d(hidden_dim // 2),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
+        layers = []
+        prev_dim = input_shape
 
-            # --- Output (logit) ---
-            nn.Linear(hidden_dim // 2, 1),
-        )
+        for h_dim in hidden_dims:
+            layers.append(nn.Linear(prev_dim, h_dim))
+            layers.append(nn.BatchNorm1d(h_dim))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout_rate))
+            prev_dim = h_dim
+
+        # --- Output (logit) ---
+        layers.append(nn.Linear(prev_dim, 1))
+
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D102
         return self.net(x)

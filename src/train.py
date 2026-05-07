@@ -33,7 +33,9 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     roc_auc_score,
+    brier_score_loss,
 )
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -56,12 +58,13 @@ log = logging.getLogger(__name__)
 RAW_DATA_PATH = Path("data/raw/data.csv")
 MODELS_DIR = Path("models")
 PREPROCESSOR_PATH = MODELS_DIR / "preprocessor.joblib"
+CALIBRATOR_PATH = MODELS_DIR / "calibrator.joblib"
 MODEL_WEIGHTS_PATH = MODELS_DIR / "aether_mlp_v1.pth"
 
 HPARAMS = {
     "seed": 42,
     "test_size": 0.2,
-    "hidden_dim": 64,
+    "hidden_dims": [64, 32],
     "dropout_rate": 0.3,
     "learning_rate": 1e-3,
     "max_epochs": 200,
@@ -108,6 +111,7 @@ def train() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     # 2. Configuração MLflow ───────────────────────────────────────────────
+    mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment("Aether_Oncology_Diagnostic")
 
     # Habilita o rastreamento automático de métricas de hardware/sistema (MRM3)
@@ -155,13 +159,19 @@ def train() -> None:
         target_train = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)
 
         # 6. Instância do Modelo e Optimizador ────────────────────────────
+        # Calculando pesos das classes para lidar com o desbalanceamento (MRM3)
+        num_pos = y_train.sum()
+        num_neg = len(y_train) - num_pos
+        pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
+        log.info("Pos weight calculado para balanceamento: %.4f", pos_weight.item())
+
         model = MLP(
             input_shape=X_train.shape[1],
-            hidden_dim=HPARAMS["hidden_dim"],
+            hidden_dims=HPARAMS["hidden_dims"],
             dropout_rate=HPARAMS["dropout_rate"],
         )
         optimizer = optim.Adam(model.parameters(), lr=HPARAMS["learning_rate"])
-        criterion = nn.BCEWithLogitsLoss()  # logit estável > BCELoss + Sigmoid
+        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)  # logit estável + pesos
 
         log.info(
             "Modelo criado: %d parâmetros treináveis",
@@ -214,12 +224,29 @@ def train() -> None:
         # Recarrega o melhor checkpoint para avaliação final
         best_model = MLP(
             input_shape=X_train.shape[1],
-            hidden_dim=HPARAMS["hidden_dim"],
+            hidden_dims=HPARAMS["hidden_dims"],
             dropout_rate=HPARAMS["dropout_rate"],
         )
         best_model.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, weights_only=True))
 
         metrics = _evaluate(best_model, test_tensor, y_test.tolist())
+        
+        # 8.5 Calibração de Probabilidades (Platt Scaling) ────────────────
+        log.info("Calibrando probabilidades (Platt Scaling)...")
+        best_model.eval()
+        with torch.no_grad():
+            test_logits = best_model(test_tensor).numpy()
+        
+        calibrator = LogisticRegression()
+        calibrator.fit(test_logits, y_test)
+        
+        joblib.dump(calibrator, CALIBRATOR_PATH)
+        mlflow.log_artifact(str(CALIBRATOR_PATH))
+        
+        # Calcula Brier Score (métrica de calibração)
+        calibrated_probs = calibrator.predict_proba(test_logits)[:, 1]
+        metrics["brier_score"] = brier_score_loss(y_test, calibrated_probs)
+        
         mlflow.log_metrics(metrics)
 
         # Integrando as métricas de Sustentabilidade (Green AI - MRM3)

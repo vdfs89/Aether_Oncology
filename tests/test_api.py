@@ -25,9 +25,8 @@ from src.main import app
 client = TestClient(app)
 
 # Header de autenticação para os testes.
-# Em CI a API_KEY não é definida → bypass ativo → qualquer valor aceito.
-# Em local com API_KEY definida → usa o valor real.
-_TEST_HEADERS = {"access_token": os.getenv("API_KEY", "test-key")}
+# Em dev local: utiliza a chave padrão se não houver variável de ambiente.
+_TEST_HEADERS = {"access_token": os.getenv("API_KEY", "aether-oncology-eval-2026")}
 
 # ---------------------------------------------------------------------------
 # Payload de referência — primeira linha do WDBC (sabidamente Maligno)
@@ -263,4 +262,4 @@ def test_predict_forbidden_without_token(monkeypatch: pytest.MonkeyPatch) -> Non
         response = secured_client.post("/predict", json=MALIGNANT_SAMPLE)
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Acesso negado: API Key inválida"
+    assert response.json()["detail"] == "Acesso negado: API Key inválida ou ausente"
