@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Usuário não-root para segurança
+RUN useradd --create-home --shell /bin/bash appuser
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: Dependências Python
 # Copiamos apenas o pyproject.toml ANTES do código fonte para maximizar
@@ -39,7 +42,7 @@ RUN pip install --no-cache-dir uv \
 # ─────────────────────────────────────────────────────────────────────────────
 COPY src/ src/
 COPY models/ models/
-COPY data/raw/data.csv data/raw/data.csv
+COPY data/raw/ data/raw/
 
 # Cria diretórios para persistência (Auditoria e Cache RAG)
 RUN mkdir -p logs .cache/research \
@@ -48,7 +51,6 @@ RUN mkdir -p logs .cache/research \
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 5: Configuração de runtime
 # ─────────────────────────────────────────────────────────────────────────────
-# Usuário não-root para segurança
 USER appuser
 
 # Volumes para persistência de dados críticos (Aula 7 e Otimização)
