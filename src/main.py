@@ -20,6 +20,7 @@ Iniciar o servidor:
 
 from __future__ import annotations
 
+import json
 import os
 
 from fastapi import FastAPI, HTTPException, Security, status
@@ -29,8 +30,8 @@ from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
 from src.services.predictor import predictor
-from src.services.audit import log_prediction, calculate_drift, AUDIT_FILE
 
 # ---------------------------------------------------------------------------
 # Segurança — API Key lida de variável de ambiente
@@ -275,10 +276,10 @@ def make_prediction(features: TumorFeatures) -> PredictResponse:
     try:
         data_list = [list(features.model_dump().values())]
         result = predictor.predict(data_list)
-        
+
         # 3. Persistência de Auditoria (Governança — Aula 7)
         log_prediction(features.model_dump(), result)
-        
+
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -316,6 +317,14 @@ def get_audit_trail():
     """
     if not AUDIT_FILE.exists():
         return []
-    
+
     with open(AUDIT_FILE, "r", encoding="utf-8") as f:
-        return [json.loads(line) for line in f.readlines()[-100:]] # Últimas 100
+        lines = f.readlines()
+        # Garante que não falhe se o arquivo estiver vazio ou corrompido
+        trail = []
+        for line in lines[-100:]:
+            try:
+                trail.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return trail

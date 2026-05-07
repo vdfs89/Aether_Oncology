@@ -3,11 +3,13 @@ name: Aether Oncology MLOps Pipeline
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
-  mlops-flow:
+  # JOBS 1: Qualidade e Testes
+  lint-and-test:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -22,8 +24,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      # ETAPA 1: Gerar Dataset (Necessário para o treino)
-      - name: Generate Dataset
+      - name: Lint with Ruff
+        run: ruff check src/ tests/
+
+      - name: Generate Dataset (Mock)
         run: |
           python - <<'EOF'
           from sklearn.datasets import load_breast_cancer
@@ -42,16 +46,49 @@ jobs:
           df.to_csv("data/raw/data.csv", index=False)
           EOF
 
-      # ETAPA 2: Rodar Testes Unitários (Qualidade do Código)
       - name: Run Unit Tests
-        run: pytest tests/
+        run: pytest tests/ --cov=src
 
-      # ETAPA 3: Treinar o modelo (Executa se os testes passarem)
-      - name: Train and Evaluate Model
+  # JOB 2: Verificação de Build Docker
+  docker-check:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Build Docker Image
+        run: docker build -t aether-oncology:test .
+
+  # JOB 3: Treino e Registro (MLOps)
+  mlflow-train:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Generate Dataset
+        run: |
+          # Re-usa a lógica de geração para o treino
+          python -c "from sklearn.datasets import load_breast_cancer; import pandas as pd, pathlib; pathlib.Path('data/raw').mkdir(parents=True, exist_ok=True); data = load_breast_cancer(); cols = [c.lower().replace(' ','_') for c in data.feature_names]; df = pd.DataFrame(data.data, columns=cols); df['target'] = 1 - data.target; df.to_csv('data/raw/data.csv', index=False)"
+
+      - name: Train and Register Model
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
           MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
           API_KEY: ${{ secrets.API_KEY }}
         run: |
+          # O script src.train já lida com fallback local se o MLflow falhar
           python -m src.train

@@ -112,12 +112,17 @@ def train() -> None:
 
     # 2. Configuração MLflow ───────────────────────────────────────────────
     import os
+
     # Prioridade: 1. Env Var | 2. Local (CI) | 3. Localhost (Dev)
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
     if not mlflow_uri:
         # Se estamos no GitHub Actions, usamos sqlite local para evitar falhas de rede
-        mlflow_uri = "sqlite:///mlflow.db" if os.getenv("GITHUB_ACTIONS") else "http://localhost:5000"
-    
+        mlflow_uri = (
+            "sqlite:///mlflow.db"
+            if os.getenv("GITHUB_ACTIONS")
+            else "http://localhost:5000"
+        )
+
     mlflow.set_tracking_uri(mlflow_uri)
     log.info("MLflow Tracking URI: %s", mlflow_uri)
     mlflow.set_experiment("Aether_Oncology_Diagnostic")

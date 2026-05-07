@@ -368,53 +368,65 @@ async function checkModelHealth() {
     const data = await response.json();
     details.innerHTML = '';
     
-    const driftFound = data.drift_detected;
-    statusBadge.innerText = driftFound ? 'ATENÇÃO: DRIFT' : 'ESTÁVEL';
+    // Sincronizado com src/services/audit.py (calculate_drift)
+    const driftFound = data.status === 'alert';
+    statusBadge.innerText = driftFound ? 'ATENÇÃO: DRIFT' : (data.status === 'collecting' ? 'COLETANDO...' : 'ESTÁVEL');
     statusBadge.className = driftFound 
       ? 'text-[9px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold uppercase animate-pulse'
       : 'text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold uppercase';
 
-    // Show top features drift
-    Object.entries(data.feature_drifts).slice(0, 4).forEach(([feat, val]) => {
-      const percentage = (val * 100).toFixed(1);
-      const isHigh = val > 0.3;
-      const card = `
-        <div class="p-2 rounded bg-white/5 border ${isHigh ? 'border-red-500/20' : 'border-white/5'}">
-           <p class="text-[8px] text-white/40 truncate">${feat.replace(/_/g, ' ')}</p>
-           <p class="text-xs font-bold ${isHigh ? 'text-red-400' : 'text-white/80'}">${percentage}%</p>
-        </div>
-      `;
-      details.insertAdjacentHTML('beforeend', card);
-    });
+    // Exibe as features com maior desvio (metrics em audit.py)
+    const metrics = Object.entries(data.metrics || {});
+    if (metrics.length === 0) {
+      details.innerHTML = '<p class="text-[9px] text-white/30 col-span-2">Aguardando mais predições para análise estatística...</p>';
+    } else {
+      metrics.slice(0, 4).forEach(([feat, val]) => {
+        const percentage = val.deviation_pct;
+        const isHigh = percentage > 30;
+        const card = `
+          <div class="p-2 rounded bg-white/5 border ${isHigh ? 'border-red-500/20' : 'border-white/5'}">
+             <p class="text-[8px] text-white/40 truncate">${feat.replace(/_/g, ' ')}</p>
+             <p class="text-xs font-bold ${isHigh ? 'text-red-400' : 'text-white/80'}">${percentage}%</p>
+          </div>
+        `;
+        details.insertAdjacentHTML('beforeend', card);
+      });
+    }
 
     // --- Audit Trail Logic ---
     const auditBody = document.getElementById('auditTrailBody');
-    auditBody.innerHTML = '<tr><td class="audit-cell">Carregando Auditoria...</td></tr>';
+    auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Carregando Auditoria...</td></tr>';
 
     try {
       const auditRes = await fetch('/audit', { headers: { 'access_token': API_KEY } });
-      const text = await auditRes.text();
-      const lines = text.trim().split('\n').filter(l => l).reverse().slice(0, 5);
+      if (!auditRes.ok) throw new Error('Falha na auditoria');
+      
+      const trail = await auditRes.json(); // Retorna lista de objetos do backend
       
       auditBody.innerHTML = '';
-      lines.forEach(line => {
-        const entry = JSON.parse(line);
-        const date = new Date(entry.timestamp).toLocaleTimeString();
-        const badgeClass = entry.prediction === 1 ? 'audit-malignant' : 'audit-benign';
-        const label = entry.prediction === 1 ? 'MAL' : 'BEN';
-        
-        const row = `
-          <tr class="audit-row">
-            <td class="audit-cell font-bold text-white/40">${date}</td>
-            <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
-            <td class="audit-cell italic truncate max-w-[80px]">${entry.top_feature.replace('_mean','')}</td>
-            <td class="audit-cell text-right">${(entry.probability * 100).toFixed(0)}%</td>
-          </tr>
-        `;
-        auditBody.insertAdjacentHTML('beforeend', row);
-      });
+      if (trail.length === 0) {
+        auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Nenhum registro encontrado.</td></tr>';
+      } else {
+        // Pega as últimas 5 predições e inverte para mostrar a mais recente primeiro
+        trail.reverse().slice(0, 5).forEach(entry => {
+          const date = new Date(entry.timestamp).toLocaleTimeString();
+          const out = entry.output || {};
+          const badgeClass = out.prediction === 1 ? 'audit-malignant' : 'audit-benign';
+          const label = out.prediction === 1 ? 'MAL' : 'BEN';
+          
+          const row = `
+            <tr class="audit-row">
+              <td class="audit-cell font-bold text-white/40">${date}</td>
+              <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
+              <td class="audit-cell italic truncate max-w-[80px]">${(out.top_feature || 'N/A').replace('_mean','')}</td>
+              <td class="audit-cell text-right">${((out.probability || 0) * 100).toFixed(0)}%</td>
+            </tr>
+          `;
+          auditBody.insertAdjacentHTML('beforeend', row);
+        });
+      }
     } catch (e) {
-      auditBody.innerHTML = '<tr><td class="audit-cell text-red-400">Erro na auditoria.</td></tr>';
+      auditBody.innerHTML = '<tr><td class="audit-cell text-red-400" colspan="4">Erro na auditoria.</td></tr>';
     }
 
   } catch (err) {

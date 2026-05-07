@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -25,11 +24,12 @@ TRAINING_MEANS = {
     "concave_points_mean": 0.048,
 }
 
+
 def log_prediction(features: dict, prediction_result: dict):
     """Regista a predição para auditoria e governança (Aula 7)."""
     try:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
-        
+
         # Simplifica o log para auditoria
         entry = {
             "timestamp": datetime.now().isoformat(),
@@ -39,13 +39,14 @@ def log_prediction(features: dict, prediction_result: dict):
                 "label": prediction_result.get("label"),
                 "probability": prediction_result.get("probability"),
                 "top_feature": prediction_result.get("top_feature"),
-            }
+            },
         }
-        
+
         with open(AUDIT_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception as e:
         logger.error("Falha ao gravar log de auditoria: %s", e)
+
 
 def calculate_drift() -> dict:
     """Calcula desvios básicos para monitoramento de Data Drift (Aula 5)."""
@@ -60,10 +61,10 @@ def calculate_drift() -> dict:
 
         # Extrai os inputs do campo 'input'
         inputs_df = pd.json_normalize(df["input"])
-        
+
         drift_metrics = {}
         alerts = []
-        
+
         for feature, train_mean in TRAINING_MEANS.items():
             if feature in inputs_df.columns:
                 current_mean = inputs_df[feature].tail(50).mean()
@@ -71,9 +72,9 @@ def calculate_drift() -> dict:
                 drift_metrics[feature] = {
                     "current": round(current_mean, 4),
                     "training": train_mean,
-                    "deviation_pct": round(deviation * 100, 2)
+                    "deviation_pct": round(deviation * 100, 2),
                 }
-                
+
                 if deviation > 0.30:  # 30% de desvio dispara alerta
                     alerts.append(f"Drift detectado em {feature}: {deviation:.1%}")
 
@@ -81,7 +82,7 @@ def calculate_drift() -> dict:
             "status": "alert" if alerts else "stable",
             "alerts": alerts,
             "metrics": drift_metrics,
-            "total_audited": len(df)
+            "total_audited": len(df),
         }
     except Exception as e:
         logger.error("Erro no cálculo de drift: %s", e)
