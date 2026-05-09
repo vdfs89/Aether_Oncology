@@ -31,28 +31,7 @@ jobs:
         run: ruff format src/ tests/ --check
 
       - name: Generate dataset
-        run: |
-          python - <<'EOF'
-          from sklearn.datasets import load_breast_cancer
-          import pandas as pd, pathlib, re
-          pathlib.Path("data/raw").mkdir(parents=True, exist_ok=True)
-          data = load_breast_cancer()
-          # Converte "mean radius" → "radius_mean", "radius error" → "radius_se", "worst radius" → "radius_worst"
-          def normalize(name: str) -> str:
-              name = name.strip()
-              if name.startswith("mean "):
-                  return name[5:].replace(" ", "_") + "_mean"
-              if name.endswith(" error"):
-                  return name[:-6].replace(" ", "_") + "_se"
-              if name.startswith("worst "):
-                  return name[6:].replace(" ", "_") + "_worst"
-              return name.replace(" ", "_")
-          cols = [normalize(c) for c in data.feature_names]
-          df = pd.DataFrame(data.data, columns=cols)
-          df["target"] = 1 - data.target  # 1=Maligno, 0=Benigno
-          df.to_csv("data/raw/data.csv", index=False)
-          print(f"Dataset: {df.shape} | colunas[:3]: {list(df.columns[:3])}")
-          EOF
+        run: python scratch/regenerate_data.py
 
       - name: Train model
         run: python -m src.train
