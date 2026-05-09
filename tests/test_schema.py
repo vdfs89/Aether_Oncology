@@ -32,7 +32,7 @@ WDBC_FEATURE_SCHEMA = DataFrameSchema(
         "smoothness_mean": Column(float, Check.between(0, 1)),
         "compactness_mean": Column(float, Check.ge(0)),
         "concavity_mean": Column(float, Check.ge(0)),
-        "concave points_mean": Column(float, Check.ge(0)),
+        "concave_points_mean": Column(float, Check.ge(0)),
         "symmetry_mean": Column(float, Check.ge(0)),
         "fractal_dimension_mean": Column(float, Check.ge(0)),
         # ── Standard error ────────────────────────────────────────────────
@@ -43,7 +43,7 @@ WDBC_FEATURE_SCHEMA = DataFrameSchema(
         "smoothness_se": Column(float, Check.ge(0)),
         "compactness_se": Column(float, Check.ge(0)),
         "concavity_se": Column(float, Check.ge(0)),
-        "concave points_se": Column(float, Check.ge(0)),
+        "concave_points_se": Column(float, Check.ge(0)),
         "symmetry_se": Column(float, Check.ge(0)),
         "fractal_dimension_se": Column(float, Check.ge(0)),
         # ── Worst values ──────────────────────────────────────────────────
@@ -54,7 +54,7 @@ WDBC_FEATURE_SCHEMA = DataFrameSchema(
         "smoothness_worst": Column(float, Check.between(0, 1)),
         "compactness_worst": Column(float, Check.ge(0)),
         "concavity_worst": Column(float, Check.ge(0)),
-        "concave points_worst": Column(float, Check.ge(0)),
+        "concave_points_worst": Column(float, Check.ge(0)),
         "symmetry_worst": Column(float, Check.ge(0)),
         "fractal_dimension_worst": Column(float, Check.ge(0)),
         # ── Label ─────────────────────────────────────────────────────────
