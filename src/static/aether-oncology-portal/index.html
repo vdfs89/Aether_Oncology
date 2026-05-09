@@ -151,12 +151,12 @@
     </div>
   </section>
 
-  <!-- ─── TRANSITION ─── -->
-  <div class="py-24 text-center overflow-hidden">
-    <div class="inline-block relative">
-      <img src="images/lotus-red.png" alt="Aether Core" class="w-32 h-32 opacity-20 filter grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-1000 cursor-pointer pulse-ring rounded-full">
-      <p class="mt-6 text-[10px] tracking-[0.4em] font-bold text-white/20 uppercase">Integrated Diagnostic Environment</p>
-    </div>
+  <!-- ─── CINEMATIC TRANSITION ─── -->
+  <div class="cinematic-divider flex items-center justify-center">
+      <div class="text-center">
+          <img src="images/lotus-red.png" class="w-16 h-16 lotus-active mx-auto mb-4 cursor-pointer" onclick="location.href='#portal'">
+          <p class="text-cyan-400 tracking-[0.5em] text-[10px] font-bold">INITIALIZING AETHER CORE</p>
+      </div>
   </div>
 
   <!-- ─── CLINICAL PORTAL ─── -->
@@ -188,7 +188,7 @@
 
         <div class="portal-body">
            <!-- Form -->
-           <div class="portal-left">
+           <div class="portal-left glass-card">
               <div class="portal-section-title">Parâmetros Nucleares</div>
               
               <div class="test-suite">
@@ -197,27 +197,149 @@
                  <button class="btn-clear hover:bg-red-500/30 transition" onclick="clearForm()">Limpar</button>
               </div>
 
-              <div class="grid grid-cols-1 gap-1">
-                 <div class="portal-form-group">
-                    <label class="portal-label">Raio Médio (μm)</label>
-                    <input type="number" id="radius" class="portal-input" placeholder="Ex: 17.99">
-                 </div>
-                 <div class="portal-form-group">
-                    <label class="portal-label">Textura Média</label>
-                    <input type="number" id="texture" class="portal-input" placeholder="Ex: 10.38">
-                 </div>
-                 <div class="portal-form-group">
-                    <label class="portal-label">Perímetro Médio</label>
-                    <input type="number" id="perimeter" class="portal-input" placeholder="Ex: 122.8">
-                 </div>
-                 <div class="portal-form-group">
-                    <label class="portal-label">Área Média</label>
-                    <input type="number" id="area" class="portal-input" placeholder="Ex: 1001.0">
-                 </div>
-                 <div class="portal-form-group">
-                    <label class="portal-label">Suavidade Média</label>
-                    <input type="number" id="smoothness" class="portal-input" placeholder="Ex: 0.1184">
-                 </div>
+              <!-- Tabs de Atributos (WDBC 30 Features) -->
+              <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl">
+                 <button onclick="switchFormTab('mean')" id="tab-mean" class="form-tab active">MÉDIAS</button>
+                 <button onclick="switchFormTab('se')" id="tab-se" class="form-tab">ERRO PADRÃO</button>
+                 <button onclick="switchFormTab('worst')" id="tab-worst" class="form-tab">PIORES</button>
+              </div>
+
+              <!-- Grupo: Mean -->
+              <div id="group-mean" class="form-group-pane">
+                  <div class="grid grid-cols-2 gap-2">
+                     <div class="portal-form-group">
+                        <label class="portal-label">Raio Médio</label>
+                        <input type="number" id="radius_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Textura Média</label>
+                        <input type="number" id="texture_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Perímetro Médio</label>
+                        <input type="number" id="perimeter_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Área Média</label>
+                        <input type="number" id="area_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Suavidade Média</label>
+                        <input type="number" id="smoothness_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Compacidade Média</label>
+                        <input type="number" id="compactness_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Concavidade Média</label>
+                        <input type="number" id="concavity_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pontos Côncavos Médios</label>
+                        <input type="number" id="concave_points_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Simetria Média</label>
+                        <input type="number" id="symmetry_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Dimensão Fractal Média</label>
+                        <input type="number" id="fractal_dimension_mean" class="portal-input" placeholder="0.0">
+                     </div>
+                  </div>
+              </div>
+
+              <!-- Grupo: SE -->
+              <div id="group-se" class="form-group-pane hidden">
+                  <div class="grid grid-cols-2 gap-2">
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Raio</label>
+                        <input type="number" id="radius_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Textura</label>
+                        <input type="number" id="texture_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Perímetro</label>
+                        <input type="number" id="perimeter_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Área</label>
+                        <input type="number" id="area_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Suavidade</label>
+                        <input type="number" id="smoothness_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Compacidade</label>
+                        <input type="number" id="compactness_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Concavidade</label>
+                        <input type="number" id="concavity_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Pontos Côncavos</label>
+                        <input type="number" id="concave_points_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Simetria</label>
+                        <input type="number" id="symmetry_se" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Erro Dim. Fractal</label>
+                        <input type="number" id="fractal_dimension_se" class="portal-input" placeholder="0.0">
+                     </div>
+                  </div>
+              </div>
+
+              <!-- Grupo: Worst -->
+              <div id="group-worst" class="form-group-pane hidden">
+                  <div class="grid grid-cols-2 gap-2">
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Raio</label>
+                        <input type="number" id="radius_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Textura</label>
+                        <input type="number" id="texture_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Perímetro</label>
+                        <input type="number" id="perimeter_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Área</label>
+                        <input type="number" id="area_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Suavidade</label>
+                        <input type="number" id="smoothness_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Compacidade</label>
+                        <input type="number" id="compactness_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Concavidade</label>
+                        <input type="number" id="concavity_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Pontos Côncavos</label>
+                        <input type="number" id="concave_points_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Simetria</label>
+                        <input type="number" id="symmetry_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                     <div class="portal-form-group">
+                        <label class="portal-label">Pior Dim. Fractal</label>
+                        <input type="number" id="fractal_dimension_worst" class="portal-input" placeholder="0.0">
+                     </div>
+                  </div>
               </div>
 
               <button id="analyzeBtn" class="btn-analyze-portal" onclick="runAnalysis()">

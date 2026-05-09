@@ -114,11 +114,10 @@ const featureExplanations = {
 
 function fillSample(type) {
   const data = currentSample[type];
-  document.getElementById('radius').value = data[0];
-  document.getElementById('texture').value = data[1];
-  document.getElementById('perimeter').value = data[2];
-  document.getElementById('area').value = data[3];
-  document.getElementById('smoothness').value = data[4];
+  featureNames.forEach((name, index) => {
+    const input = document.getElementById(name);
+    if(input) input.value = data[index];
+  });
 }
 
 function clearForm() {
@@ -134,7 +133,20 @@ function clearForm() {
   document.getElementById('pacienteReferences').innerHTML = '';
 }
 
-// ─── Tab Switching ───
+// ─── Form Group Tab Switching (v2.0) ───
+function switchFormTab(type) {
+  // Update buttons
+  document.querySelectorAll('.form-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(type));
+  });
+  
+  // Update panes
+  document.querySelectorAll('.form-group-pane').forEach(pane => {
+    pane.classList.toggle('hidden', pane.id !== `group-${type}`);
+  });
+}
+
+// ─── Tab Switching (Result View) ───
 function switchTab(tab) {
   const tabMedico = document.getElementById('tabMedico');
   const tabPaciente = document.getElementById('tabPaciente');
@@ -159,31 +171,27 @@ async function runAnalysis() {
   const resText = document.getElementById('resultText');
   const resBadge = document.getElementById('resultBadge');
   
-  const values = [
-    parseFloat(document.getElementById('radius').value),
-    parseFloat(document.getElementById('texture').value),
-    parseFloat(document.getElementById('perimeter').value),
-    parseFloat(document.getElementById('area').value),
-    parseFloat(document.getElementById('smoothness').value)
-  ];
+  const values = [];
+  featureNames.forEach(name => {
+    const val = parseFloat(document.getElementById(name).value);
+    values.push(val);
+  });
 
   if(values.some(isNaN)) {
-    alert("Por favor, preencha todos os campos biomecânicos.");
+    alert("Por favor, preencha todos os 30 campos biomecânicos para uma análise completa v2.0.");
     return;
   }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Analisando Rede Neural + RAG...';
   
-  // Mix user data with benign baseline for complete feature set
-  const fullFeaturesArray = [...currentSample.benign];
-  values.forEach((v, i) => fullFeaturesArray[i] = v);
-
   // Convert to flat object for Pydantic (TumorFeatures)
   const payload = {};
   featureNames.forEach((name, index) => {
-    payload[name] = fullFeaturesArray[index];
+    payload[name] = values[index];
   });
+
+  const fullFeaturesArray = values;
 
   try {
     const response = await fetch(API_URL, {
@@ -209,7 +217,8 @@ async function runAnalysis() {
         resText.innerHTML += `<br><p class="text-[10px] text-yellow-400 mt-2 font-bold animate-pulse">${result.warning}</p>`;
     }
 
-    renderXAI(values, isMalignant);
+    // Pass first 10 'mean' features for visualization
+    renderXAI(fullFeaturesArray.slice(0, 10), isMalignant);
     displayEvidence(result.top_feature, result.articles, isMalignant);
     
   } catch (err) {
@@ -225,7 +234,10 @@ function renderXAI(values, isMalignant) {
   const ctxChart = document.getElementById('xaiChart').getContext('2d');
   if(xaiChart) xaiChart.destroy();
 
-  const labels = ['Raio', 'Textura', 'Perímetro', 'Área', 'Suavidade'];
+  const labels = [
+    'Raio', 'Textura', 'Perímetro', 'Área', 'Suavidade',
+    'Compac.', 'Concav.', 'Pontos C.', 'Simetria', 'Fractal'
+  ];
   const color = isMalignant ? '#FF4D4D' : '#00E676';
 
   xaiChart = new Chart(ctxChart, {
@@ -325,12 +337,16 @@ function displayEvidence(topFeature, articles, isMalignant) {
     foi o fator mais importante na análise das suas células.
     <br><br>
     Para entender melhor sobre esse biomarcador, consultamos bases médicas internacionais como 
-    <strong>PubMed</strong> (biblioteca oficial de medicina dos EUA) e a <strong>Cochrane</strong> 
-    (referência mundial em revisões sistemáticas de saúde). Abaixo estão algumas referências acessíveis.
-    <br><br>
-    <span class="text-yellow-400 font-bold text-[11px]">⚠️ Importante:</span> 
-    <span class="text-white/50">Este resultado é um apoio à decisão clínica e <strong>não substitui</strong> a avaliação de um médico especialista. 
-    Consulte sempre um profissional de saúde para interpretar seus exames.</span>
+    <strong>PubMed</strong> e a <strong>Cochrane</strong>.
+    <div class="mt-4 p-3 rounded-lg bg-yellow-400/5 border border-yellow-400/20">
+      <p class="text-yellow-400 font-bold text-[10px] mb-1 flex items-center gap-1">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        AVISO DE GOVERNANÇA CLÍNICA
+      </p>
+      <p class="text-[10px] text-white/60 leading-tight">
+        Este sistema é uma <strong>ferramenta de apoio à decisão</strong>. O resultado acima <strong>não constitui um diagnóstico final</strong> e deve ser validado obrigatoriamente por um médico oncologista.
+      </p>
+    </div>
   `;
 
   // Links simplificados para pacientes
