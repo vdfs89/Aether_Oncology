@@ -87,7 +87,7 @@ const featureExplanations = {
   "smoothness_mean": "a suavidade das bordas celulares",
   "compactness_mean": "o quão compactas são as células",
   "concavity_mean": "a profundidade das concavidades nas células",
-  "concave points_mean": "a quantidade de pontos côncavos no contorno celular",
+  "concave_points_mean": "a quantidade de pontos côncavos no contorno celular",
   "symmetry_mean": "o grau de simetria das células",
   "fractal_dimension_mean": "a complexidade da forma celular",
   "radius_se": "a variação no tamanho das células",
