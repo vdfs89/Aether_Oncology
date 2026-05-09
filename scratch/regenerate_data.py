@@ -8,16 +8,23 @@ data = load_breast_cancer()
 
 def normalize(name: str) -> str:
     name = name.strip()
-    if name.startswith("mean "): n = name[5:].strip()
-    elif name.endswith(" error"): n = name[:-6].strip()
-    elif name.startswith("worst "): n = name[6:].strip()
-    else: n = name
+    if name.startswith("mean "):
+        n = name[5:].strip()
+    elif name.endswith(" error"):
+        n = name[:-6].strip()
+    elif name.startswith("worst "):
+        n = name[6:].strip()
+    else:
+        n = name
 
     n = n.replace(" ", "_")
 
-    if name.startswith("mean "): return n + "_mean"
-    if name.endswith(" error"): return n + "_se"
-    if name.startswith("worst "): return n + "_worst"
+    if name.startswith("mean "):
+        return n + "_mean"
+    if name.endswith(" error"):
+        return n + "_se"
+    if name.startswith("worst "):
+        return n + "_worst"
     return n
 
 cols = [normalize(c) for c in data.feature_names]
