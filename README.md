@@ -42,8 +42,8 @@ model-index:
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
 <div align="center">
-[ ![App](https://img.shields.io/badge/Aether_Portal-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white) ](https://api.vitorsilva.engineer/)
-[ ![Swagger](https://img.shields.io/badge/API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white) ](https://api.vitorsilva.engineer/docs)
+[![App](https://img.shields.io/badge/Aether_Portal-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white)](https://api.vitorsilva.engineer/)
+[![Swagger](https://img.shields.io/badge/API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white)](https://api.vitorsilva.engineer/docs)
   
 | Status | Recall | F1-Score | ROC-AUC | Versão |
 | :---: | :---: | :---: | :---: | :---: |
