@@ -14,6 +14,8 @@ psutil
 optuna
 biopython
 diskcache
+slowapi
+python-json-logger
 # Dev dependencies
 ruff
 pytest

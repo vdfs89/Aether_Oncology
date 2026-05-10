@@ -69,3 +69,10 @@ function drawParticles() {
 
     animationId = requestAnimationFrame(drawParticles);
 }
+
+export function destroyCanvas() {
+    isAnimating = false;
+    if (animationId) cancelAnimationFrame(animationId);
+    window.removeEventListener('resize', resizeCanvas);
+    particles = [];
+}

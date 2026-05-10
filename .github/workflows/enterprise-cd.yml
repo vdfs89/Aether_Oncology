@@ -1,0 +1,61 @@
+name: Enterprise CD Pipeline (Canary)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker Image
+        run: docker build -t aether-oncology:${{ github.sha }} .
+        
+      - name: Security Scan (SBOM)
+        uses: anchore/scan-action@v3
+        with:
+          image: "aether-oncology:${{ github.sha }}"
+          fail-build: true
+          severity-cutoff: high
+
+  deploy-canary:
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Deploy Canary (10%)
+        run: |
+          helm upgrade --install aether-oncology ./charts/aether-oncology \
+            --set image.tag=${{ github.sha }} \
+            --set canary.enabled=true \
+            --set canary.weight=10
+            
+      - name: Post-Deploy Health Check
+        run: |
+          sleep 60
+          STATUS=$(curl -s https://portal.aether-oncology.ai/health | jq -r .status)
+          if [ "$STATUS" != "healthy" ]; then
+            echo "Canary unhealthy! Rolling back..."
+            helm rollback aether-oncology
+            exit 1
+          fi
+
+  promote-production:
+    needs: deploy-canary
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Promote to 100%
+        run: |
+          helm upgrade --install aether-oncology ./charts/aether-oncology \
+            --set image.tag=${{ github.sha }} \
+            --set canary.enabled=false

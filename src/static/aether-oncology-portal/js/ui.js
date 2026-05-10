@@ -41,24 +41,34 @@ export function parseClinicalFloat(value) {
 }
 
 export function showToast(message, type = "success") {
-    // Re-implementing a more premium toast if container doesn't exist
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
+        container.className = "fixed bottom-8 right-8 z-[100] flex flex-col gap-3 pointer-events-none";
         document.body.appendChild(container);
     }
 
-    const toast = document.createElement("div");
-    toast.className = `toast toast-${type}`;
-    toast.setAttribute('role', 'alert');
+    const toast = document.createElement('div');
+    const colors = {
+        success: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
+        error: "border-red-500/30 bg-red-500/10 text-red-200",
+        warning: "border-yellow-500/30 bg-yellow-500/10 text-yellow-200",
+        info: "border-purple-500/30 bg-purple-500/10 text-purple-200"
+    };
+
+    toast.className = `px-6 py-4 rounded-xl border backdrop-blur-xl shadow-2xl transition-all duration-500 translate-y-10 opacity-0 pointer-events-auto flex items-center gap-3 min-w-[300px] ${colors[type] || colors.info}`;
     
-    const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-    
+    const icons = {
+        success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
+        error: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
+        warning: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
+        info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+    };
+
     toast.innerHTML = `
-        <span class="toast-icon">${icons[type] || '•'}</span>
-        <span class="toast-message">${message}</span>
-        <button class="toast-close" aria-label="Fechar">✕</button>
+        <span class="flex-shrink-0">${icons[type] || icons.info}</span>
+        <p class="text-sm font-medium">${message}</p>
     `;
 
     container.appendChild(toast);
@@ -120,6 +130,20 @@ export function renderForm() {
             `;
         }).join("");
     });
+
+    // Resilience: Auto-save on input
+    const inputs = document.querySelectorAll('.portal-input');
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            import('./core/persistence.js').then(({ Persistence }) => {
+                const data = {};
+                document.querySelectorAll('.portal-input').forEach(i => {
+                    if (i.value) data[i.id] = i.value;
+                });
+                Persistence.saveDraft(data);
+            });
+        });
+    });
 }
 
 export function getFormData() {
@@ -144,8 +168,7 @@ export function getFormData() {
     });
 
     if (missing.length > 0) {
-        missing[0].focus();
-        showToast("Preencha todos os campos com valores numéricos válidos.", "error");
+        // Only error if trying to submit. Persistence handles partial data.
         return null;
     }
     
@@ -206,6 +229,27 @@ export function fillSample(type) {
     showToast(`Amostra ${type === 'malignant' ? 'Maligna' : 'Benigna'} carregada.`, "success");
 }
 
+/**
+ * Renders the platform resilience status (Circuit Breaker).
+ */
+export function renderCircuitStatus(state) {
+    const el = document.getElementById('platform-status');
+    if (!el) return;
+
+    const dot = el.querySelector('.status-dot');
+    const text = el.querySelector('.status-text');
+
+    const config = {
+        'CLOSED': { color: 'bg-green-500', label: 'System: Stable' },
+        'OPEN': { color: 'bg-red-500', label: 'System: Safety Mode' },
+        'HALF-OPEN': { color: 'bg-yellow-500', label: 'System: Recovering' }
+    };
+
+    const s = config[state.status] || config['CLOSED'];
+    if (dot) dot.className = `status-dot w-2 h-2 ${s.color} rounded-full ${state.status === 'OPEN' ? 'animate-pulse' : ''}`;
+    if (text) text.innerText = s.label;
+}
+
 export function updateResultUI(result) {
     const resultBadge = document.getElementById("resultBadge");
     const resultText = document.getElementById("resultText");
@@ -214,11 +258,15 @@ export function updateResultUI(result) {
     
     const isMalignant = result.prediction === 1;
     
-    resultBadge.className = isMalignant ? "malignant" : "benign";
+    resultBadge.className = isMalignant ? "malignant animate-glow-red" : "benign animate-glow-green";
     resultText.innerHTML = `
-        <span class="text-xs opacity-50 uppercase tracking-widest block mb-1">Diagnóstico Final</span>
-        <span class="text-2xl font-black block">${isMalignant ? 'MALIGNO' : 'BENIGNO'}</span>
-        <span class="text-[10px] font-bold opacity-70 block mt-1">CONFIANÇA: ${(result.probability * 100).toFixed(1)}%</span>
+        <div class="reveal-active">
+            <span class="text-[10px] opacity-40 uppercase tracking-[0.2em] block mb-1">Diagnóstico Final</span>
+            <span class="text-3xl font-black block tracking-tight gradient-text-${isMalignant ? 'red' : 'green'}">${isMalignant ? 'MALIGNO' : 'BENIGNO'}</span>
+            <div class="flex items-center gap-2 mt-2">
+                <span class="text-[10px] font-bold text-white/60 bg-white/5 px-2 py-0.5 rounded border border-white/10 uppercase">Confiança: ${(result.probability * 100).toFixed(1)}%</span>
+            </div>
+        </div>
     `;
 
     if (result.warning) {
@@ -243,32 +291,43 @@ export function renderRAG(result) {
     
     if (result.articles && result.articles.length > 0) {
         medicoArticles.innerHTML = result.articles.map(article => `
-            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="block p-3 rounded-lg bg-black/20 border border-white/5 hover:bg-white/5 transition group">
-                <div class="flex items-start justify-between gap-2 mb-1">
-                    <h5 class="text-xs font-bold text-purple-300 group-hover:text-purple-200 transition line-clamp-2">${article.title}</h5>
-                    <svg class="w-3 h-3 text-white/20 group-hover:text-purple-300 flex-shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="block p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all group reveal-active">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <h5 class="text-sm font-bold text-white group-hover:text-cyan-300 transition line-clamp-2">${article.title}</h5>
+                    <div class="p-1.5 rounded-lg bg-white/5 group-hover:bg-cyan-500/20 transition">
+                        <svg class="w-3.5 h-3.5 text-white/20 group-hover:text-cyan-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </div>
                 </div>
-                <p class="text-[10px] text-white/50 line-clamp-2 mb-2">${article.tldr || article.abstract || 'Sem resumo disponível.'}</p>
-                <div class="flex items-center gap-2">
-                    <span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/40 uppercase">${article.source}</span>
-                    ${article.year ? `<span class="text-[8px] text-white/30">${article.year}</span>` : ''}
+                <p class="text-xs text-white/40 line-clamp-2 mb-3 leading-relaxed">${article.tldr || article.abstract || 'Sem resumo disponível.'}</p>
+                <div class="flex items-center gap-3">
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 text-white/60 uppercase tracking-wider">${article.source}</span>
+                    ${article.year ? `<span class="text-[9px] font-bold text-white/30">${article.year}</span>` : ''}
                 </div>
             </a>
         `).join('');
 
         pacienteReferences.innerHTML = result.articles.slice(0, 2).map(article => `
-            <a href="${article.url}" target="_blank" class="flex items-center gap-1 text-[10px] text-pink-300 hover:text-pink-200 transition">
-                <svg class="w-3 h-3" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                ${article.title}
+            <a href="${article.url}" target="_blank" class="flex items-center gap-2 text-xs text-pink-400 hover:text-pink-300 transition font-medium">
+                <div class="w-1.5 h-1.5 rounded-full bg-pink-500/50"></div>
+                <span class="line-clamp-1">${article.title}</span>
             </a>
         `).join('');
         
         const isMalignant = result.prediction === 1;
-        const featureExpl = featureExplanations[result.top_feature] || 'características biomecânicas específicas';
+        const baseFeature = result.top_feature ? result.top_feature.split('_')[0] : 'radius';
+        const featureExpl = featureExplanations[baseFeature] || 'características biomecânicas específicas';
         
         pacienteExplicacao.innerHTML = isMalignant 
-            ? `O modelo identificou padrões celulares que <b>estatisticamente sugerem malignidade</b>, principalmente devido a <b>${featureExpl}</b>.<br><br><b>Atenção:</b> Isso é uma análise auxiliar. Consulte seu médico oncologista.`
-            : `Os padrões celulares analisados são <b>consistentes com tumores benignos</b> na maioria dos casos estudados. A morfologia baseada em <b>${featureExpl}</b> está dentro da normalidade.<br><br><b>Nota:</b> Mantenha o acompanhamento médico regular.`;
+            ? `<p class="text-sm leading-relaxed text-white/70">O sistema de IA identificou padrões celulares que <b>estatisticamente sugerem malignidade</b>, com destaque para <b>${featureExpl}</b>.</p>
+               <div class="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300 flex gap-3 items-start">
+                  <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  <span>Esta análise é assistencial e não substitui o laudo definitivo de um patologista. Consulte seu oncologista imediatamente.</span>
+               </div>`
+            : `<p class="text-sm leading-relaxed text-white/70">Os padrões celulares analisados são <b>consistentes com tumores benignos</b> na maioria dos casos estudados. A morfologia baseada em <b>${featureExpl}</b> está dentro dos parâmetros esperados.</p>
+               <div class="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-xs text-green-300 flex gap-3 items-start">
+                  <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span>Mantenha o acompanhamento médico preventivo conforme as diretrizes de saúde.</span>
+               </div>`;
             
     } else {
         medicoArticles.innerHTML = `<p class="text-xs text-white/40 p-3">Nenhuma evidência retornada da base de conhecimento.</p>`;

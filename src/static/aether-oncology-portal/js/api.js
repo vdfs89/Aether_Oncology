@@ -4,86 +4,62 @@
  * Features: Exponential Backoff, Environment Detection, Strict Error Handling.
  */
 
+import { RequestManager } from './core/request.js';
+import { Telemetry } from './core/telemetry.js';
+
 const API_CONFIG = {
-    // Determine base URL dynamically: Render production or Localhost
     BASE_URL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
-        : window.location.origin,
-    TIMEOUT: 15000,
-    TOKEN: 'aether-oncology-eval-2026' // Security: In production, this should be handled via Auth/Session
+        : 'https://aether-oncology-api.onrender.com',
+    TIMEOUT: 20000,
+    TOKEN: 'aether-oncology-eval-2026'
 };
 
-const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 /**
- * Enhanced fetch with retry logic and timeout control.
+ * Enhanced fetch with telemetry and request management.
  */
-export async function clinicalFetch(endpoint, options = {}, retries = 3, backoff = 500) {
+async function clinicalFetch(endpoint, options = {}, signal) {
     const url = endpoint.startsWith('http') ? endpoint : `${API_CONFIG.BASE_URL}${endpoint}`;
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
-
-    const defaultOptions = {
-        signal: controller.signal,
-        headers: {
-            'Accept': 'application/json',
-            'access_token': API_CONFIG.TOKEN
-        }
-    };
+    const correlationId = crypto.randomUUID();
 
     const mergedOptions = {
-        ...defaultOptions,
         ...options,
+        signal,
         headers: {
-            ...defaultOptions.headers,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'access_token': API_CONFIG.TOKEN,
+            'X-Correlation-ID': correlationId,
             ...(options.headers || {})
         }
     };
 
-    try {
-        const response = await fetch(url, mergedOptions);
-        clearTimeout(timeoutId);
+    Telemetry.log('info', `API Request: ${endpoint}`, { correlationId });
 
-        if (!response.ok) {
-            // Handle 503 Service Unavailable (e.g., Render cold start)
-            if (response.status === 503 && retries > 0) {
-                console.warn(`[API] 503 Service Unavailable. Retrying in ${backoff}ms... (${retries} left)`);
-                await wait(backoff);
-                return clinicalFetch(endpoint, options, retries - 1, backoff * 2);
-            }
-            
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.detail || `HTTP ${response.status}: ${response.statusText}`;
-            throw new Error(errorMessage);
-        }
-
-        return await response.json();
-    } catch (error) {
-        clearTimeout(timeoutId);
-        
-        if (error.name === 'AbortError') {
-            throw new Error('Tempo de resposta excedido. Verifique sua conexão.');
-        }
-
-        if (retries > 0 && error.name !== 'TypeError') {
-            await wait(backoff);
-            return clinicalFetch(endpoint, options, retries - 1, backoff * 2);
-        }
-
-        throw error;
+    const response = await fetch(url, mergedOptions);
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
     }
+
+    return await response.json();
 }
 
 export const predictTumor = (payload) => 
-    clinicalFetch('/predict', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    });
+    RequestManager.call('prediction', (signal) => 
+        clinicalFetch('/predict', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        }, signal)
+    );
 
-export const checkHealth = () => clinicalFetch('/health', {}, 1);
+export const checkHealth = () => 
+    RequestManager.call('health', (signal) => clinicalFetch('/health', {}, signal));
 
-export const fetchAuditTrail = () => clinicalFetch('/audit');
+export const fetchAuditTrail = () => 
+    RequestManager.call('audit', (signal) => clinicalFetch('/audit', {}, signal));
 
-export const fetchAnalytics = () => clinicalFetch('/analytics');
+export const fetchAnalytics = () => 
+    RequestManager.call('analytics', (signal) => clinicalFetch('/analytics', {}, signal));
 

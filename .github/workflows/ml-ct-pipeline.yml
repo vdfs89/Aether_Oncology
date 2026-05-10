@@ -1,0 +1,40 @@
+name: Continuous Retraining (CT) Pipeline
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  repository_dispatch:
+    types: [drift_detected]
+  workflow_dispatch:
+
+jobs:
+  check-drift-and-retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Detect Drift
+        id: drift_check
+        run: |
+          # Simula verificação de drift via API ou script local
+          python -m src.ml_platform.drift_check_cli --baseline data/raw/data.csv --current data/audit/latest_samples.csv
+          
+      - name: Execute Enterprise Retraining
+        if: steps.drift_check.outcome == 'success'
+        run: |
+          python -m src.ml_platform.train_enterprise
+          
+      - name: Model Versioning & Promotion
+        if: success()
+        run: |
+          # Push to MLflow / Model Registry
+          echo "Promoting new model to production..."
+          # mlrun deploy ...

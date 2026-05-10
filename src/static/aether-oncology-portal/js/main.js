@@ -1,5 +1,6 @@
 import { initCanvas } from './animations.js';
-import { initTabs, switchFormTab } from './tabs.js';
+import { initTabs } from './tabs.js';
+import { initUX } from './ux.js';
 import { initShortcuts } from './shortcuts.js';
 import { 
     renderForm, 
@@ -10,58 +11,104 @@ import {
     showToast,
     updateResultUI,
     renderRAG,
-    renderMLOps
+    renderMLOps,
+    renderCircuitStatus
 } from './ui.js';
 import { renderXAIChart } from './charts.js';
 import { predictTumor, checkHealth, fetchAuditTrail, fetchAnalytics } from './api.js';
+import { Telemetry } from './core/telemetry.js';
+import { initSecurity } from './core/security.js';
+import { RequestManager } from './core/request.js';
+import { Persistence } from './core/persistence.js';
+import { Heartbeat } from './core/heartbeat.js';
 
 import '../css/tailwind.css';
 import '../css/portal.css';
 
+/**
+ * Platform Error Boundary
+ * Ensures failures in non-critical UI modules don't break the core diagnostic flow.
+ */
+function safeExecute(id, fn, fallback) {
+    try {
+        fn();
+    } catch (e) {
+        Telemetry.captureException(e, { area: id });
+        if (fallback) fallback();
+        
+        const boundary = document.getElementById(`${id}-boundary`);
+        if (boundary) {
+            boundary.classList.remove('hidden');
+            boundary.innerHTML = `<p class="text-[9px] text-red-400 bg-red-400/10 p-2 rounded border border-red-400/20">
+                ⚠️ Erro no módulo ${id.toUpperCase()}. O diagnóstico principal permanece ativo.
+            </p>`;
+        }
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    initCanvas();
-    renderForm();
-    initTabs();
-    initShortcuts();
+    // Platform Init
+    initSecurity();
+    Telemetry.trackPerformance();
 
-    // Event Bindings (Replacing legacy onclick)
-    document.getElementById('lotus-portal-link')?.addEventListener('click', () => {
-        window.location.hash = 'portal';
-    });
+    // UI Init
+    safeExecute('canvas', initCanvas);
+    safeExecute('form', renderForm);
+    safeExecute('tabs', initTabs);
+    safeExecute('shortcuts', initShortcuts);
+    safeExecute('heartbeat', () => Heartbeat.start());
 
-    document.getElementById('mlops-refresh-btn')?.addEventListener('click', checkModelHealth);
+    // Resilience Listeners
+    RequestManager.onStateChange((state) => renderCircuitStatus(state));
     
+    // Persistence Flow
+    const savedDraft = Persistence.getDraft();
+    if (savedDraft && Object.keys(savedDraft).length > 0) {
+        const draftAlert = document.getElementById('draft-alert');
+        if (draftAlert) {
+            draftAlert.classList.remove('hidden');
+            document.getElementById('restore-draft-btn')?.addEventListener('click', () => {
+                uiFillSample(savedDraft, true);
+                draftAlert.classList.add('hidden');
+                showToast("Dados recuperados da última sessão.", "success");
+            });
+            document.getElementById('discard-draft-btn')?.addEventListener('click', () => {
+                Persistence.clearDraft();
+                draftAlert.classList.add('hidden');
+            });
+        }
+    }
+
+    // Event Bindings
+    document.getElementById('mlops-refresh-btn')?.addEventListener('click', checkModelHealth);
     document.getElementById('sample-malignant')?.addEventListener('click', () => uiFillSample('malignant'));
     document.getElementById('sample-benign')?.addEventListener('click', () => uiFillSample('benign'));
-    document.getElementById('clear-form-btn')?.addEventListener('click', uiClearForm);
-    
+    document.getElementById('clear-form-btn')?.addEventListener('click', () => {
+        uiClearForm();
+        Persistence.clearDraft();
+    });
     document.getElementById('analyzeBtn')?.addEventListener('click', runAnalysis);
-
-    // Tab buttons event listeners are handled within initTabs() in tabs.js
-    // but for completeness if they weren't, we'd add them here.
-    
-    // Mobile menu handlers
-    const menuBtn = document.getElementById('menu-btn');
-    const closeBtn = document.getElementById('close-menu');
-    const mobileMenu = document.getElementById('mobile-menu');
-
-    if (menuBtn && mobileMenu && closeBtn) {
-        menuBtn.addEventListener('click', () => {
-            mobileMenu.classList.remove('hidden');
-            mobileMenu.classList.add('flex');
-            menuBtn.setAttribute('aria-expanded', 'true');
-        });
-        
-        closeBtn.addEventListener('click', () => {
-            mobileMenu.classList.add('hidden');
-            mobileMenu.classList.remove('flex');
-            menuBtn.setAttribute('aria-expanded', 'false');
-            menuBtn.focus();
-        });
-    }
 
     // Initialize health check
     checkModelHealth();
+    
+    Telemetry.log('info', 'Aether Oncology Platform Initialized');
+});
+
+// Production Lifecycle Management
+window.addEventListener("beforeunload", () => {
+    Heartbeat.stop();
+    import('./animations.js').then(m => m.destroyCanvas());
+    import('./charts.js').then(m => m.resetChart());
+});
+
+window.addEventListener('aether:status-change', (e) => {
+    const { isOnline } = e.detail;
+    if (!isOnline) {
+        showToast("⚠️ Conexão com o servidor instável. O diagnóstico pode falhar.", "warning");
+    } else {
+        showToast("Conexão restabelecida.", "success");
+    }
 });
 
 export async function runAnalysis() {
@@ -70,33 +117,32 @@ export async function runAnalysis() {
 
     setElementLoading('analyzeBtn', true);
     
-    // Skeleton screens for RAG and Chart
+    // Skeleton screens
     const articlesSection = document.getElementById("articlesSection");
     if (articlesSection) {
         articlesSection.classList.remove("hidden");
         document.getElementById("medicoArticles").innerHTML = Array(3).fill(`<div class="skeleton h-16 w-full rounded-xl"></div>`).join('');
-        document.getElementById("pacienteExplicacao").innerHTML = `<div class="skeleton h-20 w-full rounded-xl"></div>`;
-        document.getElementById("pacienteReferences").innerHTML = `<div class="skeleton h-8 w-full rounded-xl"></div>`;
-        document.getElementById("topFeatureText").innerHTML = `<div class="skeleton h-4 w-1/2 rounded"></div>`;
     }
 
     try {
         const result = await predictTumor(payload);
+        if (!result) return; // Case where request was aborted
+
         updateResultUI(result);
         
-        // Render Chart
-        renderXAIChart(result.integrated_gradients || result.feature_importances);
+        // Critical Render (RAG)
+        safeExecute('rag', () => renderRAG(result));
 
-        // Render RAG
-        renderRAG(result);
-        
+        // Non-Critical Render (Chart)
+        safeExecute('chart', () => {
+            renderXAIChart(result.integrated_gradients || result.feature_importances);
+        });
+
         showToast("Análise concluída com sucesso.", "success");
-        
-        // Refresh Audit Trail
         refreshMLOpsView();
     } catch (error) {
-        console.error("Predict Error:", error);
-        showToast(error.message || "Erro ao comunicar com a API.", "error");
+        Telemetry.captureException(error, { area: 'AnalysisFlow' });
+        showToast(error.message || "Erro de processamento clínico.", "error");
     } finally {
         setElementLoading('analyzeBtn', false);
     }
@@ -107,14 +153,13 @@ export async function checkModelHealth() {
         await checkHealth();
         document.querySelector('.badge-live')?.classList.add('bg-green-500/20', 'text-green-400');
         refreshMLOpsView();
-        showToast("Model Health: ONLINE", "success");
-    } catch {
+    } catch (e) {
         const badge = document.querySelector('.badge-live');
         if (badge) {
             badge.classList.remove('bg-green-500/20', 'text-green-400');
             badge.classList.add('bg-red-500/20', 'text-red-400');
         }
-        showToast("Model Health: OFFLINE", "error");
+        Telemetry.log('warn', 'Health Check Failed', { error: e.message });
     }
 }
 
@@ -126,15 +171,15 @@ async function refreshMLOpsView() {
         ]);
 
         const drift = driftData.status === 'fulfilled' ? driftData.value : null;
-        const trail = auditTrail.status === 'fulfilled' ? auditTrail.value.reverse() : null;
+        const trail = auditTrail.status === 'fulfilled' ? auditTrail.value?.reverse() : null;
 
-        renderMLOps(drift, trail);
+        safeExecute('mlops', () => renderMLOps(drift, trail));
         
         if (drift?.drift_detected) {
             showToast("Atenção: Model Drift detectado.", "warning");
         }
     } catch (e) {
-        console.warn("MLOps Refresh Error:", e);
+        Telemetry.captureException(e, { area: 'MLOpsRefresh' });
     }
 }
 

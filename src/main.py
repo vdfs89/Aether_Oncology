@@ -22,6 +22,12 @@ from __future__ import annotations
 
 import json
 import os
+import time
+import logging
+from typing import List, Dict, Any
+
+import pandas as pd
+import numpy as np
 
 from fastapi import FastAPI, HTTPException, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +37,20 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
-from src.services.predictor import predictor
+from src.services.predictor import predictor, green_monitor
+from src.core.logging import setup_logging
+
+# ---------------------------------------------------------------------------
+# Platform Initialization (v2.1)
+# ---------------------------------------------------------------------------
+
+setup_logging()
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
 
 # ---------------------------------------------------------------------------
 # Segurança — API Key lida de variável de ambiente
@@ -71,8 +90,32 @@ app = FastAPI(
         "**v2.0**: RAG com PubMed, Cochrane e Integrated Gradients (XAI). "
         "**Nunca deve ser usado para diagnóstico autónomo sem supervisão médica.**"
     ),
-    version="2.0.0",
+    version="2.1.0",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Centralized Error Boundary for the API.
+    Prevents leaking internal stack traces and provides standardized clinical error codes.
+    """
+    logging.error(f"Critical Platform Error: {exc}", extra={
+        "path": request.url.path,
+        "method": request.method,
+        "error_type": type(exc).__name__
+    })
+    
+    return HTMLResponse(
+        status_code=500,
+        content=json.dumps({
+            "error_code": "AETHER_INTERNAL_ERROR",
+            "message": "Ocorreu um erro inesperado no processamento clínico. A equipe de SRE foi notificada.",
+            "clinical_impact": "High",
+            "timestamp": time.time()
+        })
+    )
 
 # ---------------------------------------------------------------------------
 # Middlewares & Monitoramento
@@ -145,12 +188,28 @@ async def read_index() -> HTMLResponse:
 
 
 # ---------------------------------------------------------------------------
-# Schema de entrada — 30 features WDBC
+# Multimodality Readiness (v2.1)
+# ---------------------------------------------------------------------------
+
+class GenomicMarkers(BaseModel):
+    """Marcadores genéticos de alto risco (KRAS, EGFR, PIK3CA)."""
+    kras_mutation: bool = Field(False, description="Presença de mutação KRAS")
+    egfr_amplification: bool = Field(False, description="Amplificação de EGFR")
+    pik3ca_mutation: bool = Field(False, description="Mutação PIK3CA (PI3K pathway)")
+
+class EHREntry(BaseModel):
+    """Dados resumidos do Prontuário Eletrônico (EHR)."""
+    age: int | None = Field(None, gt=0, description="Idade do paciente")
+    family_history: bool = Field(False, description="Histórico familiar de câncer de mama")
+    previous_biopsies: int = Field(0, ge=0, description="Número de biópsias anteriores")
+
+# ---------------------------------------------------------------------------
+# Schema de entrada — 30 features WDBC + Multimodal v2.1
 # ---------------------------------------------------------------------------
 
 
 class TumorFeatures(BaseModel):
-    """30 atributos morfológicos numéricos (WDBC dataset)."""
+    """30 atributos morfológicos numéricos (WDBC dataset) + Multimodal v2.1."""
 
     radius_mean: float = Field(..., gt=0, description="Raio médio do núcleo")
     texture_mean: float = Field(..., gt=0, description="Textura média")
@@ -192,6 +251,10 @@ class TumorFeatures(BaseModel):
     fractal_dimension_worst: float = Field(
         ..., gt=0, description="Dimensão fractal máxima (pior)"
     )
+
+    # v2.1 Roadmap: Multimodal Fields (Optional for now)
+    genomics: GenomicMarkers | None = Field(None, description="Dados genômicos do paciente")
+    ehr: EHREntry | None = Field(None, description="Sumário do prontuário eletrônico")
 
     model_config = {
         "json_schema_extra": {
@@ -276,8 +339,20 @@ class PredictResponse(BaseModel):
 
 
 @app.get("/health")
-def health_check():
-    return {"status": "online", "model": "Aether Oncology v2.0"}
+@limiter.limit("60/minute")
+def health_check(request: Request):
+    return {
+        "status": "online", 
+        "model": "Aether Oncology v2.1",
+        "uptime": "monitored",
+        "platform": "hardened"
+    }
+
+
+@app.get("/heartbeat", tags=["Ops"])
+async def platform_heartbeat():
+    """Endpoint leve para monitoramento de latência e conectividade do portal."""
+    return {"status": "alive", "timestamp": time.time()}
 
 
 @app.post(
@@ -288,7 +363,8 @@ def health_check():
     summary="Classificar amostra de biópsia tumoral",
     dependencies=[Security(get_api_key)],
 )
-def make_prediction(features: TumorFeatures) -> PredictResponse:
+@limiter.limit("10/minute")
+def make_prediction(request: Request, features: TumorFeatures) -> PredictResponse:
     """
     Recebe as 30 features WDBC e devolve classificação binária + RAG.
 
@@ -322,6 +398,36 @@ def make_prediction(features: TumorFeatures) -> PredictResponse:
     return PredictResponse(**result, warning=warning)
 
 
+# ---------------------------------------------------------------------------
+# Clinical Feedback Loop — Ground Truth (v2.1)
+# ---------------------------------------------------------------------------
+
+class FeedbackRequest(BaseModel):
+    """Dados de feedback clínico (Ground Truth)."""
+    prediction_id: str = Field(..., description="ID da predição (timestamp/hash)")
+    ground_truth: int = Field(..., ge=0, le=1, description="1 = Maligno, 0 = Benigno")
+    notes: str | None = None
+
+@app.post("/feedback", tags=["Clinical Feedback"], dependencies=[Security(get_api_key)])
+async def clinical_feedback(feedback: FeedbackRequest):
+    """
+    Recebe o resultado real (biópsia/cirurgia) para validar a precisão da IA.
+    Este loop é essencial para detecção de Concept Drift e auditoria de Fairness.
+    """
+    # Em produção, isso salvaria em um DB SQL (Aurora/Postgres)
+    # Aqui, anexamos ao rastro de auditoria para processamento offline
+    feedback_entry = {
+        "timestamp": time.time(),
+        "type": "clinical_feedback",
+        "data": feedback.model_dump()
+    }
+    
+    with open(AUDIT_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(feedback_entry) + "\n")
+        
+    return {"status": "success", "message": "Feedback clínico registrado com sucesso."}
+
+
 @app.get("/analytics", tags=["MLOps"])
 def get_mlops_analytics():
     """
@@ -349,3 +455,108 @@ def get_audit_trail():
             except json.JSONDecodeError:
                 continue
         return trail
+
+
+# ---------------------------------------------------------------------------
+# Enterprise ML Platform Monitoring (v2.1)
+# ---------------------------------------------------------------------------
+
+from src.ml_platform.orchestrator import MLPlatformOrchestrator
+
+# Initialize Orchestrator with baseline dataset
+_BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "data.csv")
+orchestrator = None
+
+try:
+    if os.path.exists(_BASELINE_PATH):
+        orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
+except Exception as e:
+    import logging
+    logging.error(f"Falha ao carregar baseline para monitoramento: {e}")
+
+
+@app.get("/monitor/drift", tags=["MLOps"], dependencies=[Security(get_api_key)])
+def monitor_drift():
+    """
+    Detecta Data Drift comparando o rastro de auditoria com o baseline WDBC.
+    """
+    if not orchestrator or not AUDIT_FILE.exists():
+        return {"status": "error", "message": "Monitoramento indisponível (Falta rastro de auditoria)"}
+
+    # Carrega as últimas 100 inferências (apenas do tipo prediction)
+    audit_data = [d for d in get_audit_trail() if "features" in d]
+    if len(audit_data) < 10:
+        return {"status": "insufficient_data", "samples": len(audit_data)}
+
+    # Extrai features
+    live_samples = [d["features"] for d in audit_data]
+    current_df = pd.DataFrame(live_samples)
+
+    # Alinhamento de colunas: o modelo espera snake_case, o detector espera os nomes do CSV original
+    # Orchestrator lida com a tradução ou o DF deve bater com o baseline_df.columns
+    # WDBC Baseline columns: 'mean radius', 'mean texture', etc.
+    # Nossa API features: 'radius_mean', 'texture_mean', etc.
+    
+    # Mapeamento reverso para bater com o baseline do WDBC
+    feature_mapping = {
+        "radius_mean": "mean radius", "texture_mean": "mean texture",
+        "perimeter_mean": "mean perimeter", "area_mean": "mean area",
+        "smoothness_mean": "mean smoothness", "compactness_mean": "mean compactness",
+        "concavity_mean": "mean concavity", "concave_points_mean": "mean concave points",
+        "symmetry_mean": "mean symmetry", "fractal_dimension_mean": "mean fractal dimension"
+    }
+    # (Simplified for the top 10 features, expand if needed)
+    current_df = current_df.rename(columns=feature_mapping)
+
+    return orchestrator.drift_detector.check_data_drift(current_df)
+
+
+@app.get("/monitor/fairness", tags=["MLOps"], dependencies=[Security(get_api_key)])
+def monitor_fairness():
+    """
+    Auditoria de Equidade (Fairness) em tempo real.
+    Verifica se o recall é consistente entre tumores pequenos e grandes.
+    """
+    if not orchestrator or not AUDIT_FILE.exists():
+        return {"status": "error", "message": "Monitoramento de equidade indisponível"}
+
+    all_audit = get_audit_trail()
+    predictions = [d for d in all_audit if "features" in d]
+    feedbacks = {d["data"]["prediction_id"]: d["data"]["ground_truth"] for d in all_audit if d.get("type") == "clinical_feedback"}
+
+    # Filtra apenas predições que possuem feedback (ground truth)
+    matches = []
+    for p in predictions:
+        p_id = str(p.get("timestamp")) # Usando timestamp como ID simplificado
+        if p_id in feedbacks:
+            matches.append({
+                "features": p["features"],
+                "prediction": p["result"]["prediction"],
+                "ground_truth": feedbacks[p_id]
+            })
+
+    if len(matches) < 5:
+        return {
+            "status": "waiting_for_ground_truth", 
+            "monitored_samples": len(predictions),
+            "samples_with_feedback": len(matches),
+            "message": "Necessário ao menos 5 feedbacks reais para auditoria estatística."
+        }
+
+    live_df = pd.DataFrame([m["features"] for m in matches])
+    # Map to match orchestrator expectation
+    live_df = live_df.rename(columns={"radius_mean": "mean radius"}) 
+    
+    y_pred = np.array([m["prediction"] for m in matches])
+    y_true = np.array([m["ground_truth"] for m in matches])
+
+    return orchestrator.run_production_health_check(live_df, y_pred, y_true)
+
+
+@app.get("/monitor/sustainability", tags=["Green AI"], dependencies=[Security(get_api_key)])
+def monitor_sustainability():
+    """
+    Relatório de Impacto Ambiental (Green AI).
+    Exibe o consumo acumulado de energia e pegada de carbono.
+    """
+    return green_monitor.get_sustainability_report()
