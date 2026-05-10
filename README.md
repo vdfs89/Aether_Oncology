@@ -143,6 +143,7 @@ Esta análise valida como o projeto atende (e supera) os requisitos de excelênc
 | **🛡️ Governança** | Audit Trail (.jsonl) | Rastreabilidade imutável de todas as decisões médicas |
 | **📈 MLOps Ativo** | Monitoramento de Drift | Alertas automáticos caso os dados clínicos sofram desvio |
 | **🔒 Segurança** | API Key Auth + Non-root Docker | Proteção de dados e hardening de container |
+| **🚀 Observabilidade** | Latency Middleware (X-Inference-Time-Ms) | Visibilidade total do gargalo de rede vs. inferência |
 | **📖 Ética** | Clinical XAI Narrative | Tradução de métricas SHAP para linguagem médica natural |
 
 ---
