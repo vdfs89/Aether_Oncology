@@ -116,17 +116,17 @@ static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 portal_dir = os.path.join(static_dir, "aether-oncology-portal")
-app.mount(
-    "/css", StaticFiles(directory=os.path.join(portal_dir, "css")), name="portal-css"
-)
-app.mount(
-    "/js", StaticFiles(directory=os.path.join(portal_dir, "js")), name="portal-js"
-)
-app.mount(
-    "/images",
-    StaticFiles(directory=os.path.join(portal_dir, "images")),
-    name="portal-images",
-)
+
+# Suporte para o bundle do Vite (Produção)
+assets_dir = os.path.join(portal_dir, "assets")
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="vite-assets")
+
+# Suporte para desenvolvimento (arquivos brutos)
+for folder in ["css", "js", "images"]:
+    folder_path = os.path.join(portal_dir, folder)
+    if os.path.exists(folder_path):
+        app.mount(f"/{folder}", StaticFiles(directory=folder_path), name=f"portal-{folder}")
 
 
 # ---------------------------------------------------------------------------
