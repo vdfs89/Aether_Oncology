@@ -1,68 +1,72 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Stage 1: Base leve com Python 3.11
+# Stage 1: Frontend Build (Node.js + Vite)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-slim AS frontend-builder
+WORKDIR /build
+
+# Copy package files for caching
+COPY package*.json ./
+RUN npm install
+
+# Copy source files needed for Vite build
+COPY vite.config.js ./
+COPY src/static/aether-oncology-portal/ ./src/static/aether-oncology-portal/
+
+# Build the frontend
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Backend (Python 3.11)
 # ─────────────────────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 # Metadados da imagem
 LABEL maintainer="Equipe Aether Oncology" \
       version="2.0.0" \
-      description="Tumor Classifier API — MLP PyTorch via FastAPI"
+      description="Tumor Classifier API — MLP PyTorch via FastAPI + Modular ESM Frontend"
 
-# Variáveis de ambiente para Python não gerar .pyc e não bufferizar stdout/stderr
-# MLFLOW_TRACKING_URI fixado em /app/mlruns para evitar criação de paths com %20 no host
+# Variáveis de ambiente
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MLFLOW_TRACKING_URI=/app/mlruns
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Stage 2: Dependências de sistema (mínimo necessário para PyTorch CPU)
-# ─────────────────────────────────────────────────────────────────────────────
+# Dependências de sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Usuário não-root para segurança
+# Usuário não-root
 RUN useradd --create-home --shell /bin/bash appuser
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Stage 3: Dependências Python
-# Copiamos apenas o pyproject.toml ANTES do código fonte para maximizar
-# o cache de camadas — se o código mudar mas as deps não, esta camada
-# não é reconstruída.
-# ─────────────────────────────────────────────────────────────────────────────
 WORKDIR /app
 
+# Dependências Python
 COPY pyproject.toml .
-
 RUN pip install --no-cache-dir uv \
     && uv pip install --system --no-cache .
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Stage 4: Código-fonte e artefatos do modelo
-# ─────────────────────────────────────────────────────────────────────────────
+# Código-fonte e artefatos
 COPY src/ src/
 COPY models/ models/
 COPY data/raw/ data/raw/
 
-# Cria diretórios para persistência (Auditoria e Cache RAG)
+# Sobrescrever a pasta estática com o build do Vite (para que o FastAPI sirva os arquivos otimizados)
+# O Vite gera o output em /build/dist
+COPY --from=frontend-builder /build/src/static/aether-oncology-portal/dist/ ./src/static/aether-oncology-portal/
+
+# Cria diretórios para persistência
 RUN mkdir -p logs .cache/research \
     && chown -R appuser:appuser /app
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Stage 5: Configuração de runtime
-# ─────────────────────────────────────────────────────────────────────────────
 USER appuser
 
-# Volumes para persistência de dados críticos (Aula 7 e Otimização)
-# - logs: Audit Trail e Governança
-# - .cache: Cache RAG (PubMed/Cochrane)
+# Volumes
 VOLUME ["/app/logs", "/app/.cache"]
 
 EXPOSE 8000
 
-# Healthcheck nativo do Docker
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
-# Comando de inicialização
+# Inicialização
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
