@@ -5,22 +5,24 @@ description = "Classificador de tumores malignos via MLP em PyTorch com RAG"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "aiofiles",  # necessário para StaticFiles do FastAPI
-    "pydantic",
-    "torch",
-    "scikit-learn",
-    "joblib",
-    "mlflow",
-    "pandas",
-    "pandera",   # validação de schema nos testes
-    "seaborn",   # visualizações EDA
-    "matplotlib", # plots gerais
-    "psutil",    # necessário para MLflow System Metrics
-    "optuna",    # otimização de hiperparâmetros
-    "biopython", # PubMed Entrez API (RAG v2.0)
-    "diskcache", # caching persistente (RAG v2.0)
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+    "aiofiles>=23.2.1",
+    "pydantic>=2.7.0",
+    "torch>=2.2.0",
+    "scikit-learn>=1.4.0",
+    "joblib>=1.3.2",
+    "mlflow>=2.11.0",
+    "pandas>=2.2.0",
+    "pandera>=0.18.0",
+    "seaborn>=0.13.0",
+    "matplotlib>=3.8.0",
+    "psutil>=5.9.0",
+    "optuna>=3.6.0",
+    "biopython>=1.83",
+    "diskcache>=5.6.3",
+    "slowapi>=0.1.9",
+    "python-json-logger>=2.0.7",
 ]
 
 [project.optional-dependencies]

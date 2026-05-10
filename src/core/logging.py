@@ -1,8 +1,12 @@
 import logging
-import json
-import time
+from contextvars import ContextVar
 from datetime import datetime
+
 from pythonjsonlogger import jsonlogger
+
+# ContextVar to hold the request ID globally
+request_id_contextvar: ContextVar[str] = ContextVar("request_id", default="system-init")
+
 
 class CustomJsonFormatter(jsonlogger.JsonFormatter):
     def add_fields(self, log_record, record, message_dict):

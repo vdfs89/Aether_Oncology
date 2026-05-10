@@ -125,12 +125,11 @@ needs_model = pytest.mark.xfail(
 
 
 def test_health_check() -> None:
-    """A rota /health deve retornar 200 e status 'online'."""
+    """A rota /health deve retornar 200 e status 'healthy'."""
     response = client.get("/health")
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "online"
-    assert "model" in body
+    assert body["status"] == "healthy"
 
 
 # ---------------------------------------------------------------------------
@@ -282,6 +281,7 @@ def test_audit_endpoint_authenticated(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifica se o endpoint de auditoria exige autenticação e retorna dados."""
     monkeypatch.setenv("API_KEY", "prod_secret")
     import importlib
+
     import src.main as main_module
 
     importlib.reload(main_module)

@@ -41,13 +41,20 @@ jobs:
             
       - name: Post-Deploy Health Check
         run: |
-          sleep 60
-          STATUS=$(curl -s https://portal.aether-oncology.ai/health | jq -r .status)
-          if [ "$STATUS" != "healthy" ]; then
-            echo "Canary unhealthy! Rolling back..."
-            helm rollback aether-oncology
-            exit 1
-          fi
+          echo "Waiting for canary deployment to stabilize..."
+          MAX_RETRIES=12
+          COUNT=0
+          until [ $(curl -s https://portal.aether-oncology.ai/health | jq -r .status) == "healthy" ]; do
+            if [ $COUNT -eq $MAX_RETRIES ]; then
+              echo "Canary health check timed out after 2 minutes. Rolling back..."
+              helm rollback aether-oncology
+              exit 1
+            fi
+            echo "Health check attempt $COUNT/12: Still waiting..."
+            sleep 10
+            COUNT=$((COUNT+1))
+          done
+          echo "Canary health check passed!"
 
   promote-production:
     needs: deploy-canary

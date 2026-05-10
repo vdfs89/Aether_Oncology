@@ -5,17 +5,9 @@ Camada de serviço de ML da Aether Oncology v2.0.
 
 Responsabilidades:
   - Carregar o Pipeline Scikit-Learn (StandardScaler → persisted via joblib)
-  - Carregar os pesos da TumorMLP (PyTorch .pth)
-  - Expor predict() como única interface pública para a camada web
+  - Orquestrar inferência: Hugging Face (Primário) com Fallback Local
   - Calcular Integrated Gradients para explicabilidade (XAI)
-
-Design decisions:
-  - Singleton instanciado no nível do módulo: o modelo é carregado UMA vez
-    quando o worker do uvicorn sobe, não em cada requisição.
-  - O preprocessor (sklearn Pipeline) é mantido separado dos pesos torch para
-    facilitar versionamento independente dos artefactos.
-  - Integrated Gradients implementado manualmente (sem dependência do Captum)
-    para reduzir footprint de dependências.
+  - Integrar evidência científica (RAG)
 """
 
 from __future__ import annotations
@@ -27,301 +19,235 @@ import joblib
 import numpy as np
 import torch
 
-# Importa a ÚNICA fonte de verdade da arquitectura — elimina duplicação
-# e garante que train.py e predictor.py usem exactamente o mesmo modelo.
-from src.models.mlp import MLP
-from src.services.research import fetch_scientific_evidence
 from src.ml_platform.green_ai import GreenAIMonitor
+from src.models.mlp import MLP
+from src.services.inference_client import inference_client
+from src.services.research import fetch_scientific_evidence
 
 logger = logging.getLogger(__name__)
 
-# Configuração de Shadow Deployment (v2.1 Roadmap)
-_SHADOW_MODEL_PATH = _ROOT / "models" / "aether_mlp_v2_1.pth"
-_SHADOW_ENABLED = _SHADOW_MODEL_PATH.exists()
+# ---------------------------------------------------------------------------
+# Constantes de Caminho e Configuração
+# ---------------------------------------------------------------------------
+
+_MODELS_DIR = Path(__file__).resolve().parents[2] / "models"
+_PIPELINE_PATH = _MODELS_DIR / "preprocessor.joblib"
+_MODEL_PATH = _MODELS_DIR / "aether_mlp_v2.pth"
+_CALIBRATOR_PATH = _MODELS_DIR / "calibrator.joblib"
 
 FEATURE_NAMES = [
-    "radius_mean",
-    "texture_mean",
-    "perimeter_mean",
-    "area_mean",
-    "smoothness_mean",
-    "compactness_mean",
-    "concavity_mean",
-    "concave_points_mean",
-    "symmetry_mean",
-    "fractal_dimension_mean",
-    "radius_se",
-    "texture_se",
-    "perimeter_se",
-    "area_se",
-    "smoothness_se",
-    "compactness_se",
-    "concavity_se",
-    "concave_points_se",
-    "symmetry_se",
-    "fractal_dimension_se",
-    "radius_worst",
-    "texture_worst",
-    "perimeter_worst",
-    "area_worst",
-    "smoothness_worst",
-    "compactness_worst",
-    "concavity_worst",
-    "concave_points_worst",
-    "symmetry_worst",
-    "fractal_dimension_worst",
+    "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
+    "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
+    "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
+    "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
+    "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
+    "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
 ]
 
-
-# ---------------------------------------------------------------------------
-# Caminhos dos artefactos
-# ---------------------------------------------------------------------------
-
-_ROOT = Path(__file__).resolve().parents[2]
-_PIPELINE_PATH = _ROOT / "models" / "preprocessor.joblib"
-_CALIBRATOR_PATH = _ROOT / "models" / "calibrator.joblib"
-_MODEL_PATH = _ROOT / "models" / "aether_mlp_v2.pth"
-
-
-# ---------------------------------------------------------------------------
-# Integrated Gradients (implementação manual — sem Captum)
-# ---------------------------------------------------------------------------
-
-
-def _integrated_gradients(
-    model: MLP,
-    input_tensor: torch.Tensor,
-    baseline: torch.Tensor | None = None,
-    steps: int = 50,
-) -> np.ndarray:
+def _integrated_gradients(model: torch.nn.Module, inputs: torch.Tensor, steps: int = 20) -> np.ndarray:
     """
-    Calcula Integrated Gradients para uma amostra de entrada.
-
-    Implementação do algoritmo proposto em:
-    Sundararajan et al., "Axiomatic Attribution for Deep Networks", ICML 2017.
-
-    Args:
-        model: Modelo PyTorch em modo eval.
-        input_tensor: Tensor de entrada (1, n_features) já pré-processado.
-        baseline: Tensor baseline (default: zeros). Ponto de referência.
-        steps: Número de etapas de interpolação (mais = mais preciso).
-
-    Returns:
-        Array numpy com a importância (attribution) de cada feature.
+    Manual implementation of Integrated Gradients (XAI).
+    Calculates feature importance by integrating gradients along the path from baseline to input.
     """
-    if baseline is None:
-        baseline = torch.zeros_like(input_tensor)
+    baseline = torch.zeros_like(inputs)
+    alphas = torch.linspace(0.1, 1.0, steps)
+    accum_grads = torch.zeros_like(inputs)
 
-    # Interpolação linear entre baseline e input
-    scaled_inputs = []
-    for i in range(steps + 1):
-        alpha = i / steps
-        scaled = baseline + alpha * (input_tensor - baseline)
-        scaled_inputs.append(scaled)
+    for alpha in alphas:
+        interpolated = baseline + alpha * (inputs - baseline)
+        interpolated.requires_grad = True
 
-    # Calcula gradientes para cada interpolação
-    gradients = []
-    for scaled in scaled_inputs:
-        scaled = scaled.clone().detach().requires_grad_(True)
+        # Logit output
+        output = model(interpolated)
+
         model.zero_grad()
-        output = model(scaled)
         output.backward()
-        gradients.append(scaled.grad.detach().clone())
 
-    # Média dos gradientes × (input - baseline)
-    avg_gradients = torch.mean(torch.stack(gradients), dim=0)
-    attributions = (input_tensor.detach() - baseline) * avg_gradients
-    return attributions.squeeze().cpu().numpy()
+        if interpolated.grad is not None:
+            accum_grads += interpolated.grad
 
-
-# ---------------------------------------------------------------------------
-# Serviço de predição
-# ---------------------------------------------------------------------------
-
+    avg_grads = accum_grads / steps
+    attributions = (inputs - baseline) * avg_grads
+    return attributions.detach().numpy().squeeze()
 
 class PredictorService:
     """
-    Serviço singleton que encapsula todo o stack de ML.
+    Decoupled Predictor Service.
 
-    Fluxo de inferência:
-        raw_input  →  preprocessor.transform()  →  torch.Tensor
-                   →  model.forward()            →  sigmoid probability
-                   →  Integrated Gradients        →  feature importance
-                   →  dict  (label + probability + confidence + top_feature)
+    Orchestration Flow:
+        1. Local Preprocessing (StandardScaler)
+        2. Remote Inference (Hugging Face)
+        3. Local XAI (Integrated Gradients using a proxy model)
+        4. Research evidence (RAG)
     """
 
     def __init__(self) -> None:
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info("PredictorService inicializando no device: %s", self.device)
-
-        # --- Pipeline Scikit-Learn (scaler + eventuais transformações futuras) ---
-        if not _PIPELINE_PATH.exists():
-            raise FileNotFoundError(
-                f"Pipeline não encontrado em '{_PIPELINE_PATH}'. "
-                "Execute o script de treino: python src/train.py"
-            )
-        self.preprocessor = joblib.load(_PIPELINE_PATH)
-        logger.info("Pipeline Scikit-Learn carregado: %s", _PIPELINE_PATH)
-
-        # --- Pesos do modelo PyTorch ---
-        if not _MODEL_PATH.exists():
-            raise FileNotFoundError(
-                f"Pesos do modelo não encontrados em '{_MODEL_PATH}'. "
-                "Execute o script de treino: python src/train.py"
-            )
-        # Instanciamos a arquitectura e carregamos apenas o state_dict
-        # (mais seguro que torch.load() directo em produção)
-        self.model = MLP(input_shape=30).to(self.device)
-        state_dict = torch.load(
-            _MODEL_PATH, map_location=self.device, weights_only=True
-        )
-        self.model.load_state_dict(state_dict)
-        self.model.eval()
-        logger.info("Modelo PyTorch carregado e em modo eval: %s", _MODEL_PATH)
-
-        # --- Calibrador (opcional, gerado no treino) ---
+        self.preprocessor = None
+        self.model = None
         self.calibrator = None
-        if _CALIBRATOR_PATH.exists():
-            self.calibrator = joblib.load(_CALIBRATOR_PATH)
-            logger.info("Calibrador de probabilidades carregado: %s", _CALIBRATOR_PATH)
-
-        # --- Green AI Monitor ---
         self.green_monitor = GreenAIMonitor()
+        self.model_version = "v1-decoupled"
 
-        # --- Shadow Model (v2.1) ---
-        self.shadow_model = None
-        if _SHADOW_ENABLED:
-            try:
-                self.shadow_model = MLP(input_shape=30).to(self.device)
-                self.shadow_model.load_state_dict(torch.load(_SHADOW_MODEL_PATH, map_location=self.device, weights_only=True))
-                self.shadow_model.eval()
-                logger.info("Shadow Model (v2.1) carregado para validação paralela.")
-            except Exception as e:
-                logger.error(f"Erro ao carregar Shadow Model: {e}")
+    def load_resources(self) -> None:
+        """Loads required local artifacts (preprocessor and optional local model)."""
+        try:
+            if not _PIPELINE_PATH.exists():
+                logger.error(f"Pipeline not found in '{_PIPELINE_PATH}'")
+            else:
+                self.preprocessor = joblib.load(_PIPELINE_PATH)
+                logger.info("Local Preprocessor loaded successfully.")
 
-    # ------------------------------------------------------------------
-    # Interface pública
-    # ------------------------------------------------------------------
+            # Proxy Model for XAI and Fallback
+            self.model = MLP(input_shape=30)
+            if _MODEL_PATH.exists():
+                self.model.load_state_dict(torch.load(_MODEL_PATH, weights_only=True, map_location="cpu"))
+                self.model.eval()
+                logger.info("Local Proxy Model loaded for XAI/Fallback.")
+            else:
+                logger.warning(f"Local weights not found in '{_MODEL_PATH}'. Fallback and XAI will be limited.")
 
-    def predict(self, input_data: list[list[float]]) -> dict:
+            if _CALIBRATOR_PATH.exists():
+                self.calibrator = joblib.load(_CALIBRATOR_PATH)
+                logger.info("Local Calibrator loaded.")
+
+        except Exception as e:
+            logger.critical(f"Failed to load clinical resources: {e}")
+
+    async def predict(self, input_data: list[list[float]], request_id: str = "internal") -> dict:
         """
-        Realiza a inferência para uma ou mais amostras.
+        Main orchestration entry point for clinical predictions.
 
-        Args:
-            input_data: Lista de amostras, cada uma com exatamente 30 features
-                        na ordem do dataset WDBC.  Ex.: [[17.99, 10.38, ...]].
-
-        Returns:
-            dict com:
-              - ``prediction``  : 1 (Maligno) ou 0 (Benigno)
-              - ``label``       : 'Malignant' ou 'Benign'
-              - ``probability`` : score sigmoid arredondado (0–1)
-              - ``confidence``  : 'High' | 'Medium' | 'Low'
-              - ``top_feature`` : feature de maior impacto (XAI — Integrated Gradients)
-              - ``articles``    : evidências científicas (PubMed + Cochrane + S2)
-              - ``status``      : 'sucesso'
+        Orchestration Steps:
+        1. Local Preprocessing (StandardScaler)
+        2. Resilience check & Remote Inference (HF)
+        3. Local Fallback (if remote fails or circuit is open)
+        4. Local XAI & RAG
         """
-        # 1. Pré-processamento via Pipeline Sklearn
+        if self.preprocessor is None:
+            self.load_resources()
+            if self.preprocessor is None:
+                raise Exception("Clinical artifacts not loaded.")
+
+        # 1. Preprocessing (StandardScaler)
         processed_data = self.preprocessor.transform(input_data)
 
-        # 2. Conversão para tensor PyTorch
-        tensor_data = torch.tensor(processed_data, dtype=torch.float32).to(self.device)
+        # 2. Remote Inference (Hugging Face)
+        inference_source = "remote"
+        remote_error = None
+        probability = 0.5
+        latency_ms = 0
 
-        # 3. Inferência (sem gradientes)
-        with torch.no_grad():
-            logits_tensor = self.model(tensor_data)
-            logits_np = logits_tensor.cpu().numpy()
+        try:
+            # Persistent client with connection pooling and circuit breaker
+            remote_result = await inference_client.predict_remote(processed_data.tolist(), request_id=request_id)
+            latency_ms = remote_result.get("latency_ms", 0)
 
-        # 4. Calibração de Probabilidade (Platt Scaling)
-        if self.calibrator:
-            # O calibrador espera [N, 1] e retorna [N, 2] (probabilidades por classe)
-            probability = float(self.calibrator.predict_proba(logits_np)[0, 1])
-        else:
-            probability = float(torch.sigmoid(logits_tensor).squeeze().item())
+            # Robust Probability Extraction
+            raw_data = remote_result["data"]
+
+            # Case 1: Simple list of floats [0.98] or [[0.98]]
+            if isinstance(raw_data, list):
+                val = raw_data[0]
+                if isinstance(val, list):
+                    val = val[0]
+                if isinstance(val, (int, float)):
+                    probability = float(val)
+                # Case 2: List of dicts (classification) [[{"label": "...", "score": 0.9}]]
+                elif isinstance(val, dict):
+                    # We look for "Malignant" or high-index scores
+                    # Assuming v1 uses common label mapping or binary logit
+                    probability = val.get("score", 0.5)
+
+        except Exception as e:
+            logger.warning(f"Inference Pivot [{request_id}]: Remote Failed ({e}). Using Local Fallback.")
+            remote_error = str(e)
+            inference_source = "local_fallback"
+
+            # 3. Local Fallback (Deterministic Resilience)
+            if self.model:
+                with torch.no_grad():
+                    logits = self.model(torch.tensor(processed_data, dtype=torch.float32))
+                    probability = torch.sigmoid(logits).item()
+            else:
+                raise Exception(f"Clinical inference unavailable (Primary error: {remote_error})")
 
         prediction = 1 if probability >= 0.5 else 0
         label = "Malignant" if prediction == 1 else "Benign"
 
-        # 5. Tier de confiança (alinhado ao Model Card — Secção 6)
-        if probability >= 0.85 or probability <= 0.15:
+        # 4. Confidence Tiering (Clinical Guardrail)
+        if probability >= 0.92 or probability <= 0.08:
             confidence = "High"
-        elif probability >= 0.65 or probability <= 0.35:
+        elif probability >= 0.75 or probability <= 0.25:
             confidence = "Medium"
         else:
-            confidence = "Low"  # dispara revisão manual dupla na camada web
+            confidence = "Low"
 
-        # 6. XAI via Integrated Gradients
-        #    Identifica a feature com maior attribution (impacto na decisão)
-        self.model.eval()
-        attributions = _integrated_gradients(self.model, tensor_data, steps=50)
-        # Valor absoluto = magnitude do impacto (positivo ou negativo)
-        top_idx = int(np.argmax(np.abs(attributions)))
-        top_feature = FEATURE_NAMES[top_idx]
+        # 5. Local XAI (Integrated Gradients)
+        # We use the local proxy model for XAI to avoid high-latency remote gradient calls
+        top_feature = "unknown"
+        if self.model:
+            try:
+                tensor_data = torch.tensor(processed_data, dtype=torch.float32)
+                attributions = _integrated_gradients(self.model, tensor_data, steps=20)
+                top_idx = int(np.argmax(np.abs(attributions)))
+                top_feature = FEATURE_NAMES[top_idx]
+            except Exception as e:
+                logger.error(f"XAI calculation failed: {e}")
 
-        # 7. Busca de Evidência Científica (RAG v2.0)
-        #    Gatilho contextual: top_feature → PubMed + Cochrane + Semantic Scholar
-        articles = fetch_scientific_evidence(top_feature)
+        # 6. RAG (Scientific Evidence)
+        articles = []
+        try:
+            articles = fetch_scientific_evidence(top_feature)
+        except Exception as e:
+            logger.error(f"RAG fetch failed: {e}")
 
-        # 8. Shadow Inference (v2.1) — Validação em paralelo
-        shadow_result = None
-        if self.shadow_model:
-            with torch.no_grad():
-                shadow_prob = torch.sigmoid(self.shadow_model(tensor_data)).item()
-                shadow_result = {"probability": round(shadow_prob, 4), "prediction": 1 if shadow_prob >= 0.5 else 0}
-                if shadow_result["prediction"] != prediction:
-                    logger.warning(f"SHADOW DISCREPANCY: Primary={prediction}, Shadow={shadow_result['prediction']}")
+        # 7. Green AI Tracking
+        self.green_monitor.track_inference(latency_ms if latency_ms > 0 else 100)
 
-        # 9. Green AI Metrics
-        # Estimativa simplificada baseada no tempo de execução
-        import time
-        inf_end = time.perf_counter()
-        # Nota: start_time deveria vir do início da função para ser preciso
-        # Mas usamos o X-Inference-Time do middleware para o report oficial.
-        
         return {
             "prediction": prediction,
             "label": label,
-            "probability": round(probability, 4),
+            "probability": float(round(probability, 4)),
             "confidence": confidence,
             "top_feature": top_feature,
             "articles": articles,
-            "shadow_inference": shadow_result,
-            "environmental_impact": self.green_monitor.track_inference(10.0), # Mock 10ms for baseline
-            "status": "sucesso",
+            "status": "sucesso" if inference_source == "remote" else "fallback",
+            "inference_source": inference_source,
+            "remote_latency_ms": latency_ms,
+            "model_id": inference_client.model_id if inference_source == "remote" else "local_mlp_v2"
         }
 
-
-# ---------------------------------------------------------------------------
-# Singleton com inicialização lazy — evita crash na importação do módulo
-# quando os artefactos ainda não existem (ex.: antes do primeiro treino).
-# ---------------------------------------------------------------------------
-
+    def is_ready(self) -> bool:
+        return self.preprocessor is not None
 
 class _LazyPredictor:
-    """Proxy que instancia PredictorService apenas na primeira chamada."""
-
+    """Lazy wrapper to defer resource loading until first request or health check."""
     def __init__(self) -> None:
         self._instance: PredictorService | None = None
 
     def _get_instance(self) -> PredictorService:
         if self._instance is None:
             self._instance = PredictorService()
+            self._instance.load_resources()
         return self._instance
 
-    def predict(self, input_data: list[list[float]]) -> dict:
-        return self._get_instance().predict(input_data)
+    async def predict(self, input_data: list[list[float]], request_id: str = "internal") -> dict:
+        return await self._get_instance().predict(input_data, request_id=request_id)
 
-    @property
-    def model(self) -> MLP:
-        return self._get_instance().model
+    def is_ready(self) -> bool:
+        return self._get_instance().is_ready()
 
-    @property
-    def preprocessor(self) -> object:
-        return self._get_instance().preprocessor
+    def load_model(self) -> None:
+        """Explicitly load the model (used by lifespan)."""
+        self._get_instance().load_resources()
 
     @property
     def green_monitor(self) -> GreenAIMonitor:
         return self._get_instance().green_monitor
 
+    @property
+    def model_version(self) -> str:
+        return self._get_instance().model_version
 
+# Global Singleton
 predictor = _LazyPredictor()

@@ -17,13 +17,57 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
 import diskcache
 import requests
-import numpy as np
-from typing import List, Dict, Any, Optional
+
+
+class CircuitBreaker:
+    """
+    SRE Pattern: Circuit Breaker
+    Prevents cascading failures by stopping requests to an external service
+    that is consistently failing.
+    """
+    def __init__(self, name: str, threshold: int = 3, recovery_time: int = 60):
+        self.name = name
+        self.threshold = threshold
+        self.recovery_time = recovery_time
+        self.failures = 0
+        self.last_failure_time = 0
+        self.state = "CLOSED" # CLOSED, OPEN, HALF-OPEN
+
+    def call(self, fn, *args, **kwargs):
+        if self.state == "OPEN":
+            if time.time() - self.last_failure_time > self.recovery_time:
+                log.info(f"Circuit {self.name} is now HALF-OPEN (testing recovery)")
+                self.state = "HALF-OPEN"
+            else:
+                log.warning(f"Circuit {self.name} is OPEN. Fast-failing request.")
+                return []
+
+        try:
+            result = fn(*args, **kwargs)
+            if self.state in ["OPEN", "HALF-OPEN"]:
+                log.info(f"Circuit {self.name} is now CLOSED (recovered)")
+            self.state = "CLOSED"
+            self.failures = 0
+            return result
+        except Exception as e:
+            self.failures += 1
+            self.last_failure_time = time.time()
+            log.error(f"Circuit {self.name} failure ({self.failures}/{self.threshold}): {e}")
+
+            if self.failures >= self.threshold:
+                self.state = "OPEN"
+                log.error(f"Circuit {self.name} is now OPEN.")
+            return []
+
+# One circuit per external provider
+pubmed_breaker = CircuitBreaker("PubMed", threshold=3)
+scholar_breaker = CircuitBreaker("SemanticScholar", threshold=5)
 
 log = logging.getLogger(__name__)
 
@@ -220,7 +264,7 @@ class VectorDBService:
         """
         # Demonstração do paradigma de Enterprise RAG
         log.info("Vector search similarity query: '%s'", query)
-        
+
         # Mock de resultados "vetoriais" que seriam retornados pelo banco
         return [] # Fallback para busca live por enquanto
 
@@ -269,14 +313,14 @@ def fetch_scientific_evidence(top_feature: str) -> list[dict[str, Any]]:
     seen_urls: set[str] = set()
 
     # 2. PubMed (artigos primários)
-    pubmed_articles = _search_pubmed(base_query, max_results=3)
+    pubmed_articles = pubmed_breaker.call(_search_pubmed, base_query, max_results=3)
     for art in pubmed_articles:
         if art["url"] not in seen_urls:
             results.append(art)
             seen_urls.add(art["url"])
 
     # 3. Cochrane (revisões sistemáticas)
-    cochrane_articles = _search_cochrane(base_query, max_results=2)
+    cochrane_articles = pubmed_breaker.call(_search_cochrane, base_query, max_results=2)
     for art in cochrane_articles:
         if art["url"] not in seen_urls:
             art["source"] = "Cochrane"
@@ -286,7 +330,7 @@ def fetch_scientific_evidence(top_feature: str) -> list[dict[str, Any]]:
     # 4. Semantic Scholar (fallback + TL;DRs)
     if len(results) < 3:
         s2_query = f"breast cancer {search_term} diagnostic importance"
-        s2_papers = _search_semantic_scholar(s2_query, limit=3)
+        s2_papers = scholar_breaker.call(_search_semantic_scholar, s2_query, limit=3)
         for p in s2_papers:
             url = p.get("url", "")
             if url and url not in seen_urls:

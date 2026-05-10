@@ -1,4 +1,3 @@
-import { initCanvas } from './animations.js';
 import { initTabs } from './tabs.js';
 import { initUX } from './ux.js';
 import { initShortcuts } from './shortcuts.js';
@@ -15,7 +14,14 @@ import {
     renderCircuitStatus
 } from './ui.js';
 import { renderXAIChart } from './charts.js';
-import { predictTumor, checkHealth, fetchAuditTrail, fetchAnalytics } from './api.js';
+import { 
+    predictTumor, 
+    checkHealth, 
+    checkReady,
+    fetchAuditTrail, 
+    fetchAnalytics,
+    fetchVersion
+} from './api.js';
 import { Telemetry } from './core/telemetry.js';
 import { initSecurity } from './core/security.js';
 import { RequestManager } from './core/request.js';
@@ -52,11 +58,11 @@ document.addEventListener("DOMContentLoaded", () => {
     Telemetry.trackPerformance();
 
     // UI Init
-    safeExecute('canvas', initCanvas);
     safeExecute('form', renderForm);
     safeExecute('tabs', initTabs);
     safeExecute('shortcuts', initShortcuts);
     safeExecute('heartbeat', () => Heartbeat.start());
+    safeExecute('warming', preWarmPlatform);
 
     // Resilience Listeners
     RequestManager.onStateChange((state) => renderCircuitStatus(state));
@@ -81,8 +87,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Event Bindings
     document.getElementById('mlops-refresh-btn')?.addEventListener('click', checkModelHealth);
-    document.getElementById('sample-malignant')?.addEventListener('click', () => uiFillSample('malignant'));
-    document.getElementById('sample-benign')?.addEventListener('click', () => uiFillSample('benign'));
+    document.getElementById('sample-malignant')?.addEventListener('click', () => {
+        uiFillSample('malignant');
+        setTimeout(runAnalysis, 100);
+    });
+    document.getElementById('sample-benign')?.addEventListener('click', () => {
+        uiFillSample('benign');
+        setTimeout(runAnalysis, 100);
+    });
     document.getElementById('clear-form-btn')?.addEventListener('click', () => {
         uiClearForm();
         Persistence.clearDraft();
@@ -95,10 +107,48 @@ document.addEventListener("DOMContentLoaded", () => {
     Telemetry.log('info', 'Aether Oncology Platform Initialized');
 });
 
+/**
+ * SRE Pre-warming logic: 
+ * Ensures clinical model is loaded and identifies platform version.
+ */
+async function preWarmPlatform() {
+    try {
+        const [version, ready] = await Promise.all([
+            fetchVersion(),
+            checkReady()
+        ]);
+        
+        console.log(`[SRE] Platform Warm: v${version.version} (${version.git_sha})`);
+        
+        // Update all version placeholders
+        const heroVer = document.getElementById('hero-version');
+        const engineVer = document.getElementById('engine-version');
+        if (heroVer) heroVer.textContent = `v${version.version} Hardened`;
+        if (engineVer) engineVer.textContent = `v${version.version}`;
+
+        const platformMeta = document.getElementById('platform-meta');
+        if (platformMeta) {
+            platformMeta.innerHTML = `
+                <span class="opacity-40 uppercase tracking-tighter">Release:</span> 
+                <span class="text-white font-mono">${version.version}</span>
+                <span class="mx-2 opacity-10">|</span>
+                <span class="opacity-40 uppercase tracking-tighter">Commit:</span>
+                <span class="text-cyan-400 font-mono">${version.git_sha.substring(0,7)}</span>
+            `;
+            platformMeta.classList.remove('hidden');
+        }
+        
+        if (ready.status === 'ready') {
+            document.querySelectorAll('.badge-ready').forEach(b => b.classList.remove('hidden'));
+        }
+    } catch (e) {
+        Telemetry.log('warn', 'Platform warming failed', { error: e.message });
+    }
+}
+
 // Production Lifecycle Management
 window.addEventListener("beforeunload", () => {
     Heartbeat.stop();
-    import('./animations.js').then(m => m.destroyCanvas());
     import('./charts.js').then(m => m.resetChart());
 });
 
@@ -151,14 +201,24 @@ export async function runAnalysis() {
 export async function checkModelHealth() {
     try {
         await checkHealth();
-        document.querySelector('.badge-live')?.classList.add('bg-green-500/20', 'text-green-400');
+        document.querySelectorAll('.badge-live').forEach(b => {
+            b.classList.add('bg-green-500/20', 'text-green-400', 'opacity-100');
+            b.classList.remove('opacity-50');
+        });
+        
+        // Check readiness (model loaded)
+        const ready = await checkReady();
+        if (ready.status === 'ready') {
+            document.querySelectorAll('.badge-ready').forEach(b => b.classList.remove('hidden'));
+        }
+        
         refreshMLOpsView();
     } catch (e) {
-        const badge = document.querySelector('.badge-live');
-        if (badge) {
-            badge.classList.remove('bg-green-500/20', 'text-green-400');
-            badge.classList.add('bg-red-500/20', 'text-red-400');
-        }
+        document.querySelectorAll('.badge-live').forEach(badge => {
+            badge.classList.remove('bg-green-500/20', 'text-green-400', 'opacity-50');
+            badge.classList.add('bg-red-500/20', 'text-red-400', 'opacity-100');
+        });
+        document.querySelectorAll('.badge-ready').forEach(b => b.classList.add('hidden'));
         Telemetry.log('warn', 'Health Check Failed', { error: e.message });
     }
 }

@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
-from src.services.audit import log_prediction, calculate_drift, AUDIT_FILE
+
+from src.services.audit import calculate_drift, log_prediction
 
 
 def test_log_prediction(tmp_path, monkeypatch):

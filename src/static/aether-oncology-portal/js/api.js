@@ -12,7 +12,8 @@ const API_CONFIG = {
         ? 'http://localhost:8000'
         : 'https://aether-oncology-api.onrender.com',
     TIMEOUT: 20000,
-    TOKEN: 'aether-oncology-eval-2026'
+    TOKEN: 'aether-oncology-eval-2026',
+    RELEASE: '2.2.0' // SRE Metadata
 };
 
 /**
@@ -38,9 +39,26 @@ async function clinicalFetch(endpoint, options = {}, signal) {
 
     const response = await fetch(url, mergedOptions);
     
+    // SRE: Handle Version Skew
+    if (response.headers.get('X-Skew-Warning')) {
+        console.warn(`[SRE] Version Skew Detected: Client ${API_CONFIG.RELEASE} is incompatible with Server.`);
+        Telemetry.log('warning', 'Version skew detected', { 
+            client: API_CONFIG.RELEASE, 
+            server: response.headers.get('X-Aether-Release') 
+        });
+    }
+
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+        const requestID = response.headers.get('X-Request-ID') || 'unknown';
+        
+        Telemetry.log('error', `API Failure: ${endpoint}`, { 
+            status: response.status, 
+            requestID,
+            correlationId 
+        });
+
+        throw new Error(errorData.message || errorData.detail || `Error ${response.status}: ${response.statusText}`);
     }
 
     return await response.json();
@@ -55,11 +73,17 @@ export const predictTumor = (payload) =>
     );
 
 export const checkHealth = () => 
-    RequestManager.call('health', (signal) => clinicalFetch('/health', {}, signal));
+    RequestManager.call('health', (signal) => clinicalFetch('/health/live', {}, signal));
+
+export const checkReady = () => 
+    RequestManager.call('ready', (signal) => clinicalFetch('/health/ready', {}, signal));
 
 export const fetchAuditTrail = () => 
     RequestManager.call('audit', (signal) => clinicalFetch('/audit', {}, signal));
 
 export const fetchAnalytics = () => 
     RequestManager.call('analytics', (signal) => clinicalFetch('/analytics', {}, signal));
+
+export const fetchVersion = () => 
+    RequestManager.call('version', (signal) => clinicalFetch('/version', {}, signal));
 

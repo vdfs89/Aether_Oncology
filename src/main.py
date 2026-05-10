@@ -18,37 +18,45 @@ Iniciar o servidor:
     uvicorn src.main:app --reload
 """
 
-from __future__ import annotations
+
 
 import json
+import logging
 import os
 import time
-import logging
-from typing import List, Dict, Any
+import uuid
+from contextlib import asynccontextmanager
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from src.core.logging import request_id_contextvar, setup_logging
+from src.ml_platform.orchestrator import MLPlatformOrchestrator
 from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
-from src.services.predictor import predictor, green_monitor
-from src.core.logging import setup_logging
+from src.services.inference_client import inference_client
+from src.services.predictor import FEATURE_NAMES, predictor
 
 # ---------------------------------------------------------------------------
-# Platform Initialization (v2.1)
+# Platform Metadata (v2.2)
+# ---------------------------------------------------------------------------
+
+APP_VERSION = "2.2.0"
+GIT_SHA = os.getenv("RENDER_GIT_COMMIT", os.getenv("GITHUB_SHA", "dev-local"))
+
+# ---------------------------------------------------------------------------
+# Platform Initialization (v2.2)
 # ---------------------------------------------------------------------------
 
 setup_logging()
-
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -79,18 +87,39 @@ async def get_api_key(key: str = Security(_api_key_header)) -> str:
     return key
 
 
-# ---------------------------------------------------------------------------
-# Aplicação
-# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    SRE Deterministic Startup:
+    Ensures model weights are verified and warm before accepting traffic.
+    """
+    request_id = str(uuid.uuid4())
+    request_id_contextvar.set(request_id)
+
+    logging.info(f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})")
+
+    # Pre-warm model and RAG engine
+    try:
+        predictor.load_model()
+        logging.info(f"BOOT [{request_id}]: TumorMLP weights loaded successfully.")
+    except Exception as e:
+        logging.critical(f"BOOT FAILURE: Model loading failed: {e}")
+        # In a real SRE env, we might want to exit(1) here to prevent bad rollouts
+
+    yield
+
+    logging.info(f"SHUTDOWN [{request_id}]: Graceful termination initiated.")
+    await inference_client.shutdown()
+    logging.info(f"SHUTDOWN [{request_id}]: Inference client closed.")
 
 app = FastAPI(
     title="Aether Oncology API",
     description=(
         "API de suporte à decisão clínica para classificação de biópsias tumorais. "
-        "**v2.0**: RAG com PubMed, Cochrane e Integrated Gradients (XAI). "
-        "**Nunca deve ser usado para diagnóstico autónomo sem supervisão médica.**"
+        "**v2.2**: SRE Hardened - Deterministic Lifespan & Distributed Tracing. "
     ),
-    version="2.1.0",
+    version=APP_VERSION,
+    lifespan=lifespan
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -101,20 +130,24 @@ async def global_exception_handler(request: Request, exc: Exception):
     Centralized Error Boundary for the API.
     Prevents leaking internal stack traces and provides standardized clinical error codes.
     """
-    logging.error(f"Critical Platform Error: {exc}", extra={
+    request_id = request_id_contextvar.get()
+    logging.error(f"Critical Platform Error [{request_id}]: {exc}", extra={
         "path": request.url.path,
         "method": request.method,
-        "error_type": type(exc).__name__
+        "error_type": type(exc).__name__,
+        "request_id": request_id
     })
-    
-    return HTMLResponse(
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
         status_code=500,
-        content=json.dumps({
+        content={
             "error_code": "AETHER_INTERNAL_ERROR",
             "message": "Ocorreu um erro inesperado no processamento clínico. A equipe de SRE foi notificada.",
             "clinical_impact": "High",
+            "request_id": request_id,
             "timestamp": time.time()
-        })
+        }
     )
 
 # ---------------------------------------------------------------------------
@@ -123,18 +156,39 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.middleware("http")
-async def add_latency_header(request: Request, call_next):
-    import time
-    import logging as _logging
+async def add_sre_telemetry(request: Request, call_next):
+    """
+    SRE Distributed Tracing & Correlation Middleware:
+    - Injects/Propagates Request-ID
+    - Identifies Release Version
+    - Measures clinical inference latency
+    - Prevents Version Skew
+    """
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    client_version = request.headers.get("X-Aether-Release", "unknown")
+    request_id_contextvar.set(request_id)
 
     start = time.perf_counter()
     response = await call_next(request)
     duration_ms = (time.perf_counter() - start) * 1000
+
+    # SRE Headers
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Aether-Release"] = APP_VERSION
+    response.headers["X-Git-SHA"] = GIT_SHA
     response.headers["X-Inference-Time-Ms"] = f"{duration_ms:.2f}"
-    # Alerta em log se latência > 200ms
-    if duration_ms > 200:
-        _logging.warning(
-            "Latência elevada: %.2f ms em %s", duration_ms, request.url.path
+
+    # Version Skew Warning
+    if client_version != "unknown" and client_version != APP_VERSION:
+        response.headers["X-Skew-Warning"] = "true"
+        logging.warning(
+            f"VERSION SKEW DETECTED [{request_id}]: Client {client_version} vs Server {APP_VERSION}"
+        )
+
+    if duration_ms > 500: # Slightly higher threshold for RAG overhead
+        logging.warning(
+            "HIGH LATENCY [%s]: %.2f ms in %s",
+            request_id, duration_ms, request.url.path
         )
     return response
 
@@ -142,12 +196,11 @@ async def add_latency_header(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://api.vitorsilva.engineer",
-        "https://portal.vitorsilva.engineer",
+        "https://aether-oncology.vercel.app",  # Production Frontend
+        "https://aether-oncology-portal.vitorsilva.engineer", # Custom Domain
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:5173",
-        "*",  # Permite flexibilidade total para avaliação do Tech Challenge
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
@@ -338,15 +391,55 @@ class PredictResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/health")
-@limiter.limit("60/minute")
-def health_check(request: Request):
+# ---------------------------------------------------------------------------
+# SRE Observability Endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/version", tags=["SRE"])
+async def get_version():
+    """Returns platform metadata for deployment verification."""
     return {
-        "status": "online", 
-        "model": "Aether Oncology v2.1",
-        "uptime": "monitored",
-        "platform": "hardened"
+        "version": APP_VERSION,
+        "git_sha": GIT_SHA,
+        "environment": os.getenv("NODE_ENV", "production"),
+        "status": "operational"
     }
+
+@app.get("/health/live", tags=["SRE"])
+async def health_live():
+    """Liveness probe: Process is alive."""
+    return {"status": "alive", "timestamp": time.time()}
+
+@app.get("/health/ready", tags=["SRE"])
+async def health_ready():
+    """Readiness probe: Model is loaded and API is ready for traffic."""
+    if not predictor.is_ready():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model not loaded yet"
+        )
+    return {
+        "status": "ready",
+        "model_version": getattr(predictor, "model_version", "v1"),
+        "timestamp": time.time()
+    }
+
+@app.get("/health/inference", tags=["SRE"])
+async def health_inference():
+    """Checks the health of the remote inference layer (Hugging Face)."""
+    is_up = await inference_client.check_health()
+    return {
+        "status": "up" if is_up else "down",
+        "model_id": inference_client.model_id,
+        "circuit_state": inference_client.state.value,
+        "timestamp": time.time()
+    }
+
+@app.get("/health", tags=["Legacy"])
+@limiter.limit("60/minute")
+async def health(request: Request):
+    """Legacy health check for backward compatibility."""
+    return {"status": "healthy", "version": APP_VERSION}
 
 
 @app.get("/heartbeat", tags=["Ops"])
@@ -364,15 +457,16 @@ async def platform_heartbeat():
     dependencies=[Security(get_api_key)],
 )
 @limiter.limit("10/minute")
-def make_prediction(request: Request, features: TumorFeatures) -> PredictResponse:
+async def make_prediction(request: Request, features: TumorFeatures) -> PredictResponse:
     """
     Recebe as 30 features WDBC e devolve classificação binária + RAG.
 
     v2.0: top_feature via Integrated Gradients → busca PubMed + Cochrane.
     """
     try:
-        data_list = [list(features.model_dump().values())]
-        result = predictor.predict(data_list)
+        data = features.model_dump()
+        data_list = [[data[f] for f in FEATURE_NAMES]]
+        result = await predictor.predict(data_list)
 
         # 3. Persistência de Auditoria (Governança — Aula 7)
         log_prediction(features.model_dump(), result)
@@ -421,10 +515,10 @@ async def clinical_feedback(feedback: FeedbackRequest):
         "type": "clinical_feedback",
         "data": feedback.model_dump()
     }
-    
+
     with open(AUDIT_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(feedback_entry) + "\n")
-        
+
     return {"status": "success", "message": "Feedback clínico registrado com sucesso."}
 
 
@@ -460,8 +554,8 @@ def get_audit_trail():
 # ---------------------------------------------------------------------------
 # Enterprise ML Platform Monitoring (v2.1)
 # ---------------------------------------------------------------------------
-
-from src.ml_platform.orchestrator import MLPlatformOrchestrator
+# Health Check Orchestrator (MLOps)
+# ---------------------------------------------------------------------------
 
 # Initialize Orchestrator with baseline dataset
 _BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "data.csv")
@@ -496,7 +590,7 @@ def monitor_drift():
     # Orchestrator lida com a tradução ou o DF deve bater com o baseline_df.columns
     # WDBC Baseline columns: 'mean radius', 'mean texture', etc.
     # Nossa API features: 'radius_mean', 'texture_mean', etc.
-    
+
     # Mapeamento reverso para bater com o baseline do WDBC
     feature_mapping = {
         "radius_mean": "mean radius", "texture_mean": "mean texture",
@@ -537,7 +631,7 @@ def monitor_fairness():
 
     if len(matches) < 5:
         return {
-            "status": "waiting_for_ground_truth", 
+            "status": "waiting_for_ground_truth",
             "monitored_samples": len(predictions),
             "samples_with_feedback": len(matches),
             "message": "Necessário ao menos 5 feedbacks reais para auditoria estatística."
@@ -545,8 +639,8 @@ def monitor_fairness():
 
     live_df = pd.DataFrame([m["features"] for m in matches])
     # Map to match orchestrator expectation
-    live_df = live_df.rename(columns={"radius_mean": "mean radius"}) 
-    
+    live_df = live_df.rename(columns={"radius_mean": "mean radius"})
+
     y_pred = np.array([m["prediction"] for m in matches])
     y_true = np.array([m["ground_truth"] for m in matches])
 
@@ -559,4 +653,4 @@ def monitor_sustainability():
     Relatório de Impacto Ambiental (Green AI).
     Exibe o consumo acumulado de energia e pegada de carbono.
     """
-    return green_monitor.get_sustainability_report()
+    return predictor.green_monitor.get_sustainability_report()

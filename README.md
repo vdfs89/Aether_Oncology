@@ -51,7 +51,7 @@ model-index:
 
 | Status | Recall | F1-Score | ROC-AUC | Versão | Coverage |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.0.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
+| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.1.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
 
 </div>
 
@@ -84,10 +84,21 @@ IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraes
 
 - **Contratos de dados** via Pydantic e Pandera — nenhum dado entra no modelo sem validação explícita
 - **Rastreabilidade total** via MLflow — cada experimento, parâmetro e métrica é auditável
-- **Auditoria Médica (Audit Trail)** — log imutável de todas as predições para governança clínica (Aula 7)
-- **Monitoramento de Drift** — detecção proativa de desvios estatísticos nos dados de entrada (Aula 5)
+- **Auditoria Médica (Audit Trail)** — log imutável de todas as predições com correlação de **Request ID**
+- **Monitoramento de Drift** — detecção proativa via **KS-Test** (Kolmogorov-Smirnov) integrado à UI
+- **Resiliência de Serviço** — Circuit Breakers para dependências externas de pesquisa clínica
 
 ---
+
+## 🛡️ SRE Hardening (v2.1)
+
+A versão 2.1 introduz uma camada de **Site Reliability Engineering (SRE)** de nível empresarial:
+
+- **Observabilidade Total**: Implementação de `X-Request-ID` em toda a stack, permitindo rastreabilidade de ponta a ponta (Audit Trail → Backend Logs).
+- **Segurança HIPAA-Grade**: Hardening de CORS (restrito a domínios de produção) e sanitização rigorosa de payloads.
+- **Circuit Breakers**: O sistema protege a si mesmo contra lentidões em APIs de terceiros (PubMed/Semantic Scholar), garantindo latência estável no diagnóstico.
+- **Decoupled Inference (v2.2)**: Arquitetura "Remote-First, Local-Fallback". A inferência principal ocorre via Hugging Face Inference API, com fallback automático para um modelo local PyTorch em caso de falha ou ativação do Circuit Breaker.
+- **Statistical Audit**: O cálculo de Drift agora utiliza testes de significância estatística (P-values), elevando a governança de "heurística" para "acadêmica".
 
 ## 📊 Arquitetura e Análise Técnica
 
@@ -95,42 +106,39 @@ IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraes
 
 ```mermaid
 graph TD
-    subgraph "Frontend (Hospedagem Estática: portal.vitorsilva.engineer)"
+    subgraph "Frontend (Vercel)"
         UI[Portal Clínico\nVanilla JS + HTML5]
         XAI[Explainable AI\nChart.js Radar]
     end
 
-    subgraph "Backend (Cloud Hosting: Render)"
+    subgraph "Backend (Render)"
         Auth[Autenticação\nAPI Key & CORS]
-        API[FastAPI\nEndpoints: /predict, /analytics, /audit]
+        API[FastAPI\n/predict, /health, /health/inference]
         
         subgraph "Service Layer"
-            Service[PredictorService\nDesign Padrão Singleton]
-            Audit[AuditService\nAudit Trail & Drift Detection]
+            Service[PredictorService\nOrchestrator]
+            Client[HuggingFaceClient\nCircuit Breaker + Connection Pool]
         end
         
         subgraph "Machine Learning Engine"
-            Pipeline[Scikit-Learn\nStandardScaler Pipeline]
-            Model[PyTorch MLP\nBinary Classifier]
+            LocalProxy[Local Proxy Model\nPytorch fallback]
+            HF_API[Hugging Face Inference API\nPrimary Inference]
         end
     end
 
-    subgraph "Governança & MLOps"
-        MLflow[(MLflow Tracking\nModel Registry)]
-        Logs[(Audit Logs\n.jsonl Persistence)]
+    subgraph "Governança & Observabilidade"
+        AuditLog[(Audit Trail\n.jsonl)]
+        MLflow[(MLflow Registry)]
     end
 
-    Medico((Médico/Usuário)) -->|Insere Biópsia| UI
-    UI -->|Renderiza| XAI
-    UI -->|Check Health| API
     UI -->|POST /predict| Auth
-    Auth -->|Valida access_token| API
-    API -->|Valida Schema| Service
-    Service -->|Invocação| Audit
-    Audit -->|Grava Log| Logs
-    Audit -->|Calcula Drift| API
-    Service -->|Inferência| Model
-    MLflow -.->|Versiona Artefatos| Service
+    Auth -->|Validado| Service
+    Service -->|Try Remote| Client
+    Client -->|Inference| HF_API
+    Client -.->|Failure/Timeout| Service
+    Service -->|Fallback| LocalProxy
+    Service -->|Trace| AuditLog
+    API -->|Monitor| Client
 ```
 
 ### Análise Técnica Completa (Executive Summary)
@@ -140,10 +148,10 @@ Esta análise valida como o projeto atende (e supera) os requisitos de excelênc
 | Pilar | Implementação | Diferencial Clínico/Técnico |
 | :--- | :--- | :--- |
 | **🧠 Engine de IA** | PyTorch MLP + Platt Scaling | Probabilidades calibradas para decisão médica segura |
-| **🛡️ Governança** | Audit Trail (.jsonl) | Rastreabilidade imutável de todas as decisões médicas |
-| **📈 MLOps Ativo** | Monitoramento de Drift | Alertas automáticos caso os dados clínicos sofram desvio |
-| **🔒 Segurança** | API Key Auth + Non-root Docker | Proteção de dados e hardening de container |
-| **🚀 Observabilidade** | Latency Middleware (X-Inference-Time-Ms) | Visibilidade total do gargalo de rede vs. inferência |
+| **🛡️ Governança** | Audit Trail + Trace ID | Rastreabilidade total entre predição e logs de sistema |
+| **📈 MLOps Ativo** | Monitoramento KS-Drift | Alertas estatísticos proativos com P-values reais |
+| **🔒 Segurança** | Strict CORS + API Key | Hardening contra CSRF e acessos não autorizados |
+| **🚀 Resiliência** | Circuit Breakers | Proteção contra falhas em cascata de serviços externos |
 | **📖 Ética** | Clinical XAI Narrative | Tradução de métricas SHAP para linguagem médica natural |
 
 ---
@@ -170,8 +178,8 @@ aether-oncology/
 │   ├── test_schema.py           # Validação de schema com Pandera
 │   └── test_api.py              # Testes de integração da API
 ├── docs/
-│   ├── MODEL_CARD.md            # Documentação ética e limites do modelo
-│   └── MONITORING.md            # Protocolo de monitoramento pós-deploy
+│   └── MODEL_CARD.md            # Documentação ética e limites do modelo
+├── PROJECT_STATUS.md            # Fonte Única de Verdade (Status, Infra & Roadmap)
 ├── Dockerfile                   # Imagem de produção (usuário não-root + healthcheck)
 ├── .dockerignore                # Exclui mlruns/, notebooks/, cache
 ├── .gitignore                   # Exclui artefatos, dados e cache
@@ -247,7 +255,8 @@ Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train
 
 | Método | Rota | Descrição | Autenticação |
 |---|---|---|---|
-| `GET` | `/health` | Liveness probe — monitoramento de status | Público |
+| `GET` | `/health` | Liveness probe — status básico | Público |
+| `GET` | `/health/inference` | Health check da camada remota (Hugging Face) | Público |
 | `POST` | `/predict` | Classifica amostra e gera Audit Log | API Key |
 | `GET` | `/analytics` | Report de Data Drift (Média Móvel) | API Key |
 | `GET` | `/audit` | Extração do Audit Trail completo | API Key |
@@ -268,7 +277,8 @@ Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train
 
 ---
 
-## 🔐 Segurança e Autenticação
+## 🔐 
+
 
 Para simular um ambiente produtivo de dados sensíveis (saúde), a API está protegida por uma **API Key**.
 

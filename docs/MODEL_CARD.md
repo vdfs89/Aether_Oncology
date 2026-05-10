@@ -29,7 +29,7 @@ datasets:
 framework:
   - pytorch
   - scikit-learn
-model_version: "2.0.0"
+model_version: "2.1.0"
 model_stage: production
 compliance:
   - LGPD
@@ -38,13 +38,13 @@ intended_use: clinical-decision-support
 autonomous_diagnosis: false
 ---
 
-# 🧬 MODEL CARD: Aether Oncology - Core Engine v2.0
+# 🧬 MODEL CARD: Aether Oncology - Core Engine v2.1
 
 ## 1. Detalhes do Modelo
 
 **Desenvolvedor:** Vitor Diogo Fonseca da Silva (Tech Challenge 01 — FIAP Pós-Tech)
 
-**Versão:** 2.0 (Hardened Production Build)
+**Versão:** 2.1 (Enterprise Hardened SRE Build)
 
 **Tipo de Modelo:** Rede Neural Artificial (Multilayer Perceptron - MLP) treinada para classificação binária probabilística com suporte a RAG.
 
@@ -58,6 +58,9 @@ autonomous_diagnosis: false
 
 **Uso Primário:** Ferramenta de Suporte à Decisão Clínica (CDSS) para auxiliar médicos oncologistas e patologistas na triagem biomecânica de biópsias FNA (Fine Needle Aspirate).
 
+**Justificativa de Negócio (Custo do Erro):**
+Na oncologia, o custo de um **Falso Negativo (FN)** é incomensuravelmente maior que o de um Falso Positivo (FP). Um FN significa um paciente com câncer sendo liberado sem tratamento, resultando em progressão da doença e possível óbito. Um FP resulta em exames adicionais de imagem ou biópsias confirmatórias, gerando ansiedade e custos financeiros, mas permitindo a correção do diagnóstico sem perda de vida. Por isso, este modelo é deliberadamente calibrado para um **Recall de 97.2%**.
+
 **Fora de Escopo:** O modelo não realiza diagnóstico autônomo. Ele é projetado como uma "segunda opinião" técnica. Não deve ser utilizado para prescrição de terapias ou dosagens medicamentosas.
 
 ## 3. Fatores e Dados de Treinamento
@@ -65,6 +68,9 @@ autonomous_diagnosis: false
 **Dataset:** Breast Cancer Wisconsin Diagnostic (WDBC).
 
 **Atributos:** 30 características morfológicas (médias, erros padrão e piores valores).
+
+**Auditoria Científica (Advanced EDA):**
+Realizamos análise de multicolinearidade (VIF > 10 em métricas de área/raio) e detecção de outliers. Optamos por manter os outliers (casos clínicos extremos) e utilizar `StandardScaler` com `StratifiedKFold` para garantir robustez e generalização acadêmica.
 
 **Engenharia de Dados:** Implementação de um Data Contract rigoroso. O sistema normaliza as entradas e valida o esquema em tempo real para evitar erros de inferência e garantir que a distribuição de produção respeite a de treinamento.
 
@@ -86,9 +92,11 @@ O modelo prioriza a Segurança do Paciente através da otimização do Recall (S
 
 ## 6. Considerações Éticas e Governança
 
-**LGPD & HIPAA:** Dados estritamente anonimizados e chaves de API gerenciadas via Secrets de ambiente.
+**LGPD & HIPAA:** Dados estritamente anonimizados. Implementação de **Correlation Middleware (X-Request-ID)** para rastreabilidade total de transações clínicas.
 
-**Detecção de Drift:** O sistema inclui monitoramento de Data Drift (Active Drift), alertando o médico caso as características das novas biópsias comecem a desviar estatisticamente do padrão de treino original.
+**Detecção de Drift:** Monitoramento estatístico rigoroso via **KS-Test (Kolmogorov-Smirnov)** em tempo real, integrado ao audit trail.
+
+**Resiliência:** Implementação de **Circuit Breakers** para todas as dependências externas (PubMed/Scholar), garantindo que falhas de rede em serviços de terceiros não interrompam o diagnóstico principal.
 
 **Disclaimer:** Alerta visual obrigatório no "Espaço Paciente" informando a necessidade de consulta médica para diagnóstico definitivo.
 

@@ -5,6 +5,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.core.logging import request_id_contextvar
+from src.ml_platform.drift import DriftDetector
+
 logger = logging.getLogger(__name__)
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +36,7 @@ def log_prediction(features: dict, prediction_result: dict):
         # Simplifica o log para auditoria
         entry = {
             "timestamp": datetime.now().isoformat(),
+            "request_id": request_id_contextvar.get(),
             "input": features,
             "output": {
                 "prediction": prediction_result.get("prediction"),
@@ -49,41 +53,46 @@ def log_prediction(features: dict, prediction_result: dict):
 
 
 def calculate_drift() -> dict:
-    """Calcula desvios básicos para monitoramento de Data Drift (Aula 5)."""
+    """Calcula desvios estatísticos rigorosos usando KS-Test (MLOps v2.1)."""
     if not AUDIT_FILE.exists():
         return {"status": "insufficient_data", "metrics": {}}
 
     try:
         # Lê as últimas 100 predições
         df = pd.read_json(AUDIT_FILE, lines=True)
-        if len(df) < 5:
+        if len(df) < 10:
             return {"status": "collecting", "count": len(df)}
 
-        # Extrai os inputs do campo 'input'
-        inputs_df = pd.json_normalize(df["input"])
+        # Carrega baseline para comparação
+        if not DATA_PATH.exists():
+            return {"status": "error", "message": "Baseline data missing"}
 
-        drift_metrics = {}
-        alerts = []
+        baseline_df = pd.read_csv(DATA_PATH)
+        detector = DriftDetector(baseline_df)
 
-        for feature, train_mean in TRAINING_MEANS.items():
-            if feature in inputs_df.columns:
-                current_mean = inputs_df[feature].tail(50).mean()
-                deviation = abs(current_mean - train_mean) / train_mean
-                drift_metrics[feature] = {
-                    "current": round(current_mean, 4),
-                    "training": train_mean,
-                    "deviation_pct": round(deviation * 100, 2),
+        # Prepara dados atuais
+        current_df = pd.json_normalize(df["input"]).tail(100)
+
+        # Executa análise rigorosa
+        report = detector.check_data_drift(current_df)
+
+        # Adapta report para a UI legível
+        ui_metrics = {}
+        for feature, m in report["metrics"].items():
+            if feature in TRAINING_MEANS: # Mostra apenas features principais na UI
+                ui_metrics[feature] = {
+                    "p_value": round(m["p_value"], 4),
+                    "ks_stat": round(m["ks_stat"], 4),
+                    "drift": m["drift"]
                 }
 
-                if deviation > 0.30:  # 30% de desvio dispara alerta
-                    alerts.append(f"Drift detectado em {feature}: {deviation:.1%}")
-
         return {
-            "status": "alert" if alerts else "stable",
-            "alerts": alerts,
-            "metrics": drift_metrics,
+            "status": "alert" if report["drift_detected"] else "stable",
+            "alerts": report["drifted_features"],
+            "metrics": ui_metrics,
             "total_audited": len(df),
+            "drift_detected": report["drift_detected"]
         }
     except Exception as e:
-        logger.error("Erro no cálculo de drift: %s", e)
+        logger.error("Erro no cálculo de drift estatístico: %s", e)
         return {"status": "error", "message": str(e)}
