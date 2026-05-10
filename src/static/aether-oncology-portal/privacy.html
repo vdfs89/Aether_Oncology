@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade | Aether Oncology</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="images/lotus-red.png">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0B1026;color:#F7F9FF;font-family:'Montserrat',sans-serif;padding:4rem 1.5rem;line-height:1.8}
+    .wrap{max-width:720px;margin:0 auto}
+    h1{font-size:2rem;font-weight:800;margin-bottom:.5rem;background:linear-gradient(135deg,#00D4FF,#A855F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .back{display:inline-flex;align-items:center;gap:.5rem;color:rgba(247,249,255,.4);text-decoration:none;font-size:.75rem;font-weight:700;margin-bottom:2rem;transition:color .2s}
+    .back:hover{color:#00D4FF}
+    h2{font-size:1rem;font-weight:700;color:#00D4FF;margin:2rem 0 .75rem}
+    p,li{font-size:.85rem;color:rgba(247,249,255,.65);margin-bottom:.75rem}
+    ul{padding-left:1.25rem}
+    .notice{background:rgba(255,193,7,.05);border:1px solid rgba(255,193,7,.2);border-radius:10px;padding:1rem 1.25rem;margin-bottom:2rem}
+    .notice p{color:rgba(255,193,7,.8);font-size:.8rem;margin:0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/" class="back">← Voltar ao Portal</a>
+    <h1>Política de Privacidade</h1>
+    <p style="color:rgba(247,249,255,.35);font-size:.75rem;margin-bottom:2rem">Última atualização: maio de 2026</p>
+
+    <div class="notice">
+      <p>⚠ Esta plataforma é uma ferramenta de apoio à decisão clínica para fins de pesquisa.
+         Não constitui diagnóstico médico final.</p>
+    </div>
+
+    <h2>1. Dados Coletados</h2>
+    <p>A Aether Oncology processa exclusivamente os parâmetros biomecânicos de biópsia FNA inseridos pelo usuário
+       profissional de saúde para fins de análise preditiva. <strong>Nenhum dado de identificação pessoal do paciente
+       é coletado ou armazenado.</strong></p>
+    <ul>
+      <li>30 parâmetros morfométricos nucleares (valores numéricos anônimos)</li>
+      <li>Timestamp da requisição (para auditoria MLOps)</li>
+      <li>Resultado da predição e feature de maior impacto</li>
+    </ul>
+
+    <h2>2. Uso dos Dados</h2>
+    <p>Os dados processados são utilizados para:</p>
+    <ul>
+      <li>Geração do diagnóstico preditivo via modelo Aether V2.0</li>
+      <li>Monitoramento de drift estatístico (MLOps)</li>
+      <li>Auditoria de uso da plataforma (<code>logs/audit_trail.jsonl</code>)</li>
+    </ul>
+
+    <h2>3. Retenção</h2>
+    <p>Os registros de auditoria são mantidos temporariamente para fins de monitoramento do modelo.
+       Não há compartilhamento com terceiros.</p>
+
+    <h2>4. Base Legal (LGPD)</h2>
+    <p>O tratamento dos dados é realizado com base no Art. 7º, II (pesquisa) e Art. 11, II, b
+       (saúde — proteção da vida) da Lei Geral de Proteção de Dados (Lei nº 13.709/2018).</p>
+
+    <h2>5. Contato</h2>
+    <p>Para dúvidas sobre esta política, acesse a <a href="/docs" style="color:#00D4FF">documentação da API</a>
+       ou abra uma issue no <a href="https://github.com/vdfs89/Aether_Oncology" style="color:#00D4FF" target="_blank" rel="noopener noreferrer">repositório GitHub</a>.</p>
+  </div>
+</body>
+</html>

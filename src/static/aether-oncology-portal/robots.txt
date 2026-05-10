@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /docs
+Disallow: /audit
+Disallow: /analytics
+Disallow: /static/aether-oncology-portal/privacy.html
+Disallow: /static/aether-oncology-portal/terms.html
+
+Sitemap: https://api.vitorsilva.engineer/sitemap.xml

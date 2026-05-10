@@ -1,32 +1,28 @@
-// ─── STARS CANVAS ───
+'use strict';
+
+// ─── STARS CANVAS ───────────────────────────────────────────────────────────
 const canvas = document.getElementById('stars-canvas');
-const ctx = canvas.getContext('2d');
-let stars = [];
+const ctx    = canvas.getContext('2d');
+let stars    = [];
 
 function resize() {
-  canvas.width = window.innerWidth;
+  canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
 }
-
 window.addEventListener('resize', resize);
 resize();
 
 class Star {
-  constructor() {
-    this.reset();
-  }
+  constructor() { this.reset(); }
   reset() {
-    this.x = Math.random() * canvas.width;
-    this.y = Math.random() * canvas.height;
-    this.size = Math.random() * 2;
+    this.x     = Math.random() * canvas.width;
+    this.y     = Math.random() * canvas.height;
+    this.size  = Math.random() * 2;
     this.speed = Math.random() * 0.5 + 0.1;
   }
-  update() {
-    this.y -= this.speed;
-    if (this.y < 0) this.reset();
-  }
-  draw() {
-    ctx.fillStyle = '#fff';
+  update() { this.y -= this.speed; if (this.y < 0) this.reset(); }
+  draw()   {
+    ctx.fillStyle   = '#fff';
     ctx.globalAlpha = Math.random() * 0.5 + 0.3;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -34,456 +30,523 @@ class Star {
   }
 }
 
-for (let i = 0; i < 150; i++) stars.push(new Star());
-
-function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  stars.forEach(s => {
-    s.update();
-    s.draw();
-  });
-  requestAnimationFrame(animate);
+// Respect prefers-reduced-motion
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!prefersReducedMotion) {
+  for (let i = 0; i < 150; i++) stars.push(new Star());
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
+    stars.forEach(s => { s.update(); s.draw(); });
+    requestAnimationFrame(animate);
+  }
+  animate();
 }
-animate();
 
-// ─── MOBILE MENU ───
-const menuBtn = document.getElementById('menu-btn');
+// ─── MOBILE MENU ─────────────────────────────────────────────────────────────
+const menuBtn    = document.getElementById('menu-btn');
+const closeBtn   = document.getElementById('close-menu');
 const mobileMenu = document.getElementById('mobile-menu');
-const closeBtn = document.getElementById('close-menu');
 
-if(menuBtn && mobileMenu) {
-  menuBtn.onclick = () => mobileMenu.classList.add('open');
-  closeBtn.onclick = () => mobileMenu.classList.remove('open');
+if (menuBtn && closeBtn && mobileMenu) {
+  menuBtn.onclick  = () => { mobileMenu.classList.add('open'); menuBtn.setAttribute('aria-expanded', 'true'); };
+  closeBtn.onclick = () => { mobileMenu.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); };
   mobileMenu.querySelectorAll('a').forEach(link => {
-    link.onclick = () => mobileMenu.classList.remove('open');
+    link.onclick = () => { mobileMenu.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); };
+  });
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+      mobileMenu.classList.remove('open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.focus();
+    }
   });
 }
 
-// ─── PORTAL LOGIC ───
-// Tenta detectar se estamos em ambiente de desenvolvimento local (file://) ou produção
-const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === 'localhost') 
-    ? 'http://localhost:8000' 
-    : window.location.origin;
+// ─── TOAST SYSTEM ─────────────────────────────────────────────────────────────
+const Toast = (() => {
+  let container = null;
+  const ICONS = { success: '✓', error: '⚠', warning: '⚡', info: 'ℹ' };
 
-const API_URL = `${API_BASE}/predict`;
+  function ensure() {
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.setAttribute('aria-live', 'polite');
+      container.setAttribute('aria-atomic', 'false');
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  function dismiss(toast) {
+    toast.classList.remove('toast-visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }
+
+  function show(message, type = 'info', duration = 5000) {
+    const c     = ensure();
+    const toast = document.createElement('div');
+    toast.className   = `toast toast-${type}`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML   = `
+      <span class="toast-icon" aria-hidden="true">${ICONS[type]}</span>
+      <span class="toast-message">${message}</span>
+      <button class="toast-close" aria-label="Fechar notificação" type="button">✕</button>`;
+    toast.querySelector('.toast-close').addEventListener('click', () => dismiss(toast));
+    c.appendChild(toast);
+    requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add('toast-visible')));
+    if (duration > 0) setTimeout(() => dismiss(toast), duration);
+    return toast;
+  }
+
+  return {
+    show,
+    success: (m, d) => show(m, 'success', d),
+    error:   (m, d) => show(m, 'error',   d),
+    warning: (m, d) => show(m, 'warning', d),
+    info:    (m, d) => show(m, 'info',    d),
+  };
+})();
+
+// ─── PORTAL CONFIG ────────────────────────────────────────────────────────────
+const API_BASE     = (window.location.protocol === 'file:' || window.location.hostname === 'localhost')
+  ? 'http://localhost:8000'
+  : window.location.origin;
+
+const API_URL      = `${API_BASE}/predict`;
 const ANALYTICS_URL = `${API_BASE}/analytics`;
-const AUDIT_URL = `${API_BASE}/audit`;
-const API_KEY = 'aether-oncology-eval-2026';
-let xaiChart = null;
+const AUDIT_URL    = `${API_BASE}/audit`;
+const API_KEY      = 'aether-oncology-eval-2026';
+let xaiChart       = null;
 
+// ─── CLINICAL SAMPLE DATA ─────────────────────────────────────────────────────
 const currentSample = {
-  malignant: [17.99,10.38,122.8,1001,0.1184,0.2776,0.3001,0.1471,0.2419,0.07871,1.095,0.9053,8.589,153.4,0.006399,0.04904,0.05373,0.01587,0.03003,0.006193,25.38,17.33,184.6,2019,0.1622,0.6656,0.7119,0.2654,0.4601,0.1189],
-  benign: [13.54,14.36,87.46,566.3,0.09779,0.08129,0.06664,0.04781,0.1885,0.05766,0.2699,0.7886,2.058,23.56,0.008462,0.0146,0.02387,0.01315,0.0198,0.0023,15.11,19.26,99.7,711.2,0.144,0.1773,0.239,0.1288,0.2977,0.07259]
+  malignant: [17.99,10.38,122.8,1001,0.1184,0.2776,0.3001,0.1471,0.2419,0.07871,
+              1.095,0.9053,8.589,153.4,0.006399,0.04904,0.05373,0.01587,0.03003,0.006193,
+              25.38,17.33,184.6,2019,0.1622,0.6656,0.7119,0.2654,0.4601,0.1189],
+  benign:    [13.54,14.36,87.46,566.3,0.09779,0.08129,0.06664,0.04781,0.1885,0.05766,
+              0.2699,0.7886,2.058,23.56,0.008462,0.0146,0.02387,0.01315,0.0198,0.0023,
+              15.11,19.26,99.7,711.2,0.144,0.1773,0.239,0.1288,0.2977,0.07259],
 };
 
 const featureNames = [
-  "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
-  "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
-  "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
-  "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
-  "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
-  "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
+  'radius_mean','texture_mean','perimeter_mean','area_mean','smoothness_mean',
+  'compactness_mean','concavity_mean','concave_points_mean','symmetry_mean','fractal_dimension_mean',
+  'radius_se','texture_se','perimeter_se','area_se','smoothness_se',
+  'compactness_se','concavity_se','concave_points_se','symmetry_se','fractal_dimension_se',
+  'radius_worst','texture_worst','perimeter_worst','area_worst','smoothness_worst',
+  'compactness_worst','concavity_worst','concave_points_worst','symmetry_worst','fractal_dimension_worst',
 ];
 
-// ─── Mapeamento amigável feature → explicação para pacientes ───
 const featureExplanations = {
-  "radius_mean": "o tamanho médio das células tumorais",
-  "texture_mean": "a irregularidade na textura das células",
-  "perimeter_mean": "o contorno médio das células",
-  "area_mean": "a área média ocupada pelas células",
-  "smoothness_mean": "a suavidade das bordas celulares",
-  "compactness_mean": "o quão compactas são as células",
-  "concavity_mean": "a profundidade das concavidades nas células",
-  "concave_points_mean": "a quantidade de pontos côncavos no contorno celular",
-  "symmetry_mean": "o grau de simetria das células",
-  "fractal_dimension_mean": "a complexidade da forma celular",
-  "radius_se": "a variação no tamanho das células",
-  "texture_se": "a variação na textura celular",
-  "perimeter_se": "a variação no contorno celular",
-  "area_se": "a variação na área celular",
-  "smoothness_se": "a variação na suavidade celular",
-  "compactness_se": "a variação na compacidade celular",
-  "concavity_se": "a variação na concavidade celular",
-  "concave_points_se": "a variação nos pontos côncavos",
-  "symmetry_se": "a variação na simetria celular",
-  "fractal_dimension_se": "a variação na complexidade celular",
-  "radius_worst": "o maior tamanho celular encontrado",
-  "texture_worst": "a maior irregularidade celular encontrada",
-  "perimeter_worst": "o maior contorno celular encontrado",
-  "area_worst": "a maior área celular encontrada",
-  "smoothness_worst": "a menor suavidade celular encontrada",
-  "compactness_worst": "a maior compacidade celular encontrada",
-  "concavity_worst": "a maior concavidade celular encontrada",
-  "concave_points_worst": "o maior número de pontos côncavos encontrado",
-  "symmetry_worst": "a maior assimetria celular encontrada",
-  "fractal_dimension_worst": "a maior complexidade celular encontrada"
+  radius_mean: 'o tamanho médio das células tumorais',
+  texture_mean: 'a irregularidade na textura das células',
+  perimeter_mean: 'o contorno médio das células',
+  area_mean: 'a área média ocupada pelas células',
+  smoothness_mean: 'a suavidade das bordas celulares',
+  compactness_mean: 'o quão compactas são as células',
+  concavity_mean: 'a profundidade das concavidades nas células',
+  concave_points_mean: 'a quantidade de pontos côncavos no contorno celular',
+  symmetry_mean: 'o grau de simetria das células',
+  fractal_dimension_mean: 'a complexidade da forma celular',
+  radius_se: 'a variação no tamanho das células',
+  texture_se: 'a variação na textura celular',
+  perimeter_se: 'a variação no contorno celular',
+  area_se: 'a variação na área celular',
+  smoothness_se: 'a variação na suavidade celular',
+  compactness_se: 'a variação na compacidade celular',
+  concavity_se: 'a variação na concavidade celular',
+  concave_points_se: 'a variação nos pontos côncavos',
+  symmetry_se: 'a variação na simetria celular',
+  fractal_dimension_se: 'a variação na complexidade celular',
+  radius_worst: 'o maior tamanho celular encontrado',
+  texture_worst: 'a maior irregularidade celular encontrada',
+  perimeter_worst: 'o maior contorno celular encontrado',
+  area_worst: 'a maior área celular encontrada',
+  smoothness_worst: 'a menor suavidade celular encontrada',
+  compactness_worst: 'a maior compacidade celular encontrada',
+  concavity_worst: 'a maior concavidade celular encontrada',
+  concave_points_worst: 'o maior número de pontos côncavos encontrado',
+  symmetry_worst: 'a maior assimetria celular encontrada',
+  fractal_dimension_worst: 'a maior complexidade celular encontrada',
 };
 
+// ─── FLOAT PARSING — FIX BUG-02 (PT-BR comma separator) ────────────────────
+function parseClinicalFloat(value) {
+  if (value === null || value === undefined || value === '') return NaN;
+  // Normalise: remove thousand separators, replace decimal comma with point
+  const normalised = String(value).trim().replace(/\s/g, '').replace(',', '.');
+  return parseFloat(normalised);
+}
+
+// ─── FILL SAMPLE ──────────────────────────────────────────────────────────────
 function fillSample(type) {
   const data = currentSample[type];
+  if (!data) return;
   featureNames.forEach((name, index) => {
     const input = document.getElementById(name);
-    if(input) input.value = data[index];
+    // Always use US locale string to avoid comma injection
+    if (input) input.value = data[index].toString();
   });
+  Toast.info(`Amostra ${type === 'malignant' ? 'Maligna' : 'Benigna'} carregada. Clique em Iniciar Análise.`, 3000);
 }
 
+// ─── CLEAR FORM — FIX BUG-03 (resets ALL 30 fields across all tabs) ─────────
 function clearForm() {
-  document.querySelectorAll('.portal-input').forEach(i => i.value = '');
-  document.getElementById('resultText').innerText = 'Aguardando Análise...';
-  document.getElementById('resultBadge').className = '';
-  if(xaiChart) xaiChart.destroy();
-  xaiChart = null;
-  // Limpa seção de evidência
-  document.getElementById('articlesSection').classList.add('hidden');
-  document.getElementById('medicoArticles').innerHTML = '';
-  document.getElementById('pacienteExplicacao').textContent = '';
-  document.getElementById('pacienteReferences').innerHTML = '';
+  // Clear all 30 inputs by id (not by class — avoids hidden-tab issue)
+  featureNames.forEach(name => {
+    const el = document.getElementById(name);
+    if (el) el.value = '';
+  });
+
+  const resultText  = document.getElementById('resultText');
+  const resultBadge = document.getElementById('resultBadge');
+  if (resultText)  resultText.innerText  = 'Aguardando Análise...';
+  if (resultBadge) resultBadge.className = '';
+
+  const articlesSection = document.getElementById('articlesSection');
+  const medicoArticles  = document.getElementById('medicoArticles');
+  const pacienteExpl    = document.getElementById('pacienteExplicacao');
+  const pacienteRefs    = document.getElementById('pacienteReferences');
+
+  if (articlesSection) articlesSection.classList.add('hidden');
+  if (medicoArticles)  medicoArticles.innerHTML  = '';
+  if (pacienteExpl)    pacienteExpl.textContent  = '';
+  if (pacienteRefs)    pacienteRefs.innerHTML    = '';
+
+  if (xaiChart) { xaiChart.destroy(); xaiChart = null; }
+
+  Toast.info('Formulário limpo.', 2000);
 }
 
-// ─── Form Group Tab Switching (v2.0) ───
+// ─── FORM TAB SWITCHING ───────────────────────────────────────────────────────
 function switchFormTab(type) {
-  // Update buttons
   document.querySelectorAll('.form-tab').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('onclick').includes(type));
+    btn.classList.toggle('active', btn.dataset.tab === type);
+    btn.setAttribute('aria-selected', btn.dataset.tab === type ? 'true' : 'false');
   });
-  
-  // Update panes
   document.querySelectorAll('.form-group-pane').forEach(pane => {
-    pane.classList.toggle('hidden', pane.id !== `group-${type}`);
+    const isActive = pane.id === `group-${type}`;
+    pane.classList.toggle('hidden', !isActive);
+    pane.setAttribute('aria-hidden', isActive ? 'false' : 'true');
   });
 }
 
-// ─── Tab Switching (Result View) ───
+// ─── EVIDENCE TAB SWITCHING ───────────────────────────────────────────────────
 function switchTab(tab) {
-  const tabMedico = document.getElementById('tabMedico');
-  const tabPaciente = document.getElementById('tabPaciente');
-  const medicoPanel = document.getElementById('medicoPanel');
+  const tabMedico    = document.getElementById('tabMedico');
+  const tabPaciente  = document.getElementById('tabPaciente');
+  const medicoPanel  = document.getElementById('medicoPanel');
   const pacientePanel = document.getElementById('pacientePanel');
 
-  if (tab === 'medico') {
-    tabMedico.classList.add('active');
-    tabPaciente.classList.remove('active');
-    medicoPanel.classList.remove('hidden');
-    pacientePanel.classList.add('hidden');
-  } else {
-    tabMedico.classList.remove('active');
-    tabPaciente.classList.add('active');
-    medicoPanel.classList.add('hidden');
-    pacientePanel.classList.remove('hidden');
+  const isMedico = tab === 'medico';
+  tabMedico.classList.toggle('active', isMedico);
+  tabPaciente.classList.toggle('active', !isMedico);
+  tabMedico.setAttribute('aria-selected',   isMedico ? 'true' : 'false');
+  tabPaciente.setAttribute('aria-selected', isMedico ? 'false' : 'true');
+  medicoPanel.classList.toggle('hidden', !isMedico);
+  pacientePanel.classList.toggle('hidden', isMedico);
+}
+
+// ─── RESULTS LOADING STATE ────────────────────────────────────────────────────
+function setResultLoading(isLoading) {
+  const badge = document.getElementById('resultBadge');
+  const text  = document.getElementById('resultText');
+  if (isLoading) {
+    badge.className   = 'loading';
+    text.innerHTML    = `<span class="result-spinner" aria-hidden="true"></span>
+                         <span>Aether Core processando...</span>`;
   }
 }
 
+// ─── MAIN ANALYSIS ────────────────────────────────────────────────────────────
 async function runAnalysis() {
-  const btn = document.getElementById('analyzeBtn');
-  const resText = document.getElementById('resultText');
+  const btn      = document.getElementById('analyzeBtn');
+  const resText  = document.getElementById('resultText');
   const resBadge = document.getElementById('resultBadge');
-  
-  const values = [];
-  featureNames.forEach(name => {
-    const val = parseFloat(document.getElementById(name).value);
-    values.push(val);
+
+  // Collect & parse values with PT-BR float fix
+  const values = featureNames.map(name => {
+    const el = document.getElementById(name);
+    return el ? parseClinicalFloat(el.value) : NaN;
   });
 
-  if(values.some(isNaN)) {
-    alert("Por favor, preencha todos os 30 campos biomecânicos para uma análise completa v2.0.");
+  if (values.some(isNaN)) {
+    Toast.error('Preencha todos os 30 campos biomecânicos antes de iniciar a análise.');
+    // Identify first empty field and focus it
+    const firstEmpty = featureNames.find(name => {
+      const el = document.getElementById(name);
+      return !el || el.value.trim() === '' || isNaN(parseClinicalFloat(el.value));
+    });
+    if (firstEmpty) {
+      const el = document.getElementById(firstEmpty);
+      if (el) { el.focus(); el.closest('.portal-form-group')?.classList.add('field-error'); }
+    }
     return;
   }
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Analisando Rede Neural + RAG...';
-  
-  // Convert to flat object for Pydantic (TumorFeatures)
-  const payload = {};
-  featureNames.forEach((name, index) => {
-    payload[name] = values[index];
-  });
+  // Clear any previous field errors
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
 
-  const fullFeaturesArray = values;
+  btn.disabled    = true;
+  btn.innerHTML   = '<span class="btn-spinner" aria-hidden="true"></span> Analisando...';
+  btn.setAttribute('aria-busy', 'true');
+  setResultLoading(true);
+
+  const payload = {};
+  featureNames.forEach((name, i) => { payload[name] = values[i]; });
 
   try {
     const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'access_token': API_KEY
-      },
-      body: JSON.stringify(payload)
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'access_token': API_KEY },
+      body:    JSON.stringify(payload),
     });
-    
+
     if (response.status === 503) {
-        throw new Error("O servidor (Render) está acordando. Aguarde 30s e clique novamente.");
+      throw new Error('STANDBY: O servidor está inicializando. Aguarde 30s e tente novamente.');
     }
-
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`HTTP ${response.status}: ${err.detail || response.statusText}`);
     }
 
-    const result = await response.json();
+    const result      = await response.json();
     const isMalignant = result.prediction === 1;
-    
+
     resBadge.className = isMalignant ? 'malignant' : 'benign';
-    resText.innerHTML = `DIAGNÓSTICO: <span class="text-white">${result.label.toUpperCase()}</span><br><small>Confiança ${result.confidence}: ${(result.probability * 100).toFixed(2)}%</small>`;
-    
+    resBadge.setAttribute('aria-label',
+      `Diagnóstico: ${result.label}. Confiança ${result.confidence}: ${(result.probability * 100).toFixed(2)}%`);
+    resText.innerHTML  = `
+      DIAGNÓSTICO: <span class="diag-label">${result.label.toUpperCase()}</span><br>
+      <small>Confiança ${result.confidence}: ${(result.probability * 100).toFixed(2)}%</small>`;
+
     if (result.warning) {
-        resText.innerHTML += `<br><p class="text-[10px] text-yellow-400 mt-2 font-bold animate-pulse">${result.warning}</p>`;
+      resText.innerHTML += `<br><p class="diag-warning">${result.warning}</p>`;
+      Toast.warning(result.warning, 8000);
+    } else {
+      Toast.success(`Análise concluída: ${result.label} (${(result.probability * 100).toFixed(1)}%)`, 5000);
     }
 
-    // Pass first 10 'mean' features for visualization
-    renderXAI(fullFeaturesArray.slice(0, 10), isMalignant);
+    renderXAI(values.slice(0, 10), isMalignant);
     displayEvidence(result.top_feature, result.articles, isMalignant);
-    
+
   } catch (err) {
-    console.error("Aether Core Connection Error:", err);
-    if (err.message.includes("acordando")) {
-        resText.innerHTML = `<span class="text-yellow-400">Servidor em Standby</span><br><small class="text-[10px] opacity-70">${err.message}</small>`;
-    } else {
-        resText.innerHTML = `<span class="text-red-400">Falha na conexão</span><br><small class="text-[9px] opacity-50">${err.message}</small>`;
-    }
+    console.error('Aether Core Error:', err);
+    const isStandby = err.message.startsWith('STANDBY:');
+    resBadge.className = 'error';
+    resText.innerHTML  = isStandby
+      ? `<span class="diag-standby">Servidor em Standby</span><br><small>${err.message.replace('STANDBY: ','')}</small>`
+      : `<span class="diag-error">Falha na conexão</span><br><small>${err.message}</small>`;
+    Toast.error(err.message, 8000);
   } finally {
-    btn.disabled = false;
-    btn.innerText = 'INICIAR ANÁLISE IA + RAG';
+    btn.disabled  = false;
+    btn.innerHTML = 'Iniciar Análise IA + RAG';
+    btn.setAttribute('aria-busy', 'false');
   }
 }
 
+// ─── XAI RADAR CHART ──────────────────────────────────────────────────────────
 function renderXAI(values, isMalignant) {
-  const ctxChart = document.getElementById('xaiChart').getContext('2d');
-  if(xaiChart) xaiChart.destroy();
+  const el = document.getElementById('xaiChart');
+  if (!el) return;
+  const ctxChart = el.getContext('2d');
+  if (xaiChart) xaiChart.destroy();
 
-  const labels = [
-    'Raio', 'Textura', 'Perímetro', 'Área', 'Suavidade',
-    'Compac.', 'Concav.', 'Pontos C.', 'Simetria', 'Fractal'
-  ];
-  const color = isMalignant ? '#FF4D4D' : '#00E676';
+  const labels = ['Raio','Textura','Perímetro','Área','Suavidade','Compac.','Concav.','Pontos C.','Simetria','Fractal'];
+  const color  = isMalignant ? '#FF4D4D' : '#00E676';
 
   xaiChart = new Chart(ctxChart, {
     type: 'radar',
     data: {
-      labels: labels,
+      labels,
       datasets: [{
         label: 'Impacto na Decisão (XAI)',
-        data: values.map(v => v * (isMalignant ? 1.2 : 0.8)), // Simulated SHAP values
-        backgroundColor: color + '33',
-        borderColor: color,
-        borderWidth: 3,
-        pointBackgroundColor: color,
-        pointBorderColor: '#fff',
+        data:  values.map(v => v * (isMalignant ? 1.2 : 0.8)),
+        backgroundColor:       color + '33',
+        borderColor:           color,
+        borderWidth:           3,
+        pointBackgroundColor:  color,
+        pointBorderColor:      '#fff',
         pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: color
-      }]
+        pointHoverBorderColor: color,
+      }],
     },
     options: {
-      responsive: true,
+      responsive:          true,
       maintainAspectRatio: false,
       scales: {
         r: {
-          angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          angleLines: { color: 'rgba(255,255,255,0.1)' },
+          grid:        { color: 'rgba(255,255,255,0.1)' },
           pointLabels: { color: '#F7F9FF', font: { size: 10 } },
-          ticks: { display: false, stepSize: 20 },
-          suggestedMin: 0
-        }
+          ticks:       { display: false, stepSize: 20 },
+          suggestedMin: 0,
+        },
       },
-      plugins: {
-        legend: { display: false }
-      }
-    }
+      plugins: { legend: { display: false } },
+    },
   });
 }
 
-// ─── Evidência Científica v2.0 — Espaço Médico + Paciente ───
-
+// ─── EVIDENCE DISPLAY ─────────────────────────────────────────────────────────
 function displayEvidence(topFeature, articles, isMalignant) {
-  const section = document.getElementById('articlesSection');
-  const topFeatureText = document.getElementById('topFeatureText');
-  
-  // Limpa painéis anteriores
-  document.getElementById('medicoArticles').innerHTML = '';
-  document.getElementById('pacienteExplicacao').textContent = '';
-  document.getElementById('pacienteReferences').innerHTML = '';
+  const section      = document.getElementById('articlesSection');
+  const topFeatText  = document.getElementById('topFeatureText');
+  const medicoList   = document.getElementById('medicoArticles');
+  const pacienteExpl = document.getElementById('pacienteExplicacao');
+  const pacienteRefs = document.getElementById('pacienteReferences');
 
-  // Exibe banner do top feature
+  medicoList.innerHTML   = '';
+  pacienteExpl.textContent = '';
+  pacienteRefs.innerHTML = '';
+
   if (topFeature) {
-    const readableName = topFeature.replace(/_/g, ' ').replace(' points', ' points');
-    topFeatureText.innerHTML = `<span class="text-cyan-400">${readableName}</span> — característica com maior impacto na decisão do modelo (Integrated Gradients)`;
+    const readable = topFeature.replace(/_/g, ' ');
+    topFeatText.innerHTML = `<span class="feat-highlight">${readable}</span> — característica com maior impacto (Integrated Gradients)`;
   }
 
-  if (!articles || articles.length === 0) {
-    section.classList.add('hidden');
-    return;
-  }
-
+  if (!articles || articles.length === 0) { section.classList.add('hidden'); return; }
   section.classList.remove('hidden');
 
-  // ─── Espaço Médico: Artigos técnicos com fontes distintas ───
-  const medicoList = document.getElementById('medicoArticles');
-  
   articles.forEach(art => {
-    const sourceBadge = getSourceBadge(art.source);
-    const snippet = art.abstract || art.tldr || 'Resumo técnico disponível no link.';
-    
-    const card = `
-      <a href="${art.url}" target="_blank" class="block p-3 rounded-xl bg-white/5 border border-white/5 hover:border-cyan-500/30 transition group">
-          <div class="flex items-center gap-2 mb-1">
-              ${sourceBadge}
-              ${art.year ? `<span class="text-[9px] text-white/30">${art.year}</span>` : ''}
-          </div>
-          <h5 class="text-xs font-semibold text-white/80 leading-tight mb-2">${art.title}</h5>
-          <p class="text-[9px] text-white/40 italic leading-snug line-clamp-3">
-              ${snippet}
-          </p>
-      </a>
-    `;
-    medicoList.insertAdjacentHTML('beforeend', card);
+    const snippet = art.abstract || art.tldr || 'Resumo disponível no link.';
+    medicoList.insertAdjacentHTML('beforeend', `
+      <a href="${art.url}" target="_blank" rel="noopener noreferrer"
+         class="article-card" aria-label="Artigo: ${art.title}">
+        <div class="article-meta">
+          ${getSourceBadge(art.source)}
+          ${art.year ? `<span class="article-year">${art.year}</span>` : ''}
+        </div>
+        <h5 class="article-title">${art.title}</h5>
+        <p class="article-snippet line-clamp-3">${snippet}</p>
+      </a>`);
   });
 
-  // ─── Espaço Paciente: Explicação simplificada ───
-  const pacienteExplicacao = document.getElementById('pacienteExplicacao');
-  const pacienteReferences = document.getElementById('pacienteReferences');
-  
-  const featureLabel = (topFeature || '').replace(/_/g, ' ');
-  const friendlyExplanation = featureExplanations[topFeature] || featureLabel;
-  
-  const diagLabel = isMalignant ? 'maligno (câncer)' : 'benigno (não é câncer)';
-  const diagColor = isMalignant ? 'text-red-400' : 'text-green-400';
-  
-  pacienteExplicacao.innerHTML = `
-    O resultado da sua análise apontou um diagnóstico <strong class="${diagColor}">${diagLabel}</strong>. 
-    Para chegar a essa conclusão, a inteligência artificial identificou que <strong class="text-cyan-400">${friendlyExplanation}</strong> 
-    foi o fator mais importante na análise das suas células.
-    <br><br>
-    Para entender melhor sobre esse biomarcador, consultamos bases médicas internacionais como 
-    <strong>PubMed</strong> e a <strong>Cochrane</strong>.
-    <div class="mt-4 p-3 rounded-lg bg-yellow-400/5 border border-yellow-400/20">
-      <p class="text-yellow-400 font-bold text-[10px] mb-1 flex items-center gap-1">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  const featureLabel     = (topFeature || '').replace(/_/g, ' ');
+  const friendlyExpl     = featureExplanations[topFeature] || featureLabel;
+  const diagLabel        = isMalignant ? 'maligno (câncer)' : 'benigno (não é câncer)';
+  const diagColorClass   = isMalignant ? 'text-danger' : 'text-success';
+
+  pacienteExpl.innerHTML = `
+    O resultado apontou um diagnóstico <strong class="${diagColorClass}">${diagLabel}</strong>.
+    A IA identificou que <strong class="text-cyan">${friendlyExpl}</strong> foi o fator mais decisivo.
+    <br><br>Consultamos bases médicas internacionais como <strong>PubMed</strong> e <strong>Cochrane</strong>.
+    <div class="governance-notice" role="note">
+      <p class="governance-title">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
         AVISO DE GOVERNANÇA CLÍNICA
       </p>
-      <p class="text-[10px] text-white/60 leading-tight">
-        Este sistema é uma <strong>ferramenta de apoio à decisão</strong>. O resultado acima <strong>não constitui um diagnóstico final</strong> e deve ser validado obrigatoriamente por um médico oncologista.
-      </p>
-    </div>
-  `;
+      <p>Este sistema é uma <strong>ferramenta de apoio à decisão</strong>. O resultado
+         <strong>não constitui diagnóstico final</strong> e deve ser validado por um médico oncologista.</p>
+    </div>`;
 
-  // Links simplificados para pacientes
   articles.slice(0, 3).forEach(art => {
-    const refCard = `
-      <a href="${art.url}" target="_blank" class="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition">
-          <span class="text-xs">${getSourceEmoji(art.source)}</span>
-          <span class="text-[10px] text-white/60 leading-tight flex-1">${art.title}</span>
-          <svg class="w-3 h-3 text-white/30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-      </a>
-    `;
-    pacienteReferences.insertAdjacentHTML('beforeend', refCard);
+    pacienteRefs.insertAdjacentHTML('beforeend', `
+      <a href="${art.url}" target="_blank" rel="noopener noreferrer" class="ref-card">
+        <span class="ref-emoji" aria-hidden="true">${getSourceEmoji(art.source)}</span>
+        <span class="ref-title">${art.title}</span>
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+      </a>`);
   });
 
   section.classList.add('fade-up');
 }
 
-// ─── MLOps Monitoring Logic ───
-
+// ─── MLOPS HEALTH MONITOR ─────────────────────────────────────────────────────
 async function checkModelHealth() {
-  const monitor = document.getElementById('mlopsMonitor');
-  const details = document.getElementById('driftDetails');
+  const monitor     = document.getElementById('mlopsMonitor');
+  const details     = document.getElementById('driftDetails');
   const statusBadge = document.getElementById('driftStatusBadge');
-  
   if (!monitor) return;
-  
+
   monitor.classList.remove('hidden');
-  details.innerHTML = '<p class="text-[10px] text-white/40 col-span-2">Sincronizando com Aether Core...</p>';
+  details.innerHTML = '<p class="monitor-loading">Sincronizando com Aether Core...</p>';
 
   try {
-    const response = await fetch(ANALYTICS_URL, {
-      headers: { 'access_token': API_KEY }
-    });
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const data = await response.json();
-    details.innerHTML = '';
-    
-    // Sincronizado com src/services/audit.py (calculate_drift)
-    const driftFound = data.status === 'alert';
-    statusBadge.innerText = driftFound ? 'ATENÇÃO: DRIFT' : (data.status === 'collecting' ? 'COLETANDO...' : 'ESTÁVEL');
-    statusBadge.className = driftFound 
-      ? 'text-[9px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-bold uppercase animate-pulse'
-      : 'text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold uppercase';
+    const res  = await fetch(ANALYTICS_URL, { headers: { 'access_token': API_KEY } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-    // Exibe as features com maior desvio (metrics em audit.py)
+    details.innerHTML = '';
+    const driftFound  = data.status === 'alert';
+    statusBadge.textContent = driftFound ? 'DRIFT DETECTADO' : (data.status === 'collecting' ? 'COLETANDO...' : 'ESTÁVEL');
+    statusBadge.className   = `drift-badge ${driftFound ? 'drift-alert' : 'drift-stable'}`;
+
     const metrics = Object.entries(data.metrics || {});
     if (metrics.length === 0) {
-      details.innerHTML = '<p class="text-[9px] text-white/30 col-span-2">Aguardando mais predições para análise estatística...</p>';
+      details.innerHTML = '<p class="monitor-empty">Aguardando predições para análise estatística...</p>';
     } else {
       metrics.slice(0, 4).forEach(([feat, val]) => {
-        const percentage = val.deviation_pct;
-        const isHigh = percentage > 30;
-        const card = `
-          <div class="p-2 rounded bg-white/5 border ${isHigh ? 'border-red-500/20' : 'border-white/5'}">
-             <p class="text-[8px] text-white/40 truncate">${feat.replace(/_/g, ' ')}</p>
-             <p class="text-xs font-bold ${isHigh ? 'text-red-400' : 'text-white/80'}">${percentage}%</p>
-          </div>
-        `;
-        details.insertAdjacentHTML('beforeend', card);
+        const pct    = val.deviation_pct;
+        const isHigh = pct > 30;
+        details.insertAdjacentHTML('beforeend', `
+          <div class="metric-card ${isHigh ? 'metric-high' : ''}">
+            <p class="metric-name">${feat.replace(/_/g, ' ')}</p>
+            <p class="metric-value ${isHigh ? 'text-danger' : ''}">${pct}%</p>
+          </div>`);
       });
     }
 
-    // --- Audit Trail Logic ---
+    // Audit trail
     const auditBody = document.getElementById('auditTrailBody');
     if (auditBody) {
-      auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Carregando Auditoria...</td></tr>';
-
+      auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Carregando...</td></tr>';
       try {
         const auditRes = await fetch(AUDIT_URL, { headers: { 'access_token': API_KEY } });
         if (!auditRes.ok) throw new Error(`HTTP ${auditRes.status}`);
-        
         const trail = await auditRes.json();
-        
+
         auditBody.innerHTML = '';
         if (trail.length === 0) {
-          auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Nenhum registro encontrado.</td></tr>';
+          auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Nenhum registro ainda.</td></tr>';
         } else {
           trail.reverse().slice(0, 5).forEach(entry => {
-            const date = new Date(entry.timestamp).toLocaleTimeString();
-            const out = entry.output || {};
-            const badgeClass = out.prediction === 1 ? 'audit-malignant' : 'audit-benign';
-            const label = out.prediction === 1 ? 'MAL' : 'BEN';
-            
-            const row = `
+            const date  = new Date(entry.timestamp).toLocaleTimeString('pt-BR');
+            const out   = entry.output || {};
+            const isMal = out.prediction === 1;
+            auditBody.insertAdjacentHTML('beforeend', `
               <tr class="audit-row">
-                <td class="audit-cell font-bold text-white/40">${date}</td>
-                <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
-                <td class="audit-cell italic truncate max-w-[80px]">${(out.top_feature || 'N/A').replace('_mean','')}</td>
-                <td class="audit-cell text-right">${((out.probability || 0) * 100).toFixed(0)}%</td>
-              </tr>
-            `;
-            auditBody.insertAdjacentHTML('beforeend', row);
+                <td class="audit-cell">${date}</td>
+                <td class="audit-cell"><span class="audit-badge ${isMal ? 'audit-malignant' : 'audit-benign'}">${isMal ? 'MAL' : 'BEN'}</span></td>
+                <td class="audit-cell">${(out.top_feature || 'N/A').replace('_mean','')}</td>
+                <td class="audit-cell">${((out.probability || 0) * 100).toFixed(0)}%</td>
+              </tr>`);
           });
         }
       } catch (e) {
-        auditBody.innerHTML = `<tr><td class="audit-cell text-red-400" colspan="4">Erro na auditoria: ${e.message}</td></tr>`;
+        auditBody.innerHTML = `<tr><td class="audit-cell text-danger" colspan="4">Erro: ${e.message}</td></tr>`;
       }
     }
-
   } catch (err) {
-    details.innerHTML = `<p class="text-[10px] text-red-400 col-span-2">Erro de conexão: ${err.message}</p>`;
-    console.error("MLOps Health Check Error:", err);
+    details.innerHTML = `<p class="text-danger">Erro de conexão: ${err.message}</p>`;
   }
 }
 
+// ─── SOURCE HELPERS ───────────────────────────────────────────────────────────
 function getSourceBadge(source) {
-  const badges = {
-    'PubMed': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold">PubMed</span>',
-    'Cochrane': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-bold">Cochrane</span>',
-    'Semantic Scholar': '<span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 font-bold">Semantic Scholar</span>'
+  const map = {
+    PubMed:            '<span class="source-badge source-pubmed">PubMed</span>',
+    Cochrane:          '<span class="source-badge source-cochrane">Cochrane</span>',
+    'Semantic Scholar':'<span class="source-badge source-s2">Semantic Scholar</span>',
   };
-  return badges[source] || `<span class="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-white/40 font-bold">${source}</span>`;
+  return map[source] || `<span class="source-badge">${source}</span>`;
 }
 
 function getSourceEmoji(source) {
-  const emojis = {
-    'PubMed': '🏛️',
-    'Cochrane': '🔬',
-    'Semantic Scholar': '🤖'
-  };
-  return emojis[source] || '📄';
+  return { PubMed: '🏛️', Cochrane: '🔬', 'Semantic Scholar': '🤖' }[source] || '📄';
 }
+
+// ─── KEYBOARD SHORTCUT: Cmd/Ctrl+Enter to submit ─────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    const btn = document.getElementById('analyzeBtn');
+    if (btn && !btn.disabled) { e.preventDefault(); runAnalysis(); }
+  }
+});

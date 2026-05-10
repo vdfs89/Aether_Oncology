@@ -1,21 +1,53 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aether Oncology | Clinical AI & Diagnostics</title>
+
+  <!-- SEO Meta -->
+  <meta name="description" content="Aether Oncology é uma plataforma de IA clínica para classificação de tumores mamários baseada em biópsia FNA, com XAI, RAG médico e monitoramento MLOps em tempo real.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://api.vitorsilva.engineer/">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://api.vitorsilva.engineer/">
+  <meta property="og:title"       content="Aether Oncology | Clinical AI & Diagnostics">
+  <meta property="og:description" content="Plataforma de IA clínica para classificação de tumores mamários com Explainable AI, RAG médico e monitoramento MLOps.">
+  <meta property="og:image"       content="https://api.vitorsilva.engineer/images/Banner.png">
+  <meta property="og:locale"      content="pt_BR">
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="Aether Oncology | Clinical AI">
+  <meta name="twitter:description" content="Classificação de tumores mamários com IA explicável e evidências científicas em tempo real.">
+  <meta name="twitter:image"       content="https://api.vitorsilva.engineer/images/Banner.png">
+
+  <!-- Schema.org: MedicalWebPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "MedicalWebPage",
+    "name": "Aether Oncology",
+    "description": "Plataforma de IA clínica para classificação de tumores mamários",
+    "url": "https://api.vitorsilva.engineer/",
+    "medicalAudience": {"@type": "MedicalAudience", "audienceType": "Clinician"},
+    "about": {"@type": "MedicalCondition", "name": "Câncer de Mama"}
+  }
+  </script>
+
   <link rel="icon" type="image/png" href="images/lotus-red.png">
-  
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-  
-  <!-- CDNs -->
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js (runtime dependency, CDN ok for canvas rendering) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <!-- Estilos Customizados -->
+
+  <!-- Estilos -->
   <link rel="stylesheet" href="css/portal.css">
 </head>
 
@@ -38,22 +70,22 @@
 
       <div class="flex items-center gap-4">
         <a href="#portal" class="hidden sm:block px-6 py-2 border border-purple-500/30 rounded-full text-xs font-bold hover:bg-purple-500/10 transition">CONECTAR</a>
-        <button id="menu-btn" class="md:hidden text-white">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+        <button id="menu-btn" class="md:hidden text-white" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="mobile-menu">
+          <svg class="w-6 h-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
         </button>
       </div>
     </div>
   </header>
 
   <!-- ─── MOBILE MENU ─── -->
-  <div id="mobile-menu" class="fixed inset-0 z-[60] bg-[#0B1026] flex-col items-center justify-center gap-8 text-2xl font-bold hidden">
-    <button id="close-menu" class="absolute top-8 right-8 text-white">
-      <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+  <nav id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu de navegação" class="fixed inset-0 z-[60] bg-[#0B1026] flex-col items-center justify-center gap-8 text-2xl font-bold hidden">
+    <button id="close-menu" class="absolute top-8 right-8 text-white" aria-label="Fechar menu de navegação">
+      <svg class="w-10 h-10" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
-    <a href="#hero" class="hover:text-cyan-400 transition">HOME</a>
+    <a href="#hero"     class="hover:text-cyan-400 transition">HOME</a>
     <a href="#features" class="hover:text-cyan-400 transition">TECNOLOGIA</a>
-    <a href="#portal" class="hover:text-cyan-400 transition">PORTAL CLÍNICO</a>
-  </div>
+    <a href="#portal"   class="hover:text-cyan-400 transition">PORTAL CLÍNICO</a>
+  </nav>
 
   <!-- ─── HERO ─── -->
   <section id="hero" class="relative pt-40 pb-24 px-6 overflow-hidden hero-mesh min-h-screen flex items-center">
@@ -72,13 +104,13 @@
         </p>
         <div class="flex flex-wrap gap-5">
           <a href="#portal" class="shimmer-btn px-10 py-4 rounded-full text-sm font-bold tracking-wider">ACESSAR PORTAL</a>
-          <button class="px-10 py-4 border border-white/10 rounded-full text-sm font-bold hover:bg-white/5 transition">ROADMAP 2.0</button>
+          <a href="https://github.com/vdfs89/Aether_Oncology" target="_blank" rel="noopener noreferrer" class="px-10 py-4 border border-white/10 rounded-full text-sm font-bold hover:bg-white/5 transition" aria-label="Ver roadmap no GitHub">ROADMAP 2.0</a>
         </div>
       </div>
 
       <div class="relative fade-up delay-2 hidden md:block">
         <div class="relative z-10 glass border-gradient p-4 rounded-3xl float">
-           <img src="images/Banner.png" alt="Portal Preview" class="rounded-2xl opacity-90">
+           <img src="images/Banner.png" alt="Screenshot do portal clínico Aether Oncology mostrando análise de tumor com XAI" class="rounded-2xl opacity-90" width="560" height="374" loading="lazy">
            <div class="absolute -bottom-6 -right-6 glass p-6 rounded-2xl glow-cyan animate-pulse">
               <p class="text-[10px] font-bold text-cyan-400 mb-1">ACCURACY</p>
               <p class="text-2xl font-black">98.4%</p>
@@ -199,52 +231,52 @@
 
               <!-- Tabs de Atributos (WDBC 30 Features) -->
               <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl">
-                 <button onclick="switchFormTab('mean')" id="tab-mean" class="form-tab active">MÉDIAS</button>
-                 <button onclick="switchFormTab('se')" id="tab-se" class="form-tab">ERRO PADRÃO</button>
-                 <button onclick="switchFormTab('worst')" id="tab-worst" class="form-tab">PIORES</button>
+                 <button onclick="switchFormTab('mean')" data-tab="mean" aria-selected="true" role="tab" id="tab-mean" class="form-tab active">MÉDIAS</button>
+                 <button onclick="switchFormTab('se')" data-tab="se" aria-selected="false" role="tab" id="tab-se" class="form-tab">ERRO PADRÃO</button>
+                 <button onclick="switchFormTab('worst')" data-tab="worst" aria-selected="false" role="tab" id="tab-worst" class="form-tab">PIORES</button>
               </div>
 
               <!-- Grupo: Mean -->
               <div id="group-mean" class="form-group-pane">
                   <div class="grid grid-cols-2 gap-2">
                      <div class="portal-form-group">
-                        <label class="portal-label">Raio Médio</label>
+                        <label class="portal-label" for="radius_mean">Raio Médio</label>
                         <input type="number" id="radius_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Textura Média</label>
+                        <label class="portal-label" for="texture_mean">Textura Média</label>
                         <input type="number" id="texture_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Perímetro Médio</label>
+                        <label class="portal-label" for="perimeter_mean">Perímetro Médio</label>
                         <input type="number" id="perimeter_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Área Média</label>
+                        <label class="portal-label" for="area_mean">Área Média</label>
                         <input type="number" id="area_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Suavidade Média</label>
+                        <label class="portal-label" for="smoothness_mean">Suavidade Média</label>
                         <input type="number" id="smoothness_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Compacidade Média</label>
+                        <label class="portal-label" for="compactness_mean">Compacidade Média</label>
                         <input type="number" id="compactness_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Concavidade Média</label>
+                        <label class="portal-label" for="concavity_mean">Concavidade Média</label>
                         <input type="number" id="concavity_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pontos Côncavos Médios</label>
+                        <label class="portal-label" for="concave_points_mean">Pontos Côncavos Médios</label>
                         <input type="number" id="concave_points_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Simetria Média</label>
+                        <label class="portal-label" for="symmetry_mean">Simetria Média</label>
                         <input type="number" id="symmetry_mean" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Dimensão Fractal Média</label>
+                        <label class="portal-label" for="fractal_dimension_mean">Dimensão Fractal Média</label>
                         <input type="number" id="fractal_dimension_mean" class="portal-input" placeholder="0.0">
                      </div>
                   </div>
@@ -300,43 +332,43 @@
               <div id="group-worst" class="form-group-pane hidden">
                   <div class="grid grid-cols-2 gap-2">
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Raio</label>
+                        <label class="portal-label" for="radius_worst">Pior Raio</label>
                         <input type="number" id="radius_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Textura</label>
+                        <label class="portal-label" for="texture_worst">Pior Textura</label>
                         <input type="number" id="texture_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Perímetro</label>
+                        <label class="portal-label" for="perimeter_worst">Pior Perímetro</label>
                         <input type="number" id="perimeter_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Área</label>
+                        <label class="portal-label" for="area_worst">Pior Área</label>
                         <input type="number" id="area_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Suavidade</label>
+                        <label class="portal-label" for="smoothness_worst">Pior Suavidade</label>
                         <input type="number" id="smoothness_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Compacidade</label>
+                        <label class="portal-label" for="compactness_worst">Pior Compacidade</label>
                         <input type="number" id="compactness_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Concavidade</label>
+                        <label class="portal-label" for="concavity_worst">Pior Concavidade</label>
                         <input type="number" id="concavity_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Pontos Côncavos</label>
+                        <label class="portal-label" for="concave_points_worst">Pior Pontos Côncavos</label>
                         <input type="number" id="concave_points_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Simetria</label>
+                        <label class="portal-label" for="symmetry_worst">Pior Simetria</label>
                         <input type="number" id="symmetry_worst" class="portal-input" placeholder="0.0">
                      </div>
                      <div class="portal-form-group">
-                        <label class="portal-label">Pior Dim. Fractal</label>
+                        <label class="portal-label" for="fractal_dimension_worst">Pior Dim. Fractal</label>
                         <input type="number" id="fractal_dimension_worst" class="portal-input" placeholder="0.0">
                      </div>
                   </div>
@@ -460,14 +492,18 @@
   <footer class="py-12 px-6 border-t border-white/5">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
       <div class="flex items-center gap-3">
-        <img src="images/lotus-red.png" alt="Aether" class="w-6 h-6 grayscale opacity-50">
+        <img src="images/lotus-red.png" alt="Aether Oncology" class="w-6 h-6 grayscale opacity-50" width="24" height="24">
         <span class="font-bold text-sm tracking-tighter opacity-50">AETHER ONCOLOGY © 2026</span>
       </div>
-      <div class="flex gap-8 text-[10px] font-bold tracking-widest text-white/30 uppercase">
-        <a href="#" class="hover:text-white transition">Privacidade</a>
-        <a href="#" class="hover:text-white transition">Termos</a>
-        <a href="#" class="hover:text-white transition">Documentação API</a>
-      </div>
+      <p class="text-[9px] text-white/20 text-center max-w-md">
+        Esta ferramenta é exclusivamente para fins de pesquisa e apoio à decisão clínica.
+        Não substitui avaliação médica profissional. Uso sob responsabilidade do profissional de saúde.
+      </p>
+      <nav aria-label="Links do rodapé" class="flex gap-8 text-[10px] font-bold tracking-widest text-white/30 uppercase">
+        <a href="/static/aether-oncology-portal/privacy.html" class="hover:text-white transition">Privacidade</a>
+        <a href="/static/aether-oncology-portal/terms.html"   class="hover:text-white transition">Termos</a>
+        <a href="/docs" target="_blank" rel="noopener noreferrer" class="hover:text-white transition">Documentação API</a>
+      </nav>
     </div>
   </footer>
 
