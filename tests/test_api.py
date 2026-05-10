@@ -9,7 +9,7 @@ de subir o uvicorn, o que os torna rápidos e reproduzíveis em CI/CD.
 
 Nota: Para que estes testes passem, os artefactos treinados devem existir:
   - models/preprocessor.joblib
-  - models/aether_mlp_v1.pth
+  - models/aether_mlp_v2.pth
 
 Se os artefactos não existirem, os testes de predição são marcados como
 xfail (esperado falhar) para não bloquear o CI antes do primeiro treino.
@@ -108,7 +108,7 @@ def _models_exist() -> bool:
 
     return (
         Path("models/preprocessor.joblib").exists()
-        and Path("models/aether_mlp_v1.pth").exists()
+        and Path("models/aether_mlp_v2.pth").exists()
     )
 
 
@@ -263,3 +263,35 @@ def test_predict_forbidden_without_token(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Acesso negado: API Key inválida ou ausente"
+
+
+# ---------------------------------------------------------------------------
+# 5. MLOps & Governança
+# ---------------------------------------------------------------------------
+
+
+def test_analytics_endpoint() -> None:
+    """Verifica se o endpoint de analytics está funcional."""
+    response = client.get("/analytics")
+    assert response.status_code == 200
+    data = response.json()
+    assert "status" in data
+
+
+def test_audit_endpoint_authenticated(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifica se o endpoint de auditoria exige autenticação e retorna dados."""
+    monkeypatch.setenv("API_KEY", "prod_secret")
+    import importlib
+    import src.main as main_module
+    importlib.reload(main_module)
+    secured_client = TestClient(main_module.app)
+
+    # Primeiro sem token
+    response = secured_client.get("/audit")
+    assert response.status_code == 403
+    
+    # Com token válido
+    headers = {"access_token": "prod_secret"}
+    response = secured_client.get("/audit", headers=headers)
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)

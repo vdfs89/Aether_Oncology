@@ -1,4 +1,4 @@
-# Plano de Monitoramento — Aether Oncology Tumor Classifier v1.0
+# Plano de Monitoramento — Aether Oncology Tumor Classifier v2.0
 
 > **Contexto:** Em diagnósticos médicos, o monitoramento pós-deploy não é uma funcionalidade opcional — é um requisito de segurança. Um modelo que degradou silenciosamente pode gerar Falsos Negativos (pacientes malignos classificados como benignos), com consequências fatais.
 
@@ -130,10 +130,24 @@ Procedimentos de resposta escalonados por severidade:
 | Engenheiro de ML | Monitorar drift e métricas técnicas semanalmente |
 | Patologista Responsável | Reportar discrepâncias entre predição e laudo final |
 | Gestor Clínico | Acionar protocolo de suspensão se Recall < 0.90 |
+|---|---|
 
 ---
 
-## 8. Referências
+## 8. Monitoramento de Disponibilidade (Uptime)
+
+Devido ao uso de instâncias "Free" no Render, o sistema pode entrar em modo de suspensão após períodos de inatividade.
+
+### cold Start (Erro 503)
+- **Causa**: Instância em modo de hibernação.
+- **Sintoma**: Resposta HTTP 503 (Service Unavailable) na primeira requisição após inatividade.
+- **Mitigação**: 
+    1. GitHub Action `keep_alive.yml` configurado para pingar `/health` a cada 10 minutos.
+    2. No `portal.js`, implementado tratamento para 503 com mensagem de orientação ao usuário clínico.
+
+---
+
+## 9. Referências
 
 - [Evidently AI Documentation](https://docs.evidentlyai.com/)
 - [MLflow Model Monitoring](https://mlflow.org/docs/latest/model-registry.html)

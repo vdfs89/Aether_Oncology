@@ -75,7 +75,7 @@ FEATURE_NAMES = [
 _ROOT = Path(__file__).resolve().parents[2]
 _PIPELINE_PATH = _ROOT / "models" / "preprocessor.joblib"
 _CALIBRATOR_PATH = _ROOT / "models" / "calibrator.joblib"
-_MODEL_PATH = _ROOT / "models" / "aether_mlp_v1.pth"
+_MODEL_PATH = _ROOT / "models" / "aether_mlp_v2.pth"
 
 
 # ---------------------------------------------------------------------------

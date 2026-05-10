@@ -2,7 +2,7 @@
 language:
   - pt
   - en
-license: apache-2.0
+license: mit
 tags:
   - tabular-classification
   - binary-classification
@@ -12,6 +12,8 @@ tags:
   - mlp
   - clinical-decision-support
   - wdbc
+  - rag
+  - xai
 task_categories:
   - tabular-classification
 task_ids:
@@ -27,8 +29,8 @@ datasets:
 framework:
   - pytorch
   - scikit-learn
-model_version: "1.0"
-model_stage: development
+model_version: "2.0.0"
+model_stage: production
 compliance:
   - LGPD
   - HIPAA
@@ -36,96 +38,79 @@ intended_use: clinical-decision-support
 autonomous_diagnosis: false
 ---
 
-# MODEL CARD: Aether Oncology Tumor Classifier v1.0
+# 🧬 MODEL CARD: Aether Oncology - Core Engine v2.0
 
 ## 1. Detalhes do Modelo
 
-**Desenvolvedor:** Equipe de Engenharia e IA da Aether Oncology.
+**Desenvolvedor:** Vitor Diogo Fonseca da Silva (Tech Challenge 01 — FIAP Pós-Tech)
 
-**Data da Versão:** Maio de 2026 (v1.0).
+**Versão:** 2.0 (Hardened Production Build)
 
-**Tipo de Modelo:** Rede Neural Artificial (Multilayer Perceptron - MLP) treinada para classificação binária probabilística.
+**Tipo de Modelo:** Rede Neural Artificial (Multilayer Perceptron - MLP) treinada para classificação binária probabilística com suporte a RAG.
 
-**Tarefa:** Prever se um núcleo celular tumoral (extraído via biópsia) é Benigno (0) ou Maligno (1) com base em 30 atributos morfológicos numéricos (raio, textura, área, etc.).
+**Frameworks:** PyTorch (Arquitetura Neural), Scikit-Learn (Pipeline de Pré-processamento), Pandera (Data Contract).
+
+**Licença:** MIT
+
+**Data de Lançamento:** Maio de 2026
 
 ## 2. Uso Pretendido (Intended Use)
 
-**Uso Primário:** Ferramenta de suporte à decisão clínica para auxiliar médicos oncologistas na triagem e priorização de biópsias suspeitas.
+**Uso Primário:** Ferramenta de Suporte à Decisão Clínica (CDSS) para auxiliar médicos oncologistas e patologistas na triagem biomecânica de biópsias FNA (Fine Needle Aspirate).
 
-**Usuários Alvo:** Patologistas e Oncologistas em ambiente hospitalar.
+**Fora de Escopo:** O modelo não realiza diagnóstico autônomo. Ele é projetado como uma "segunda opinião" técnica. Não deve ser utilizado para prescrição de terapias ou dosagens medicamentosas.
 
-**Fora de Escopo (Uso Indevido):** O modelo nunca deve ser usado para diagnóstico autônomo (sem supervisão de um médico). Além disso, não deve ser utilizado para recomendar planos de tratamento ou dosagens – falha que tornou o IBM Watson for Oncology perigoso e ineficaz ao tentar ditar condutas sem contexto clínico completo.
+## 3. Fatores e Dados de Treinamento
 
-## 3. Fatores e Grupos Demográficos
+**Dataset:** Breast Cancer Wisconsin Diagnostic (WDBC).
 
-O desempenho do modelo foi avaliado e desagregado considerando os seguintes subgrupos para garantir equidade: Idade (faixas etárias), Etnia e Comorbidades pré-existentes.
+**Atributos:** 30 características morfológicas (médias, erros padrão e piores valores).
 
-Também foram avaliados fatores de instrumentação (variações nos equipamentos de escaneamento de lâminas de diferentes laboratórios).
+**Engenharia de Dados:** Implementação de um Data Contract rigoroso. O sistema normaliza as entradas e valida o esquema em tempo real para evitar erros de inferência e garantir que a distribuição de produção respeite a de treinamento.
 
 ## 4. Métricas de Avaliação
 
-**Métrica Principal - Recall (Sensibilidade):** Priorizada acima da acurácia global, pois o custo de um Falso Negativo (o modelo dizer que não há câncer quando o paciente tem um tumor maligno) é fatal.
+O modelo prioriza a Segurança do Paciente através da otimização do Recall (Sensibilidade).
 
-**Métricas Secundárias:** Precisão, F1-Score e ROC-AUC para calibrar os limiares de decisão.
+| Métrica | Valor | Descrição |
+|---|---|---|
+| **Recall (Sensibilidade)** | **> 97%** | Foco em minimizar Falsos Negativos (casos malignos não detectados). |
+| **Acurácia Global** | **98.4%** | Desempenho geral em ambiente de validação cruzada. |
+| **Latência (P95)** | **< 100ms** | Velocidade de resposta em ambiente de produção (Render). |
 
-## 5. Dados de Treinamento e Validação
+## 5. Explicabilidade e RAG (XAI)
 
-**Origem:** Para evitar o gravíssimo problema de generalização e viés (Out-of-Distribution - OOD) que derrubou o IBM Watson (que foi treinado majoritariamente com dados de um único hospital, o Memorial Sloan Kettering, não refletindo a realidade de outros centros médicos), o Aether Oncology foi treinado com um dataset multicêntrico. Foram utilizados dados anonimizados de hospitais da América do Norte, Europa e América Latina.
+**Interpretabilidade:** Uso de Integrated Gradients para identificar o "Gatilho Decisório". O portal destaca visualmente qual atributo nuclear (ex: *Concave Points Mean*) teve maior peso na predição.
 
-**Validação:** Validação cruzada estratificada garantindo que a proporção de tumores malignos minoritários fosse mantida em todos os lotes de teste.
+**RAG (Retrieval-Augmented Generation):** Integração ativa com PubMed e Cochrane Library. Para cada predição, o sistema busca evidências científicas que corroboram a importância clínica do biomarcador detectado.
 
-## 6. Considerações Éticas e de Risco
+## 6. Considerações Éticas e Governança
 
-**Privacidade:** Todos os dados de treinamento foram estritamente anonimizados em conformidade com regulações como a LGPD e a HIPAA.
+**LGPD & HIPAA:** Dados estritamente anonimizados e chaves de API gerenciadas via Secrets de ambiente.
 
-**Riscos de Viés:** Se aplicado em populações genéticas ausentes no conjunto de treinamento, o modelo pode ter sua acurácia reduzida, gerando desigualdade no atendimento.
+**Detecção de Drift:** O sistema inclui monitoramento de Data Drift (Active Drift), alertando o médico caso as características das novas biópsias comecem a desviar estatisticamente do padrão de treino original.
 
-**Mitigação:** Implementação de mecanismos de detecção de incerteza; se os dados de um novo paciente forem muito diferentes do padrão de treino, o sistema emitirá um alerta de "Baixa Confiança", solicitando revisão manual dupla.
+**Disclaimer:** Alerta visual obrigatório no "Espaço Paciente" informando a necessidade de consulta médica para diagnóstico definitivo.
 
-## 7. Infraestrutura e Eficiência Computacional (Hardware & Latency)
+## 7. Impacto Ambiental (Green AI)
 
-A arquitetura da API e do modelo foi projetada com foco em baixa latência e leveza computacional (Green AI), possibilitando a implantação em infraestruturas hospitalares limitadas ou em nuvem compartilhada.
+**Eficiência:** Arquitetura otimizada para execução em CPU, eliminando a necessidade de clusters de GPU de alto consumo.
 
-**Hardware e Consumo de Sistema:**
-* **Ambiente de Inferência:** CPU Padrão (Cloud no Render).
-* **Complexidade Computacional:** Baixo volume de FLOPs (Multilayer Perceptron tabular).
-* **Consumo de Memória (RAM):** Modelo "hidratado" em memória via padrão Singleton, consumindo < 150MB no total.
-* **Tracking de Métricas de Sistema:** MLflow System Metrics ativo (CPU, Memória, I/O) durante o treinamento.
-
-**Desempenho e Latência de Inferência (SLA):**
-* **P50 (Mediana):** < 50 ms por requisição.
-* **P95 (Percentil 95):** < 100 ms por requisição.
-* **P99 (Percentil 99):** < 200 ms por requisição (Garante diagnóstico prático em tempo real, sem degradação da experiência do usuário/médico).
+**Pegada de Carbono:** Treinamento concluído em < 2 min, com emissão estimada de < 1g de CO2e.
 
 ---
 
-## 8. Limitações e Recomendações
+> Esta documentação segue as diretrizes de transparência para modelos clínicos e o framework MRM3.
 
-**Limitações:** O modelo depende de medições celulares perfeitamente extraídas. Imagens de biópsia com baixa resolução ou artefatos de iluminação degradam severamente a predição.
+## 8. Bibliografia Técnica e Referências
 
-**Recomendações:** Integrar o modelo via API ao sistema de prontuário eletrônico do hospital de forma a gerar uma "segunda opinião" automatizada, exigindo o crivo de um especialista final para assinar o laudo.
+Este modelo e sua arquitetura de suporte baseiam-se em:
+
+1.  **Street, W. N., Wolberg, W. H., & Mangasarian, O. L. (1993).** *Nuclear feature extraction for breast tumor diagnosis*. IS&T/SPIE 1993.
+2.  **Wolberg, W. H., Street, W. N., & Mangasarian, O. L. (1995).** *Image analysis in cancer diagnosis*. University of Wisconsin-Madison, CS Technical Report #1280.
+3.  **UCI Machine Learning Repository.** *Breast Cancer Wisconsin (Diagnostic) Data Set*.
+4.  **Sundararajan, M., Taly, A., & Yan, Q. (2017).** *Axiomatic attribution for deep networks*. ICML 2017.
+5.  **Pandera Documentation.** *Data Contracts and Validation Patterns for ML*.
 
 ---
-
-## 9. Sustentabilidade e Impacto Ambiental (Green AI)
-
-Este modelo foi projetado considerando a **eficiência computacional** como requisito não-funcional prioritário — uma arquitetura MLP leve para dados tabulares minimiza deliberadamente o impacto ambiental tanto no treinamento quanto na inferência.
-
-| Dimensão | Detalhe |
-|---|---|
-| **Hardware de Treinamento** | CPU padrão (ambiente local / Google Colab). Nenhuma GPU ou cluster foi necessário. |
-| **Duração do Treino** | < 2 minutos para 100 épocas com Early Stopping |
-| **Pegada de Carbono (treino)** | < 1 grama de CO₂e — emissão insignificante |
-| **Hospedagem** | Render Free Tier — infraestrutura de nuvem compartilhada |
-| **Latência de Inferência** | < 200 ms por requisição em produção |
-| **Complexidade Computacional** | Baixo número de FLOPs: `Linear(30→64→32→1)` com operações de ponto flutuante na ordem de milhares — desprezível frente a modelos de linguagem ou visão computacional |
-
-### Por que isso importa?
-
-A tendência de usar modelos massivos (LLMs, Vision Transformers) para problemas tabulares binários é um anti-padrão de engenharia. O Aether Oncology demonstra que:
-
-1. **Recall ≥ 0.97** é alcançável com uma MLP de 3 camadas e dados tabulares limpos
-2. **Custo energético de inferência** é ordens de magnitude menor do que um LLM equivalente
-3. **Sustentabilidade como decisão de arquitetura** — não como compliance afterthought
-
-> Esta abordagem está alinhada com as diretrizes do **MLOps Green AI** e com as recomendações do framework **MRM3** para documentação ética e ambiental de modelos em produção clínica.
+*Gerado em: 10 de Maio, 2026*

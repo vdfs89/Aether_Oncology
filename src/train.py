@@ -59,7 +59,7 @@ RAW_DATA_PATH = Path("data/raw/data.csv")
 MODELS_DIR = Path("models")
 PREPROCESSOR_PATH = MODELS_DIR / "preprocessor.joblib"
 CALIBRATOR_PATH = MODELS_DIR / "calibrator.joblib"
-MODEL_WEIGHTS_PATH = MODELS_DIR / "aether_mlp_v1.pth"
+MODEL_WEIGHTS_PATH = MODELS_DIR / "aether_mlp_v2.pth"
 
 HPARAMS = {
     "seed": 42,

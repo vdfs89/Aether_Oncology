@@ -60,7 +60,14 @@ if(menuBtn && mobileMenu) {
 }
 
 // ─── PORTAL LOGIC ───
-const API_URL = '/predict'; // URL relativa para funcionar em qualquer ambiente
+// Tenta detectar se estamos em ambiente de desenvolvimento local (file://) ou produção
+const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === 'localhost') 
+    ? 'http://localhost:8000' 
+    : window.location.origin;
+
+const API_URL = `${API_BASE}/predict`;
+const ANALYTICS_URL = `${API_BASE}/analytics`;
+const AUDIT_URL = `${API_BASE}/audit`;
 const API_KEY = 'aether-oncology-eval-2026';
 let xaiChart = null;
 
@@ -203,8 +210,13 @@ async function runAnalysis() {
       body: JSON.stringify(payload)
     });
     
+    if (response.status === 503) {
+        throw new Error("O servidor (Render) está acordando. Aguarde 30s e clique novamente.");
+    }
+
     if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
     }
 
     const result = await response.json();
@@ -222,8 +234,12 @@ async function runAnalysis() {
     displayEvidence(result.top_feature, result.articles, isMalignant);
     
   } catch (err) {
-    resText.innerText = "Erro na conexão com o Aether Core.";
-    console.error(err);
+    console.error("Aether Core Connection Error:", err);
+    if (err.message.includes("acordando")) {
+        resText.innerHTML = `<span class="text-yellow-400">Servidor em Standby</span><br><small class="text-[10px] opacity-70">${err.message}</small>`;
+    } else {
+        resText.innerHTML = `<span class="text-red-400">Falha na conexão</span><br><small class="text-[9px] opacity-50">${err.message}</small>`;
+    }
   } finally {
     btn.disabled = false;
     btn.innerText = 'INICIAR ANÁLISE IA + RAG';
@@ -371,15 +387,17 @@ async function checkModelHealth() {
   const details = document.getElementById('driftDetails');
   const statusBadge = document.getElementById('driftStatusBadge');
   
+  if (!monitor) return;
+  
   monitor.classList.remove('hidden');
   details.innerHTML = '<p class="text-[10px] text-white/40 col-span-2">Sincronizando com Aether Core...</p>';
 
   try {
-    const response = await fetch('/analytics', {
+    const response = await fetch(ANALYTICS_URL, {
       headers: { 'access_token': API_KEY }
     });
     
-    if (!response.ok) throw new Error('Falha no monitoramento');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     
     const data = await response.json();
     details.innerHTML = '';
@@ -411,42 +429,44 @@ async function checkModelHealth() {
 
     // --- Audit Trail Logic ---
     const auditBody = document.getElementById('auditTrailBody');
-    auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Carregando Auditoria...</td></tr>';
+    if (auditBody) {
+      auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Carregando Auditoria...</td></tr>';
 
-    try {
-      const auditRes = await fetch('/audit', { headers: { 'access_token': API_KEY } });
-      if (!auditRes.ok) throw new Error('Falha na auditoria');
-      
-      const trail = await auditRes.json(); // Retorna lista de objetos do backend
-      
-      auditBody.innerHTML = '';
-      if (trail.length === 0) {
-        auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Nenhum registro encontrado.</td></tr>';
-      } else {
-        // Pega as últimas 5 predições e inverte para mostrar a mais recente primeiro
-        trail.reverse().slice(0, 5).forEach(entry => {
-          const date = new Date(entry.timestamp).toLocaleTimeString();
-          const out = entry.output || {};
-          const badgeClass = out.prediction === 1 ? 'audit-malignant' : 'audit-benign';
-          const label = out.prediction === 1 ? 'MAL' : 'BEN';
-          
-          const row = `
-            <tr class="audit-row">
-              <td class="audit-cell font-bold text-white/40">${date}</td>
-              <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
-              <td class="audit-cell italic truncate max-w-[80px]">${(out.top_feature || 'N/A').replace('_mean','')}</td>
-              <td class="audit-cell text-right">${((out.probability || 0) * 100).toFixed(0)}%</td>
-            </tr>
-          `;
-          auditBody.insertAdjacentHTML('beforeend', row);
-        });
+      try {
+        const auditRes = await fetch(AUDIT_URL, { headers: { 'access_token': API_KEY } });
+        if (!auditRes.ok) throw new Error(`HTTP ${auditRes.status}`);
+        
+        const trail = await auditRes.json();
+        
+        auditBody.innerHTML = '';
+        if (trail.length === 0) {
+          auditBody.innerHTML = '<tr><td class="audit-cell" colspan="4">Nenhum registro encontrado.</td></tr>';
+        } else {
+          trail.reverse().slice(0, 5).forEach(entry => {
+            const date = new Date(entry.timestamp).toLocaleTimeString();
+            const out = entry.output || {};
+            const badgeClass = out.prediction === 1 ? 'audit-malignant' : 'audit-benign';
+            const label = out.prediction === 1 ? 'MAL' : 'BEN';
+            
+            const row = `
+              <tr class="audit-row">
+                <td class="audit-cell font-bold text-white/40">${date}</td>
+                <td class="audit-cell"><span class="audit-badge ${badgeClass}">${label}</span></td>
+                <td class="audit-cell italic truncate max-w-[80px]">${(out.top_feature || 'N/A').replace('_mean','')}</td>
+                <td class="audit-cell text-right">${((out.probability || 0) * 100).toFixed(0)}%</td>
+              </tr>
+            `;
+            auditBody.insertAdjacentHTML('beforeend', row);
+          });
+        }
+      } catch (e) {
+        auditBody.innerHTML = `<tr><td class="audit-cell text-red-400" colspan="4">Erro na auditoria: ${e.message}</td></tr>`;
       }
-    } catch (e) {
-      auditBody.innerHTML = '<tr><td class="audit-cell text-red-400" colspan="4">Erro na auditoria.</td></tr>';
     }
 
   } catch (err) {
-    details.innerHTML = '<p class="text-[10px] text-red-400 col-span-2">Erro ao acessar métricas de governança.</p>';
+    details.innerHTML = `<p class="text-[10px] text-red-400 col-span-2">Erro de conexão: ${err.message}</p>`;
+    console.error("MLOps Health Check Error:", err);
   }
 }
 

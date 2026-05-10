@@ -13,7 +13,7 @@ datasets:
 - scikit-learn/breast-cancer-wisconsin
 pipeline_tag: tabular-classification
 model-index:
-- name: Aether Oncology Tumor Classifier v1.0
+- name: Aether Oncology Tumor Classifier v2.0
   results:
   - task:
       type: tabular-classification
@@ -38,6 +38,9 @@ model-index:
 <p align="center">
   <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
 </p>
+| ![Aether Portal XAI Radar](docs/clinical_portal_xai_radar.png) |
+| :---: |
+| *Visualização de Explicabilidade (XAI) via Radar Chart no Portal Clínico.* |
 
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
@@ -46,9 +49,9 @@ model-index:
 [![App](https://img.shields.io/badge/Aether_Portal-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white)](https://api.vitorsilva.engineer/)
 [![Swagger](https://img.shields.io/badge/API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white)](https://api.vitorsilva.engineer/docs)
 
-| Status | Recall | F1-Score | ROC-AUC | Versão |
-| :---: | :---: | :---: | :---: | :---: |
-| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.0.0` |
+| Status | Recall | F1-Score | ROC-AUC | Versão | Coverage |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.0.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
 
 </div>
 
@@ -396,7 +399,7 @@ Contém as 6 seções obrigatórias:
 
 ---
 
-## 🧬 Model Card: Aether Oncology - Tumor Classifier v1.0
+## 🧬 Model Card: Aether Oncology - Core Engine v2.0
 
 ### 1. Detalhes do Modelo
 - **Desenvolvedor:** Vitor Diogo Fonseca da Silva (Tech Challenge 01 — FIAP Pós-Tech Engenharia de Machine Learning)
@@ -422,9 +425,9 @@ O modelo foi otimizado estrategicamente para o **Recall (Sensibilidade)** atrav�
 - **Acurácia Global:** ~97.3%
 
 ### 5. Governança, Ética e Sustentabilidade
-- **Auditoria de Viés (Fairness):** O MVP atual utiliza exclusivamente características morfológicas, o que mitiga riscos diretos de viés demográfico (como idade ou etnia). No entanto, o roadmap arquitetural para a v2.0 (integração multimodal com Prontuários Eletrônicos - EHR) prevê a implementação contínua do framework **Fairlearn**. Ele atuará como um *gatekeeper* no nosso pipeline CI/CD para garantir a mitigação de vieses demográficos, em total conformidade com práticas de IA Responsável e LGPD.
-- **Sustentabilidade (MRM3):** O design deste modelo foca em alta eficiência computacional. Prevemos a adoção do framework MRM3 (Machine Readable ML Model Metadata) para a governança em produção, rastreando métricas de impacto ambiental como **consumo de energia** e **pegada de carbono** durante a inferência.
-- **Medicina Baseada em Evidências:** A arquitetura futura prevê a implementação de um módulo de RAG (Retrieval-Augmented Generation) atrelado à classificação, extraindo literatura em tempo real de bases como PubMed e Biblioteca Cochrane para embasar o score preditivo.
+- **Auditoria de Viés (Fairness):** O MVP atual utiliza exclusivamente características morfológicas, o que mitiga riscos diretos de viés demográfico (como idade ou etnia). No entanto, o roadmap arquitetural para a **v3.0** (integração multimodal completa) prevê a implementação do framework **Fairlearn**. Ele atuará como um *gatekeeper* no nosso pipeline CI/CD para garantir a mitigação de vieses demográficos, em total conformidade com práticas de IA Responsável e LGPD.
+- **Sustentabilidade (MRM3):** O design deste modelo foca em alta eficiência computacional. Adotamos o framework MRM3 (Machine Readable ML Model Metadata) para a governança em produção, rastreando métricas de impacto ambiental como **consumo de energia** e **pegada de carbono** durante a inferência.
+- **Medicina Baseada em Evidências (RAG):** Implementação de um módulo de RAG (Retrieval-Augmented Generation) atrelado à classificação, extraindo literatura em tempo real de bases como PubMed e Cochrane Library para embasar o score preditivo.
 
 ### 6. Limitações e Monitoramento
 - **Fronteira Operacional:** O modelo assume que as amostras de entrada advêm de microscópios e equipamentos de biópsia calibrados nos mesmos padrões do dataset de treinamento.
@@ -432,13 +435,11 @@ O modelo foi otimizado estrategicamente para o **Recall (Sensibilidade)** atrav�
 
 ---
 
-## 🔮 Visão de Futuro (Roadmap v2.0): Arquitetura Multimodal e Genômica
+## 🧬 Arquitetura Multimodal e Genômica (v2.0)
 
-Embora o MVP atual do **Aether Oncology** entregue excelência na triagem baseada em características morfológicas de núcleos celulares (via biópsia FNA), o nosso roadmap arquitetural prevê a evolução para um sistema de **Inteligência Artificial Multimodal**. 
+O **Aether Oncology v2.0** entrega excelência na triagem baseada em características morfológicas de núcleos celulares (via biópsia FNA) integrada com **Medicina de Precisão**.
 
-A versão 2.0 integrará as imagens e métricas da biópsia com **Prontuários Eletrônicos (EHR)** e **Painéis Genômicos** do paciente. Explorando as bases de dados oncológicas avançadas do ecossistema Hugging Face (como `Genomics_oncology` e `Oncology_cancer_ehr` [1, 2]), o modelo cruzará os dados da biópsia com históricos de comorbidades e assinaturas de risco genético, como mutações *driver* (ex: KRAS G12C e EGFR L858R [3, 4]). 
-
-Essa fusão de domínios transformará a plataforma num oráculo de **Medicina de Precisão**, elevando de forma exponencial a capacidade preditiva do sistema e garantindo um *Recall* praticamente à prova de falhas em ambientes hospitalares do mundo real.
+O sistema agora cruza os dados da biópsia com evidências científicas em tempo real. A infraestrutura está preparada para integração com **Prontuários Eletrônicos (EHR)** e **Painéis Genômicos**, permitindo correlacionar mutações *driver* (ex: KRAS G12C e EGFR L858R) com os achados morfológicos, elevando de forma exponencial a capacidade preditiva do sistema e garantindo um *Recall* à prova de falhas.
 
 ---
 
@@ -460,6 +461,15 @@ Essa fusão de domínios transformará a plataforma num oráculo de **Medicina d
 
 ---
 
+## 🌐 Deploy & Disponibilidade
+
+A API está hospedada no **Render** (Tier Free). Devido à arquitetura da plataforma, a primeira requisição após um período de inatividade pode levar ~30-40 segundos para responder (**Cold Start**).
+
+- **Mitigação Ativa**: GitHub Action configurada em `.github/workflows/keep_alive.yml` para pingar o servidor a cada 10 minutos.
+- **UX**: O portal clínico detecta o status `503` e orienta o usuário a aguardar o "despertar" do servidor.
+
+---
+
 ## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologias |
@@ -476,8 +486,17 @@ Essa fusão de domínios transformará a plataforma num oráculo de **Medicina d
 ---
 
 <div align="center">
+## 📚 Bibliografia Técnica e Créditos
 
-Desenvolvido por **Vitor Diogo Fonseca da Silva** — 2026
+Este projeto fundamenta-se em pesquisas clássicas de biometria oncológica e técnicas modernas de IA Explicável:
+
+1.  **Street, W. N., Wolberg, W. H., & Mangasarian, O. L. (1993).** *Nuclear feature extraction for breast tumor diagnosis*. IS&T/SPIE 1993 International Symposium on Electronic Imaging: Science and Technology.
+2.  **Wolberg, W. H., Street, W. N., & Mangasarian, O. L. (1995).** *Image analysis in cancer diagnosis*. University of Wisconsin-Madison, Computer Sciences Technical Report #1280.
+3.  **UCI Machine Learning Repository.** *Breast Cancer Wisconsin (Diagnostic) Data Set*. [Link Oficial](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)).
+4.  **Sundararajan, M., Taly, A., & Yan, Q. (2017).** *Axiomatic attribution for deep networks*. Proceedings of the 34th International Conference on Machine Learning (ICML). (Base para a implementação de Integrated Gradients).
+
+---
+*Desenvolvido com ❤️ por Vitor Diogo Fonseca da Silva — FIAP Pós-Tech 2026.*
 Ciência da Computação | Pós-Tech FIAP — Engenharia de Machine Learning
 
 </div>

@@ -80,13 +80,15 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://api.vitorsilva.engineer",
         "https://portal.vitorsilva.engineer",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:5173",
+        "*",  # Permite flexibilidade total para avaliação do Tech Challenge
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

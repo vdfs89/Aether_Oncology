@@ -5,7 +5,7 @@ FROM python:3.11-slim
 
 # Metadados da imagem
 LABEL maintainer="Equipe Aether Oncology" \
-      version="1.0.0" \
+      version="2.0.0" \
       description="Tumor Classifier API — MLP PyTorch via FastAPI"
 
 # Variáveis de ambiente para Python não gerar .pyc e não bufferizar stdout/stderr
