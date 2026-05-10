@@ -42,8 +42,30 @@ model-index:
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
 <div align="center">
-[![App](https://img.shields.io/badge/Aether_Portal-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white)](https://api.vitorsilva.engineer/)
-[![Swagger](https://img.shields.io/badge/API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white)](https://api.vitorsilva.engineer/docs)
+graph TD
+    subgraph "Frontend (Static Portal)"
+        UI[Portal Clínico<br/>Vanilla JS + HTML5]
+        XAI[Explainable AI<br/>Chart.js Radar]
+    end
+
+    subgraph "Backend (Render Cloud)"
+        Auth[Autenticação<br/>API Key Header]
+        API[FastAPI<br/>/predict & /health]
+        
+        subgraph "Predictor Layer"
+            Service[PredictorService<br/>Singleton Pattern]
+            Model[PyTorch MLP<br/>TumorMLP v2.0]
+        end
+    end
+
+    subgraph "Governança"
+        MLflow[(MLflow<br/>Tracking & Registry)]
+        Pandera[Pandera<br/>Data Integrity]
+    end
+
+    UI --> Auth --> API
+    API --> Service --> Model
+    MLflow -.-> Service
   
 | Status | Recall | F1-Score | ROC-AUC | Versão |
 | :---: | :---: | :---: | :---: | :---: |
