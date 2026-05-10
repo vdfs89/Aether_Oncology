@@ -385,6 +385,7 @@ body {
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -628,3 +629,32 @@ body {
 
 /* ─── CONTRAST IMPROVEMENTS ───────────────────────────────────────────────── */
 .portal-label { color: rgba(247,249,255,0.9); }
+
+/* ─── INPUT UNIT STYLING ─────────────────────────────────────────────────── */
+.input-wrapper { position: relative; }
+.input-unit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  font-weight: 600;
+}
+
+/* ─── INPUT VALIDATION SHAKE ─────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.field-error input {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  animation: shake 0.4s ease-in-out;
+}
+.field-error label {
+  color: #ef4444 !important;
+}

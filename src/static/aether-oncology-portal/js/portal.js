@@ -173,6 +173,55 @@ const featureExplanations = {
   fractal_dimension_worst: 'a maior complexidade celular encontrada',
 };
 
+const featureDefs = [
+  { id: 'radius', label: 'Raio', unit: 'μm', tooltip: 'Média das distâncias do centro aos pontos do perímetro' },
+  { id: 'texture', label: 'Textura', unit: '', tooltip: 'Desvio padrão dos valores de tons de cinza' },
+  { id: 'perimeter', label: 'Perímetro', unit: 'μm', tooltip: 'Tamanho do contorno celular' },
+  { id: 'area', label: 'Área', unit: 'μm²', tooltip: 'Área total da célula' },
+  { id: 'smoothness', label: 'Suavidade', unit: '', tooltip: 'Variação local nos comprimentos do raio' },
+  { id: 'compactness', label: 'Compacidade', unit: '', tooltip: 'Perímetro² / Área - 1.0' },
+  { id: 'concavity', label: 'Concavidade', unit: '', tooltip: 'Severidade das porções côncavas do contorno' },
+  { id: 'concave_points', label: 'Pontos Côncavos', unit: '', tooltip: 'Número de porções côncavas do contorno' },
+  { id: 'symmetry', label: 'Simetria', unit: '', tooltip: 'Simetria da célula' },
+  { id: 'fractal_dimension', label: 'Dim. Fractal', unit: '', tooltip: 'Aproximação de linha costeira - 1' }
+];
+
+
+// ─── RENDER FORM DYNAMICALLY ──────────────────────────────────────────────────
+function renderForm() {
+  const groups = {
+    mean: { el: document.getElementById('fields-mean'), labelObj: 'Média' },
+    se: { el: document.getElementById('fields-se'), labelObj: 'Erro P.' },
+    worst: { el: document.getElementById('fields-worst'), labelObj: 'Pior' }
+  };
+
+  Object.entries(groups).forEach(([suffix, config]) => {
+    if (!config.el) return;
+    featureDefs.forEach(def => {
+      const id = `${def.id}_${suffix}`;
+      const label = `${def.label} ${config.labelObj}`;
+      const tooltip = def.tooltip ? `title="${def.tooltip} (${config.labelObj})"` : '';
+      const unitHtml = def.unit ? `<span class="input-unit" aria-hidden="true">${def.unit}</span>` : '';
+      
+      const html = `
+        <div class="portal-form-group relative" ${tooltip}>
+          <label class="portal-label flex justify-between" for="${id}">
+            <span>${label}</span>
+            <svg class="w-3 h-3 text-white/30 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </label>
+          <div class="input-wrapper relative">
+            <input type="number" step="any" id="${id}" class="portal-input w-full pr-8" placeholder="0.0">
+            ${unitHtml}
+          </div>
+        </div>
+      `;
+      config.el.insertAdjacentHTML('beforeend', html);
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', renderForm);
+
+
 // ─── FLOAT PARSING — FIX BUG-02 (PT-BR comma separator) ────────────────────
 function parseClinicalFloat(value) {
   if (value === null || value === undefined || value === '') return NaN;
@@ -200,6 +249,7 @@ function clearForm() {
     const el = document.getElementById(name);
     if (el) el.value = '';
   });
+  document.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
 
   const resultText  = document.getElementById('resultText');
   const resultBadge = document.getElementById('resultBadge');

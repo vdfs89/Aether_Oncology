@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@source "../**/*.html";
+@source "../**/*.js";
+
+/* Theme overrides mapped from our portal.css variables */
+@theme {
+  --color-navy: #0B1026;
+  --color-purple: #6C3EFF;
+  --color-pink: #FF4DB8;
+  --color-cyan: #00D4FF;
+  --color-white: #F7F9FF;
+}
