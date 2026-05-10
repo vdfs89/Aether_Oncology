@@ -78,18 +78,23 @@ app = FastAPI(
 # Middlewares & Monitoramento
 # ---------------------------------------------------------------------------
 
+
 @app.middleware("http")
 async def add_latency_header(request: Request, call_next):
     import time
     import logging as _logging
+
     start = time.perf_counter()
     response = await call_next(request)
     duration_ms = (time.perf_counter() - start) * 1000
     response.headers["X-Inference-Time-Ms"] = f"{duration_ms:.2f}"
     # Alerta em log se latência > 200ms
     if duration_ms > 200:
-        _logging.warning("Latência elevada: %.2f ms em %s", duration_ms, request.url.path)
+        _logging.warning(
+            "Latência elevada: %.2f ms em %s", duration_ms, request.url.path
+        )
     return response
+
 
 app.add_middleware(
     CORSMiddleware,

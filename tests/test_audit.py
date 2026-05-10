@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from src.services.audit import log_prediction, calculate_drift, AUDIT_FILE
 
+
 def test_log_prediction(tmp_path, monkeypatch):
     # Setup temporary audit file
     test_audit_file = tmp_path / "test_audit.jsonl"
@@ -9,7 +10,12 @@ def test_log_prediction(tmp_path, monkeypatch):
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
     features = {"radius_mean": 15.0, "texture_mean": 20.0}
-    prediction = {"prediction": 1, "label": "Malignant", "probability": 0.95, "top_feature": "area_mean"}
+    prediction = {
+        "prediction": 1,
+        "label": "Malignant",
+        "probability": 0.95,
+        "top_feature": "area_mean",
+    }
 
     log_prediction(features, prediction)
 
@@ -20,12 +26,14 @@ def test_log_prediction(tmp_path, monkeypatch):
         assert data["input"] == features
         assert data["output"]["label"] == "Malignant"
 
+
 def test_calculate_drift_insufficient_data(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "non_existent.jsonl"
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
-    
+
     result = calculate_drift()
     assert result["status"] == "insufficient_data"
+
 
 def test_calculate_drift_collecting(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "short_audit.jsonl"
@@ -40,6 +48,7 @@ def test_calculate_drift_collecting(tmp_path, monkeypatch):
     assert result["status"] == "collecting"
     assert result["count"] == 2
 
+
 def test_calculate_drift_stable(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "stable_audit.jsonl"
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
@@ -47,7 +56,7 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
 
     # Log 6 predictions close to training means
     features = {
-        "radius_mean": 14.1, 
+        "radius_mean": 14.1,
         "texture_mean": 19.3,
         "perimeter_mean": 92.0,
         "area_mean": 655.0,
@@ -64,13 +73,14 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
     assert "radius_mean" in result["metrics"]
     assert result["total_audited"] == 6
 
+
 def test_calculate_drift_alert(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "drift_audit.jsonl"
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
     # Log 6 predictions with significant drift (e.g., radius_mean double)
-    features = {"radius_mean": 30.0} 
+    features = {"radius_mean": 30.0}
     for _ in range(6):
         log_prediction(features, {"prediction": 1})
 

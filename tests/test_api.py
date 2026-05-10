@@ -283,13 +283,14 @@ def test_audit_endpoint_authenticated(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_KEY", "prod_secret")
     import importlib
     import src.main as main_module
+
     importlib.reload(main_module)
     secured_client = TestClient(main_module.app)
 
     # Primeiro sem token
     response = secured_client.get("/audit")
     assert response.status_code == 403
-    
+
     # Com token válido
     headers = {"access_token": "prod_secret"}
     response = secured_client.get("/audit", headers=headers)
