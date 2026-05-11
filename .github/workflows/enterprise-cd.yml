@@ -7,6 +7,10 @@ on:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
+    # Required for CodeQL SARIF upload to GitHub Security tab
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v3
       
@@ -28,9 +32,13 @@ jobs:
 
       - name: Upload SARIF vulnerability report
         uses: github/codeql-action/upload-sarif@v3
+        # Run even when scan fails so report is visible in Security tab.
+        # continue-on-error: true prevents a broken/empty SARIF (generated
+        # when grype exits non-zero) from cascading and blocking the job.
         if: always()
+        continue-on-error: true
         with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
+          sarif_file: results.sarif
 
   deploy-canary:
     needs: build-and-scan
