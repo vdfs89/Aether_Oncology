@@ -40,7 +40,7 @@ def test_calculate_drift_collecting(tmp_path, monkeypatch):
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
-    # Log only 2 predictions (less than 5)
+    # Log only 2 predictions (less than 10)
     for _ in range(2):
         log_prediction({"radius_mean": 14.0}, {"prediction": 0})
 
@@ -54,7 +54,7 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
-    # Log 6 predictions close to training means
+    # Log 11 predictions close to training means
     features = {
         "radius_mean": 14.1,
         "texture_mean": 19.3,
@@ -65,13 +65,13 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
         "concavity_mean": 0.088,
         "concave_points_mean": 0.048,
     }
-    for _ in range(6):
+    for _ in range(11):
         log_prediction(features, {"prediction": 0})
 
     result = calculate_drift()
     assert result["status"] == "stable"
     assert "radius_mean" in result["metrics"]
-    assert result["total_audited"] == 6
+    assert result["total_audited"] == 11
 
 
 def test_calculate_drift_alert(tmp_path, monkeypatch):
@@ -79,9 +79,22 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
-    # Log 6 predictions with significant drift (e.g., radius_mean double)
-    features = {"radius_mean": 30.0}
-    for _ in range(6):
+    # Log 11 predictions with significant drift
+    # Need drift in > 33% of features, let's drift 11 out of 30 features
+    features = {
+        "radius_mean": 30.0,
+        "texture_mean": 30.0,
+        "perimeter_mean": 150.0,
+        "area_mean": 1500.0,
+        "smoothness_mean": 0.2,
+        "compactness_mean": 0.3,
+        "concavity_mean": 0.4,
+        "concave_points_mean": 0.2,
+        "symmetry_mean": 0.3,
+        "fractal_dimension_mean": 0.1,
+        "radius_se": 2.0,
+    }
+    for _ in range(11):
         log_prediction(features, {"prediction": 1})
 
     result = calculate_drift()

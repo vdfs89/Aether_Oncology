@@ -18,8 +18,6 @@ Iniciar o servidor:
     uvicorn src.main:app --reload
 """
 
-
-
 import json
 import logging
 import os
@@ -96,7 +94,9 @@ async def lifespan(app: FastAPI):
     request_id = str(uuid.uuid4())
     request_id_contextvar.set(request_id)
 
-    logging.info(f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})")
+    logging.info(
+        f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})"
+    )
 
     # Pre-warm model and RAG engine
     try:
@@ -112,6 +112,7 @@ async def lifespan(app: FastAPI):
     await inference_client.shutdown()
     logging.info(f"SHUTDOWN [{request_id}]: Inference client closed.")
 
+
 app = FastAPI(
     title="Aether Oncology API",
     description=(
@@ -119,10 +120,11 @@ app = FastAPI(
         "**v2.2**: SRE Hardened - Deterministic Lifespan & Distributed Tracing. "
     ),
     version=APP_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -131,14 +133,18 @@ async def global_exception_handler(request: Request, exc: Exception):
     Prevents leaking internal stack traces and provides standardized clinical error codes.
     """
     request_id = request_id_contextvar.get()
-    logging.error(f"Critical Platform Error [{request_id}]: {exc}", extra={
-        "path": request.url.path,
-        "method": request.method,
-        "error_type": type(exc).__name__,
-        "request_id": request_id
-    })
+    logging.error(
+        f"Critical Platform Error [{request_id}]: {exc}",
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+            "error_type": type(exc).__name__,
+            "request_id": request_id,
+        },
+    )
 
     from fastapi.responses import JSONResponse
+
     return JSONResponse(
         status_code=500,
         content={
@@ -146,9 +152,10 @@ async def global_exception_handler(request: Request, exc: Exception):
             "message": "Ocorreu um erro inesperado no processamento clínico. A equipe de SRE foi notificada.",
             "clinical_impact": "High",
             "request_id": request_id,
-            "timestamp": time.time()
-        }
+            "timestamp": time.time(),
+        },
     )
+
 
 # ---------------------------------------------------------------------------
 # Middlewares & Monitoramento
@@ -185,10 +192,12 @@ async def add_sre_telemetry(request: Request, call_next):
             f"VERSION SKEW DETECTED [{request_id}]: Client {client_version} vs Server {APP_VERSION}"
         )
 
-    if duration_ms > 500: # Slightly higher threshold for RAG overhead
+    if duration_ms > 500:  # Slightly higher threshold for RAG overhead
         logging.warning(
             "HIGH LATENCY [%s]: %.2f ms in %s",
-            request_id, duration_ms, request.url.path
+            request_id,
+            duration_ms,
+            request.url.path,
         )
     return response
 
@@ -197,7 +206,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://aether-oncology.vercel.app",  # Production Frontend
-        "https://aether-oncology-portal.vitorsilva.engineer", # Custom Domain
+        "https://aether-oncology-portal.vitorsilva.engineer",  # Custom Domain
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:5173",
@@ -222,7 +231,9 @@ if os.path.exists(assets_dir):
 for folder in ["css", "js", "images"]:
     folder_path = os.path.join(portal_dir, folder)
     if os.path.exists(folder_path):
-        app.mount(f"/{folder}", StaticFiles(directory=folder_path), name=f"portal-{folder}")
+        app.mount(
+            f"/{folder}", StaticFiles(directory=folder_path), name=f"portal-{folder}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -244,17 +255,24 @@ async def read_index() -> HTMLResponse:
 # Multimodality Readiness (v2.1)
 # ---------------------------------------------------------------------------
 
+
 class GenomicMarkers(BaseModel):
     """Marcadores genéticos de alto risco (KRAS, EGFR, PIK3CA)."""
+
     kras_mutation: bool = Field(False, description="Presença de mutação KRAS")
     egfr_amplification: bool = Field(False, description="Amplificação de EGFR")
     pik3ca_mutation: bool = Field(False, description="Mutação PIK3CA (PI3K pathway)")
 
+
 class EHREntry(BaseModel):
     """Dados resumidos do Prontuário Eletrônico (EHR)."""
+
     age: int | None = Field(None, gt=0, description="Idade do paciente")
-    family_history: bool = Field(False, description="Histórico familiar de câncer de mama")
+    family_history: bool = Field(
+        False, description="Histórico familiar de câncer de mama"
+    )
     previous_biopsies: int = Field(0, ge=0, description="Número de biópsias anteriores")
+
 
 # ---------------------------------------------------------------------------
 # Schema de entrada — 30 features WDBC + Multimodal v2.1
@@ -306,7 +324,9 @@ class TumorFeatures(BaseModel):
     )
 
     # v2.1 Roadmap: Multimodal Fields (Optional for now)
-    genomics: GenomicMarkers | None = Field(None, description="Dados genômicos do paciente")
+    genomics: GenomicMarkers | None = Field(
+        None, description="Dados genômicos do paciente"
+    )
     ehr: EHREntry | None = Field(None, description="Sumário do prontuário eletrônico")
 
     model_config = {
@@ -395,6 +415,7 @@ class PredictResponse(BaseModel):
 # SRE Observability Endpoints
 # ---------------------------------------------------------------------------
 
+
 @app.get("/version", tags=["SRE"])
 async def get_version():
     """Returns platform metadata for deployment verification."""
@@ -402,13 +423,15 @@ async def get_version():
         "version": APP_VERSION,
         "git_sha": GIT_SHA,
         "environment": os.getenv("NODE_ENV", "production"),
-        "status": "operational"
+        "status": "operational",
     }
+
 
 @app.get("/health/live", tags=["SRE"])
 async def health_live():
     """Liveness probe: Process is alive."""
     return {"status": "alive", "timestamp": time.time()}
+
 
 @app.get("/health/ready", tags=["SRE"])
 async def health_ready():
@@ -416,13 +439,14 @@ async def health_ready():
     if not predictor.is_ready():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model not loaded yet"
+            detail="Model not loaded yet",
         )
     return {
         "status": "ready",
         "model_version": getattr(predictor, "model_version", "v1"),
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
+
 
 @app.get("/health/inference", tags=["SRE"])
 async def health_inference():
@@ -432,8 +456,9 @@ async def health_inference():
         "status": "up" if is_up else "down",
         "model_id": inference_client.model_id,
         "circuit_state": inference_client.state.value,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
+
 
 @app.get("/health", tags=["Legacy"])
 @limiter.limit("60/minute")
@@ -496,11 +521,14 @@ async def make_prediction(request: Request, features: TumorFeatures) -> PredictR
 # Clinical Feedback Loop — Ground Truth (v2.1)
 # ---------------------------------------------------------------------------
 
+
 class FeedbackRequest(BaseModel):
     """Dados de feedback clínico (Ground Truth)."""
+
     prediction_id: str = Field(..., description="ID da predição (timestamp/hash)")
     ground_truth: int = Field(..., ge=0, le=1, description="1 = Maligno, 0 = Benigno")
     notes: str | None = None
+
 
 @app.post("/feedback", tags=["Clinical Feedback"], dependencies=[Security(get_api_key)])
 async def clinical_feedback(feedback: FeedbackRequest):
@@ -513,7 +541,7 @@ async def clinical_feedback(feedback: FeedbackRequest):
     feedback_entry = {
         "timestamp": time.time(),
         "type": "clinical_feedback",
-        "data": feedback.model_dump()
+        "data": feedback.model_dump(),
     }
 
     with open(AUDIT_FILE, "a", encoding="utf-8") as f:
@@ -558,7 +586,9 @@ def get_audit_trail():
 # ---------------------------------------------------------------------------
 
 # Initialize Orchestrator with baseline dataset
-_BASELINE_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "data.csv")
+_BASELINE_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "data", "raw", "data.csv"
+)
 orchestrator = None
 
 try:
@@ -566,6 +596,7 @@ try:
         orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
 except Exception as e:
     import logging
+
     logging.error(f"Falha ao carregar baseline para monitoramento: {e}")
 
 
@@ -575,7 +606,10 @@ def monitor_drift():
     Detecta Data Drift comparando o rastro de auditoria com o baseline WDBC.
     """
     if not orchestrator or not AUDIT_FILE.exists():
-        return {"status": "error", "message": "Monitoramento indisponível (Falta rastro de auditoria)"}
+        return {
+            "status": "error",
+            "message": "Monitoramento indisponível (Falta rastro de auditoria)",
+        }
 
     # Carrega as últimas 100 inferências (apenas do tipo prediction)
     audit_data = [d for d in get_audit_trail() if "features" in d]
@@ -593,11 +627,16 @@ def monitor_drift():
 
     # Mapeamento reverso para bater com o baseline do WDBC
     feature_mapping = {
-        "radius_mean": "mean radius", "texture_mean": "mean texture",
-        "perimeter_mean": "mean perimeter", "area_mean": "mean area",
-        "smoothness_mean": "mean smoothness", "compactness_mean": "mean compactness",
-        "concavity_mean": "mean concavity", "concave_points_mean": "mean concave points",
-        "symmetry_mean": "mean symmetry", "fractal_dimension_mean": "mean fractal dimension"
+        "radius_mean": "mean radius",
+        "texture_mean": "mean texture",
+        "perimeter_mean": "mean perimeter",
+        "area_mean": "mean area",
+        "smoothness_mean": "mean smoothness",
+        "compactness_mean": "mean compactness",
+        "concavity_mean": "mean concavity",
+        "concave_points_mean": "mean concave points",
+        "symmetry_mean": "mean symmetry",
+        "fractal_dimension_mean": "mean fractal dimension",
     }
     # (Simplified for the top 10 features, expand if needed)
     current_df = current_df.rename(columns=feature_mapping)
@@ -616,25 +655,31 @@ def monitor_fairness():
 
     all_audit = get_audit_trail()
     predictions = [d for d in all_audit if "features" in d]
-    feedbacks = {d["data"]["prediction_id"]: d["data"]["ground_truth"] for d in all_audit if d.get("type") == "clinical_feedback"}
+    feedbacks = {
+        d["data"]["prediction_id"]: d["data"]["ground_truth"]
+        for d in all_audit
+        if d.get("type") == "clinical_feedback"
+    }
 
     # Filtra apenas predições que possuem feedback (ground truth)
     matches = []
     for p in predictions:
-        p_id = str(p.get("timestamp")) # Usando timestamp como ID simplificado
+        p_id = str(p.get("timestamp"))  # Usando timestamp como ID simplificado
         if p_id in feedbacks:
-            matches.append({
-                "features": p["features"],
-                "prediction": p["result"]["prediction"],
-                "ground_truth": feedbacks[p_id]
-            })
+            matches.append(
+                {
+                    "features": p["features"],
+                    "prediction": p["result"]["prediction"],
+                    "ground_truth": feedbacks[p_id],
+                }
+            )
 
     if len(matches) < 5:
         return {
             "status": "waiting_for_ground_truth",
             "monitored_samples": len(predictions),
             "samples_with_feedback": len(matches),
-            "message": "Necessário ao menos 5 feedbacks reais para auditoria estatística."
+            "message": "Necessário ao menos 5 feedbacks reais para auditoria estatística.",
         }
 
     live_df = pd.DataFrame([m["features"] for m in matches])
@@ -647,7 +692,9 @@ def monitor_fairness():
     return orchestrator.run_production_health_check(live_df, y_pred, y_true)
 
 
-@app.get("/monitor/sustainability", tags=["Green AI"], dependencies=[Security(get_api_key)])
+@app.get(
+    "/monitor/sustainability", tags=["Green AI"], dependencies=[Security(get_api_key)]
+)
 def monitor_sustainability():
     """
     Relatório de Impacto Ambiental (Green AI).

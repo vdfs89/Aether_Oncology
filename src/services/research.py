@@ -31,13 +31,14 @@ class CircuitBreaker:
     Prevents cascading failures by stopping requests to an external service
     that is consistently failing.
     """
+
     def __init__(self, name: str, threshold: int = 3, recovery_time: int = 60):
         self.name = name
         self.threshold = threshold
         self.recovery_time = recovery_time
         self.failures = 0
         self.last_failure_time = 0
-        self.state = "CLOSED" # CLOSED, OPEN, HALF-OPEN
+        self.state = "CLOSED"  # CLOSED, OPEN, HALF-OPEN
 
     def call(self, fn, *args, **kwargs):
         if self.state == "OPEN":
@@ -58,12 +59,15 @@ class CircuitBreaker:
         except Exception as e:
             self.failures += 1
             self.last_failure_time = time.time()
-            log.error(f"Circuit {self.name} failure ({self.failures}/{self.threshold}): {e}")
+            log.error(
+                f"Circuit {self.name} failure ({self.failures}/{self.threshold}): {e}"
+            )
 
             if self.failures >= self.threshold:
                 self.state = "OPEN"
                 log.error(f"Circuit {self.name} is now OPEN.")
             return []
+
 
 # One circuit per external provider
 pubmed_breaker = CircuitBreaker("PubMed", threshold=3)
@@ -248,11 +252,13 @@ def _search_semantic_scholar(query: str, limit: int = 3) -> list[dict[str, Any]]
 # Enterprise Vector DB Service (v2.1 — Simulated)
 # ---------------------------------------------------------------------------
 
+
 class VectorDBService:
     """
     Serviço de busca semântica para evidências científicas.
     Simula o comportamento de um banco de vetores (Pinecone/ChromaDB).
     """
+
     def __init__(self):
         # Em produção, conectaríamos ao endpoint do Pinecone/Milvus
         self.collection_name = "clinical_evidence"
@@ -266,7 +272,8 @@ class VectorDBService:
         log.info("Vector search similarity query: '%s'", query)
 
         # Mock de resultados "vetoriais" que seriam retornados pelo banco
-        return [] # Fallback para busca live por enquanto
+        return []  # Fallback para busca live por enquanto
+
 
 vector_db = VectorDBService()
 

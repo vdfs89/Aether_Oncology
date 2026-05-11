@@ -36,15 +36,42 @@ _MODEL_PATH = _MODELS_DIR / "aether_mlp_v2.pth"
 _CALIBRATOR_PATH = _MODELS_DIR / "calibrator.joblib"
 
 FEATURE_NAMES = [
-    "radius_mean", "texture_mean", "perimeter_mean", "area_mean", "smoothness_mean",
-    "compactness_mean", "concavity_mean", "concave_points_mean", "symmetry_mean", "fractal_dimension_mean",
-    "radius_se", "texture_se", "perimeter_se", "area_se", "smoothness_se",
-    "compactness_se", "concavity_se", "concave_points_se", "symmetry_se", "fractal_dimension_se",
-    "radius_worst", "texture_worst", "perimeter_worst", "area_worst", "smoothness_worst",
-    "compactness_worst", "concavity_worst", "concave_points_worst", "symmetry_worst", "fractal_dimension_worst"
+    "radius_mean",
+    "texture_mean",
+    "perimeter_mean",
+    "area_mean",
+    "smoothness_mean",
+    "compactness_mean",
+    "concavity_mean",
+    "concave_points_mean",
+    "symmetry_mean",
+    "fractal_dimension_mean",
+    "radius_se",
+    "texture_se",
+    "perimeter_se",
+    "area_se",
+    "smoothness_se",
+    "compactness_se",
+    "concavity_se",
+    "concave_points_se",
+    "symmetry_se",
+    "fractal_dimension_se",
+    "radius_worst",
+    "texture_worst",
+    "perimeter_worst",
+    "area_worst",
+    "smoothness_worst",
+    "compactness_worst",
+    "concavity_worst",
+    "concave_points_worst",
+    "symmetry_worst",
+    "fractal_dimension_worst",
 ]
 
-def _integrated_gradients(model: torch.nn.Module, inputs: torch.Tensor, steps: int = 20) -> np.ndarray:
+
+def _integrated_gradients(
+    model: torch.nn.Module, inputs: torch.Tensor, steps: int = 20
+) -> np.ndarray:
     """
     Manual implementation of Integrated Gradients (XAI).
     Calculates feature importance by integrating gradients along the path from baseline to input.
@@ -69,6 +96,7 @@ def _integrated_gradients(model: torch.nn.Module, inputs: torch.Tensor, steps: i
     avg_grads = accum_grads / steps
     attributions = (inputs - baseline) * avg_grads
     return attributions.detach().numpy().squeeze()
+
 
 class PredictorService:
     """
@@ -100,11 +128,15 @@ class PredictorService:
             # Proxy Model for XAI and Fallback
             self.model = MLP(input_shape=30)
             if _MODEL_PATH.exists():
-                self.model.load_state_dict(torch.load(_MODEL_PATH, weights_only=True, map_location="cpu"))
+                self.model.load_state_dict(
+                    torch.load(_MODEL_PATH, weights_only=True, map_location="cpu")
+                )
                 self.model.eval()
                 logger.info("Local Proxy Model loaded for XAI/Fallback.")
             else:
-                logger.warning(f"Local weights not found in '{_MODEL_PATH}'. Fallback and XAI will be limited.")
+                logger.warning(
+                    f"Local weights not found in '{_MODEL_PATH}'. Fallback and XAI will be limited."
+                )
 
             if _CALIBRATOR_PATH.exists():
                 self.calibrator = joblib.load(_CALIBRATOR_PATH)
@@ -113,7 +145,9 @@ class PredictorService:
         except Exception as e:
             logger.critical(f"Failed to load clinical resources: {e}")
 
-    async def predict(self, input_data: list[list[float]], request_id: str = "internal") -> dict:
+    async def predict(
+        self, input_data: list[list[float]], request_id: str = "internal"
+    ) -> dict:
         """
         Main orchestration entry point for clinical predictions.
 
@@ -139,7 +173,9 @@ class PredictorService:
 
         try:
             # Persistent client with connection pooling and circuit breaker
-            remote_result = await inference_client.predict_remote(processed_data.tolist(), request_id=request_id)
+            remote_result = await inference_client.predict_remote(
+                processed_data.tolist(), request_id=request_id
+            )
             latency_ms = remote_result.get("latency_ms", 0)
 
             # Robust Probability Extraction
@@ -159,17 +195,23 @@ class PredictorService:
                     probability = val.get("score", 0.5)
 
         except Exception as e:
-            logger.warning(f"Inference Pivot [{request_id}]: Remote Failed ({e}). Using Local Fallback.")
+            logger.warning(
+                f"Inference Pivot [{request_id}]: Remote Failed ({e}). Using Local Fallback."
+            )
             remote_error = str(e)
             inference_source = "local_fallback"
 
             # 3. Local Fallback (Deterministic Resilience)
             if self.model:
                 with torch.no_grad():
-                    logits = self.model(torch.tensor(processed_data, dtype=torch.float32))
+                    logits = self.model(
+                        torch.tensor(processed_data, dtype=torch.float32)
+                    )
                     probability = torch.sigmoid(logits).item()
             else:
-                raise Exception(f"Clinical inference unavailable (Primary error: {remote_error})")
+                raise Exception(
+                    f"Clinical inference unavailable (Primary error: {remote_error})"
+                )
 
         prediction = 1 if probability >= 0.5 else 0
         label = "Malignant" if prediction == 1 else "Benign"
@@ -214,14 +256,18 @@ class PredictorService:
             "status": "sucesso" if inference_source == "remote" else "fallback",
             "inference_source": inference_source,
             "remote_latency_ms": latency_ms,
-            "model_id": inference_client.model_id if inference_source == "remote" else "local_mlp_v2"
+            "model_id": inference_client.model_id
+            if inference_source == "remote"
+            else "local_mlp_v2",
         }
 
     def is_ready(self) -> bool:
         return self.preprocessor is not None
 
+
 class _LazyPredictor:
     """Lazy wrapper to defer resource loading until first request or health check."""
+
     def __init__(self) -> None:
         self._instance: PredictorService | None = None
 
@@ -231,7 +277,9 @@ class _LazyPredictor:
             self._instance.load_resources()
         return self._instance
 
-    async def predict(self, input_data: list[list[float]], request_id: str = "internal") -> dict:
+    async def predict(
+        self, input_data: list[list[float]], request_id: str = "internal"
+    ) -> dict:
         return await self._get_instance().predict(input_data, request_id=request_id)
 
     def is_ready(self) -> bool:
@@ -248,6 +296,7 @@ class _LazyPredictor:
     @property
     def model_version(self) -> str:
         return self._get_instance().model_version
+
 
 # Global Singleton
 predictor = _LazyPredictor()
