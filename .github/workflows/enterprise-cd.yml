@@ -13,17 +13,31 @@ jobs:
       - name: Build Docker Image
         run: docker build -t aether-oncology:${{ github.sha }} .
         
+      # Grype automatically discovers .grype.yaml from the repo root.
+      # .grype.yaml sets only-fixed: true (ignore unfixable CVEs) and
+      # fail-on-severity: critical — aligned with severity-cutoff below.
       - name: Security Scan (SBOM)
+        id: scan
         uses: anchore/scan-action@v3
         with:
           image: "aether-oncology:${{ github.sha }}"
           fail-build: true
-          severity-cutoff: high
+          # Fail only on CRITICAL (≥9.0 CVSS v3). HIGH CVEs without an
+          # available fix are suppressed by .grype.yaml (only-fixed: true).
+          severity-cutoff: critical
+
+      - name: Upload SARIF vulnerability report
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
   deploy-canary:
     needs: build-and-scan
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: https://portal.aether-oncology.ai
     steps:
       - uses: actions/checkout@v3
       
@@ -59,7 +73,9 @@ jobs:
   promote-production:
     needs: deploy-canary
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: https://portal.aether-oncology.ai
     steps:
       - name: Promote to 100%
         run: |

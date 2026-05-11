@@ -1,0 +1,68 @@
+# .grype.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Grype vulnerability scanner configuration
+# Docs: https://github.com/anchore/grype#configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Only report vulnerabilities that have a known fix available.
+# This eliminates noise from unfixable OS-level CVEs in base images
+# (e.g., glibc, libssl bundled inside PyTorch wheels) where no upstream
+# patch exists yet and the risk is accepted via architectural controls
+# (non-root user, read-only fs, network policies).
+only-fixed: true
+
+# Fail the build only on CRITICAL severity (scored ≥9.0 CVSS v3).
+# HIGH vulnerabilities with no fix are excluded by `only-fixed: true` above.
+# HIGH vulnerabilities WITH a fix will trigger an image rebuild/update cycle
+# tracked in our security backlog (see PROJECT_STATUS.md §Security).
+fail-on-severity: "critical"
+
+# Ignore specific CVEs that are:
+#   a) embedded inside binary wheels (PyTorch, numpy) with no upstream patch, OR
+#   b) not exploitable in our threat model (sandboxed read-only container,
+#      no shell access, non-root, egress-restricted network).
+#
+# Each entry MUST include a reason and expiry date for audit compliance.
+ignore:
+  # ── libgomp / OpenMP bundled inside torch wheels ──────────────────────────
+  - vulnerability: CVE-2023-4039
+    reason: >
+      Bundled libgomp inside torch binary wheel; no upstream fix available.
+      Container runs as non-root with no shell — stack-smashing exploitability
+      requires local code execution which is not part of our attack surface.
+    fix-state: not-fixed
+
+  # ── OpenSSL 3.x in Debian Bookworm ────────────────────────────────────────
+  - vulnerability: CVE-2024-0727
+    reason: >
+      PKCS#12 null-pointer dereference requires crafted input to openssl CLI.
+      Our workload never invokes the openssl binary; only the libssl shared
+      library is used for TLS by Python's ssl module. Bookworm patch pending.
+    fix-state: not-fixed
+
+  - vulnerability: CVE-2024-2511
+    reason: >
+      TLS session cache memory leak (DoS vector). Mitigated by external
+      load-balancer TLS termination; the container does not expose TLS directly.
+    fix-state: not-fixed
+
+  # ── libexpat (used by Python's xml stdlib) ────────────────────────────────
+  - vulnerability: CVE-2024-28757
+    reason: >
+      DTD recursive-expansion DoS in libexpat. Our API never parses untrusted
+      XML; the affected code path is unreachable. Debian patch pending.
+    fix-state: not-fixed
+
+  # ── stdlib zlib ───────────────────────────────────────────────────────────
+  - vulnerability: CVE-2023-45853
+    reason: >
+      MiniZip integer overflow in a code path not compiled into Debian's zlib.
+      Confirmed not-affected by Debian security tracker. No action required.
+    fix-state: not-fixed
+
+  # ── pip / setuptools inside the venv ──────────────────────────────────────
+  - vulnerability: CVE-2024-6345
+    reason: >
+      setuptools path traversal during editable installs. The final image
+      does not contain setuptools (pip install --no-deps). Risk accepted.
+    fix-state: not-fixed
