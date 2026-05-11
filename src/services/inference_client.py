@@ -52,7 +52,7 @@ class HuggingFaceInferenceClient:
         self.failure_count = 0
         self.failure_threshold = 5
         self.recovery_timeout = 30  # Seconds to wait before HALF_OPEN
-        self.last_failure_time = 0
+        self.last_failure_time = 0.0
 
         if not self.api_token:
             logger.warning("HF_TOKEN missing. Remote inference will fail.")

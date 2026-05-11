@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 1: Frontend Build (Node.js + Vite)
 # ─────────────────────────────────────────────────────────────────────────────
-FROM node:20-slim AS frontend-builder
+FROM node:20.12-slim AS frontend-builder
 WORKDIR /build
 
 # Copy package files for caching
@@ -18,7 +18,7 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Backend (Python 3.11)
 # ─────────────────────────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # Metadados da imagem
 LABEL maintainer="Equipe Aether Oncology" \
@@ -30,8 +30,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MLFLOW_TRACKING_URI=/app/mlruns
 
-# Dependências de sistema
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Dependências de sistema e hardening de segurança (patches CVEs)
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
