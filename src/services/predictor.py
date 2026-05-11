@@ -91,12 +91,14 @@ def _integrated_gradients(
     accum_grads = torch.zeros_like(inputs)
 
     for alpha in alphas:
-        interpolated = (baseline + alpha * (inputs - baseline)).detach().requires_grad_(True)
+        interpolated = (
+            (baseline + alpha * (inputs - baseline)).detach().requires_grad_(True)
+        )
 
         # Logit output — gradient computation requires the graph to be built
         output = model(interpolated)
 
-        model.zero_grad()        # zero model-parameter grads before backward
+        model.zero_grad()  # zero model-parameter grads before backward
         output.backward()
 
         if interpolated.grad is not None:
