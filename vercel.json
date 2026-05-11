@@ -3,6 +3,8 @@
   "framework": "vite",
   "cleanUrls": true,
   "trailingSlash": false,
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/(.*)",
