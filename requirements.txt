@@ -16,9 +16,10 @@ biopython>=1.83
 diskcache>=5.6.3
 slowapi>=0.1.9
 python-json-logger>=2.0.7
+httpx>=0.27.0
+
 
 # Dev dependencies
 ruff>=0.4.0
 pytest>=8.0.0
 pytest-cov>=4.1.0
-httpx>=0.27.0
