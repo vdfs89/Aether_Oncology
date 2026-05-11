@@ -1,5 +1,4 @@
 import json
-import pytest
 
 from src.services.audit import calculate_drift, log_prediction
 
@@ -50,7 +49,6 @@ def test_calculate_drift_collecting(tmp_path, monkeypatch):
     assert result["count"] == 2
 
 
-@pytest.mark.skip(reason="Tests are failing because they insert 6 samples but calculate_drift expects 10. Skipping them to unblock pre-commit.")
 def test_calculate_drift_stable(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "stable_audit.jsonl"
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
@@ -76,14 +74,26 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
     assert result["total_audited"] == 11
 
 
-@pytest.mark.skip(reason="Tests are failing because they insert 6 samples but calculate_drift expects 10. Skipping them to unblock pre-commit.")
 def test_calculate_drift_alert(tmp_path, monkeypatch):
     test_audit_file = tmp_path / "drift_audit.jsonl"
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
-    # Log 11 predictions with significant drift (e.g., radius_mean double)
-    features = {"radius_mean": 30.0}
+    # Log 11 predictions with significant drift
+    # Need drift in > 33% of features, let's drift 11 out of 30 features
+    features = {
+        "radius_mean": 30.0,
+        "texture_mean": 30.0,
+        "perimeter_mean": 150.0,
+        "area_mean": 1500.0,
+        "smoothness_mean": 0.2,
+        "compactness_mean": 0.3,
+        "concavity_mean": 0.4,
+        "concave_points_mean": 0.2,
+        "symmetry_mean": 0.3,
+        "fractal_dimension_mean": 0.1,
+        "radius_se": 2.0
+    }
     for _ in range(11):
         log_prediction(features, {"prediction": 1})
 
