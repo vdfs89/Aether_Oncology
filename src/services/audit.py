@@ -60,6 +60,8 @@ def calculate_drift() -> dict:
     try:
         # Lê as últimas 100 predições
         df = pd.read_json(AUDIT_FILE, lines=True)
+        # Mantém resposta rápida de monitorização após poucas inferências.
+        # O estado de alerta final é complementarmente validado por desvio relativo.
         if len(df) < 5:
             return {"status": "collecting", "count": len(df)}
 
@@ -91,12 +93,15 @@ def calculate_drift() -> dict:
         for feature, train_mean in TRAINING_MEANS.items():
             if feature not in current_means:
                 continue
-            denominator = abs(train_mean) if train_mean else 1.0
+            denominator = abs(train_mean) if train_mean != 0 else 1.0
             relative_shift = abs(current_means[feature] - train_mean) / denominator
             if relative_shift >= 0.2:
                 relative_shift_alerts.append(feature)
 
-        alerts = list(dict.fromkeys(report["drifted_features"] + relative_shift_alerts))
+        alerts = []
+        for feature in report["drifted_features"] + relative_shift_alerts:
+            if feature not in alerts:
+                alerts.append(feature)
         return {
             "status": "alert"
             if report["drift_detected"] or bool(relative_shift_alerts)
