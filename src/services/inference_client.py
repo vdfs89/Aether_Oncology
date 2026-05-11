@@ -16,10 +16,12 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+
 class CircuitState(Enum):
-    CLOSED = "CLOSED"    # Normal operation
-    OPEN = "OPEN"      # Error state, requests blocked
-    HALF_OPEN = "HALF_OPEN" # Testing if service recovered
+    CLOSED = "CLOSED"  # Normal operation
+    OPEN = "OPEN"  # Error state, requests blocked
+    HALF_OPEN = "HALF_OPEN"  # Testing if service recovered
+
 
 class HuggingFaceInferenceClient:
     """
@@ -42,7 +44,7 @@ class HuggingFaceInferenceClient:
         self.max_retries = 3
         self.client = httpx.AsyncClient(
             timeout=self.timeout,
-            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20)
+            limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
         )
 
         # Circuit Breaker State
@@ -62,7 +64,9 @@ class HuggingFaceInferenceClient:
                 logger.info(f"Circuit for {self.model_id} transitioning to HALF_OPEN")
                 self.state = CircuitState.HALF_OPEN
             else:
-                raise Exception("Circuit is OPEN. Inference layer temporarily disabled for stability.")
+                raise Exception(
+                    "Circuit is OPEN. Inference layer temporarily disabled for stability."
+                )
 
     def _on_success(self):
         """Reset failures on successful call."""
@@ -74,10 +78,14 @@ class HuggingFaceInferenceClient:
         self.failure_count += 1
         self.last_failure_time = time.time()
         if self.failure_count >= self.failure_threshold:
-            logger.critical(f"CIRCUIT BREAKER OPEN for {self.model_id} after {self.failure_count} failures.")
+            logger.critical(
+                f"CIRCUIT BREAKER OPEN for {self.model_id} after {self.failure_count} failures."
+            )
             self.state = CircuitState.OPEN
 
-    async def predict_remote(self, inputs: List[List[float]], request_id: str = "internal") -> Dict[str, Any]:
+    async def predict_remote(
+        self, inputs: List[List[float]], request_id: str = "internal"
+    ) -> Dict[str, Any]:
         """
         Executes remote inference with resilience patterns.
         """
@@ -87,7 +95,7 @@ class HuggingFaceInferenceClient:
             "Authorization": f"Bearer {self.api_token}",
             "X-Request-ID": request_id,
             "X-Model-Version": self.model_id.split("/")[-1],
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         payload = {"inputs": inputs}
@@ -95,7 +103,9 @@ class HuggingFaceInferenceClient:
         for attempt in range(self.max_retries):
             try:
                 start_time = time.perf_counter()
-                response = await self.client.post(self.api_url, json=payload, headers=headers)
+                response = await self.client.post(
+                    self.api_url, json=payload, headers=headers
+                )
                 latency = (time.perf_counter() - start_time) * 1000
 
                 # Success path
@@ -105,13 +115,15 @@ class HuggingFaceInferenceClient:
                         "data": response.json(),
                         "latency_ms": latency,
                         "version": self.model_id,
-                        "source": "huggingface"
+                        "source": "huggingface",
                     }
 
                 # Model is still loading on HF infrastructure
                 if response.status_code == 503:
                     estimated = response.json().get("estimated_time", 20)
-                    logger.warning(f"HF [{request_id}]: Model loading ({estimated}s). Attempt {attempt+1}")
+                    logger.warning(
+                        f"HF [{request_id}]: Model loading ({estimated}s). Attempt {attempt + 1}"
+                    )
                     await asyncio.sleep(min(2, estimated))
                     continue
 
@@ -119,13 +131,15 @@ class HuggingFaceInferenceClient:
                 response.raise_for_status()
 
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                logger.error(f"HF [{request_id}]: Request failed (attempt {attempt+1}): {e}")
+                logger.error(
+                    f"HF [{request_id}]: Request failed (attempt {attempt + 1}): {e}"
+                )
                 if attempt == self.max_retries - 1:
                     self._on_failure()
                     raise Exception(f"Inference gateway error: {e}")
 
                 # Exponential backoff
-                await asyncio.sleep(0.5 * (2 ** attempt))
+                await asyncio.sleep(0.5 * (2**attempt))
 
         raise Exception("Inference failed after max retries.")
 
@@ -140,6 +154,7 @@ class HuggingFaceInferenceClient:
     async def shutdown(self):
         """Graceful shutdown of the persistent client."""
         await self.client.aclose()
+
 
 # Singleton
 inference_client = HuggingFaceInferenceClient()

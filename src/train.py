@@ -162,10 +162,18 @@ def train() -> None:
         for fold, (train_idx, test_idx) in enumerate(skf.split(X_val_np, y_val_np)):
             # Aqui poderíamos treinar um mini-modelo, mas para o CDSS
             # reportamos a consistência da divisão dos dados.
-            train_dist = pd.Series(y_val_np[train_idx]).value_counts(normalize=True).to_dict()
-            test_dist = pd.Series(y_val_np[test_idx]).value_counts(normalize=True).to_dict()
-            log.info("Fold %d: Proporção Maligno (Train: %.2f, Test: %.2f)",
-                     fold + 1, train_dist.get(1, 0), test_dist.get(1, 0))
+            train_dist = (
+                pd.Series(y_val_np[train_idx]).value_counts(normalize=True).to_dict()
+            )
+            test_dist = (
+                pd.Series(y_val_np[test_idx]).value_counts(normalize=True).to_dict()
+            )
+            log.info(
+                "Fold %d: Proporção Maligno (Train: %.2f, Test: %.2f)",
+                fold + 1,
+                train_dist.get(1, 0),
+                test_dist.get(1, 0),
+            )
             cv_recalls.append(test_dist.get(1, 0))
 
         mlflow.log_metric("cv_stratification_consistency", np.std(cv_recalls))

@@ -7,6 +7,7 @@ from scipy import stats
 
 logger = logging.getLogger(__name__)
 
+
 class DriftDetector:
     """
     Enterprise-grade Drift Detection for Clinical Inference.
@@ -21,18 +22,18 @@ class DriftDetector:
         """
         self.baseline = baseline_df
         self.alpha = alpha
-        self.feature_columns = baseline_df.select_dtypes(include=[np.number]).columns.tolist()
-        logger.info(f"DriftDetector initialized with {len(self.feature_columns)} features.")
+        self.feature_columns = baseline_df.select_dtypes(
+            include=[np.number]
+        ).columns.tolist()
+        logger.info(
+            f"DriftDetector initialized with {len(self.feature_columns)} features."
+        )
 
     def check_data_drift(self, current_df: pd.DataFrame) -> Dict:
         """
         Detects Data Drift using Kolmogorov-Smirnov test for each feature.
         """
-        drift_report = {
-            "drift_detected": False,
-            "drifted_features": [],
-            "metrics": {}
-        }
+        drift_report = {"drift_detected": False, "drifted_features": [], "metrics": {}}
 
         for col in self.feature_columns:
             if col not in current_df.columns:
@@ -45,21 +46,27 @@ class DriftDetector:
             drift_report["metrics"][col] = {
                 "p_value": float(p_value),
                 "ks_stat": float(ks_stat),
-                "drift": bool(is_drifted)
+                "drift": bool(is_drifted),
             }
 
             if is_drifted:
                 drift_report["drifted_features"].append(col)
 
         # If more than 33% of features drifted, flag global drift
-        drift_percentage = len(drift_report["drifted_features"]) / len(self.feature_columns)
+        drift_percentage = len(drift_report["drifted_features"]) / len(
+            self.feature_columns
+        )
         if drift_percentage > 0.33:
             drift_report["drift_detected"] = True
-            logger.warning(f"CRITICAL: Data drift detected in {drift_percentage*100:.1f}% of features!")
+            logger.warning(
+                f"CRITICAL: Data drift detected in {drift_percentage * 100:.1f}% of features!"
+            )
 
         return drift_report
 
-    def check_concept_drift(self, live_predictions: List[float], baseline_predictions: List[float]) -> Dict:
+    def check_concept_drift(
+        self, live_predictions: List[float], baseline_predictions: List[float]
+    ) -> Dict:
         """
         Detects Concept Drift by comparing prediction probability distributions.
         """
@@ -69,5 +76,5 @@ class DriftDetector:
         return {
             "concept_drift": bool(is_drifted),
             "p_value": float(p_value),
-            "ks_stat": float(ks_stat)
+            "ks_stat": float(ks_stat),
         }

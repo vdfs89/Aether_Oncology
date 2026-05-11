@@ -3,6 +3,7 @@ from typing import Dict
 
 logger = logging.getLogger(__name__)
 
+
 class GreenAIMonitor:
     """
     Tracks and estimates carbon footprint and energy consumption of ML inference.
@@ -42,7 +43,7 @@ class GreenAIMonitor:
         return {
             "energy_kwh": float(energy_kwh),
             "co2_g": float(co2_g),
-            "inference_time_ms": duration_ms
+            "inference_time_ms": duration_ms,
         }
 
     def get_sustainability_report(self) -> Dict[str, any]:
@@ -53,5 +54,5 @@ class GreenAIMonitor:
             "total_inferences": self.inference_count,
             "total_energy_consumption_kwh": float(self.total_energy_kwh),
             "total_carbon_footprint_gco2": float(self.total_co2_g),
-            "status": "Green AI Active"
+            "status": "Green AI Active",
         }

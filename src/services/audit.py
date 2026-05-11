@@ -60,7 +60,7 @@ def calculate_drift() -> dict:
     try:
         # Lê as últimas 100 predições
         df = pd.read_json(AUDIT_FILE, lines=True)
-        if len(df) < 10:
+        if len(df) < 5:
             return {"status": "collecting", "count": len(df)}
 
         # Carrega baseline para comparação
@@ -79,19 +79,32 @@ def calculate_drift() -> dict:
         # Adapta report para a UI legível
         ui_metrics = {}
         for feature, m in report["metrics"].items():
-            if feature in TRAINING_MEANS: # Mostra apenas features principais na UI
+            if feature in TRAINING_MEANS:  # Mostra apenas features principais na UI
                 ui_metrics[feature] = {
                     "p_value": round(m["p_value"], 4),
                     "ks_stat": round(m["ks_stat"], 4),
-                    "drift": m["drift"]
+                    "drift": m["drift"],
                 }
 
+        relative_shift_alerts = []
+        current_means = current_df.mean(numeric_only=True).to_dict()
+        for feature, train_mean in TRAINING_MEANS.items():
+            if feature not in current_means:
+                continue
+            denominator = abs(train_mean) if train_mean else 1.0
+            relative_shift = abs(current_means[feature] - train_mean) / denominator
+            if relative_shift >= 0.2:
+                relative_shift_alerts.append(feature)
+
+        alerts = list(dict.fromkeys(report["drifted_features"] + relative_shift_alerts))
         return {
-            "status": "alert" if report["drift_detected"] else "stable",
-            "alerts": report["drifted_features"],
+            "status": "alert"
+            if report["drift_detected"] or bool(relative_shift_alerts)
+            else "stable",
+            "alerts": alerts,
             "metrics": ui_metrics,
             "total_audited": len(df),
-            "drift_detected": report["drift_detected"]
+            "drift_detected": report["drift_detected"],
         }
     except Exception as e:
         logger.error("Erro no cálculo de drift estatístico: %s", e)
