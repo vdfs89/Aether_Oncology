@@ -79,11 +79,11 @@ def calculate_drift() -> dict:
         # Adapta report para a UI legível
         ui_metrics = {}
         for feature, m in report["metrics"].items():
-            if feature in TRAINING_MEANS: # Mostra apenas features principais na UI
+            if feature in TRAINING_MEANS:  # Mostra apenas features principais na UI
                 ui_metrics[feature] = {
                     "p_value": round(m["p_value"], 4),
                     "ks_stat": round(m["ks_stat"], 4),
-                    "drift": m["drift"]
+                    "drift": m["drift"],
                 }
 
         return {
@@ -91,7 +91,7 @@ def calculate_drift() -> dict:
             "alerts": report["drifted_features"],
             "metrics": ui_metrics,
             "total_audited": len(df),
-            "drift_detected": report["drift_detected"]
+            "drift_detected": report["drift_detected"],
         }
     except Exception as e:
         logger.error("Erro no cálculo de drift estatístico: %s", e)

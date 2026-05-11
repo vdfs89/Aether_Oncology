@@ -92,7 +92,7 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
         "concave_points_mean": 0.2,
         "symmetry_mean": 0.3,
         "fractal_dimension_mean": 0.1,
-        "radius_se": 2.0
+        "radius_se": 2.0,
     }
     for _ in range(11):
         log_prediction(features, {"prediction": 1})
