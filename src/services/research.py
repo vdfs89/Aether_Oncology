@@ -202,12 +202,21 @@ def _search_cochrane(query: str, max_results: int = 3) -> list[dict[str, Any]]:
 
     A Cochrane Database of Systematic Reviews (CDSR) é indexada no PubMed.
     Filtramos pelo journal para obter apenas revisões Cochrane.
+
+    FIX P2-1 (audit): `source` is set here, at the origin, rather than in
+    `fetch_scientific_evidence`. Previously the override happened after
+    deduplication, so Cochrane articles whose URL matched a PubMed entry
+    would be discarded and the surviving entry would keep `source='PubMed'`,
+    misrepresenting the evidence level in the UI.
     """
-    return _search_pubmed(
+    articles = _search_pubmed(
         query=query,
         max_results=max_results,
         journal_filter="Cochrane Database Syst Rev",
     )
+    for art in articles:
+        art["source"] = "Cochrane"
+    return articles
 
 
 # ---------------------------------------------------------------------------
@@ -326,11 +335,10 @@ def fetch_scientific_evidence(top_feature: str) -> list[dict[str, Any]]:
             results.append(art)
             seen_urls.add(art["url"])
 
-    # 3. Cochrane (revisões sistemáticas)
+    # 3. Cochrane (revisões sistemáticas) — source já vem definido como "Cochrane"
     cochrane_articles = pubmed_breaker.call(_search_cochrane, base_query, max_results=2)
     for art in cochrane_articles:
         if art["url"] not in seen_urls:
-            art["source"] = "Cochrane"
             results.append(art)
             seen_urls.add(art["url"])
 

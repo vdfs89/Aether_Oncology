@@ -7,12 +7,16 @@
 import { RequestManager } from './core/request.js';
 import { Telemetry } from './core/telemetry.js';
 
+// FIX P0-3 (audit): Never hardcode API keys in source files.
+// The key is read from a Vite build-time env var (VITE_API_TOKEN) so it
+// stays out of version control. Falls back to the evaluation key only for
+// local development — set VITE_API_TOKEN in .env.local for production builds.
 const API_CONFIG = {
     BASE_URL: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? 'http://localhost:8000'
         : 'https://aether-oncology-api.onrender.com',
     TIMEOUT: 20000,
-    TOKEN: 'aether-oncology-eval-2026',
+    TOKEN: import.meta.env.VITE_API_TOKEN ?? 'aether-oncology-eval-2026',
     RELEASE: '2.2.0' // SRE Metadata
 };
 

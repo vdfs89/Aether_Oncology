@@ -3,6 +3,41 @@
  * Premium UI/UX logic, form management, and visualization.
  */
 
+// ─── Security helpers ────────────────────────────────────────────────────────
+// FIX P0-2 (audit): All data from external APIs (PubMed, Semantic Scholar)
+// must be HTML-escaped before insertion via innerHTML to prevent XSS.
+// Using textContent where possible is preferred, but for complex layouts
+// these helpers sanitize before template-literal injection.
+
+/**
+ * Escapes HTML special characters in a string.
+ * Use this for ANY value from the server before inserting into innerHTML.
+ * @param {*} s - Value to escape (null/undefined → empty string)
+ * @returns {string} HTML-safe string
+ */
+export function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&')
+        .replace(/</g, '<')
+        .replace(/>/g, '>')
+        .replace(/"/g, '"')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * Validates that a URL uses http(s) scheme.
+ * Prevents javascript: URI XSS via href injection.
+ * @param {string|null} url
+ * @returns {string} Safe URL or '#'
+ */
+export function safeUrl(url) {
+    if (!url) return '#';
+    const lower = String(url).toLowerCase().trim();
+    return (lower.startsWith('https://') || lower.startsWith('http://')) ? url : '#';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const featureDefs = [
     { id: "radius", label: "Raio", desc: "Média das distâncias do centro aos pontos do contorno" },
     { id: "texture", label: "Textura", desc: "Desvio padrão dos valores de tons de cinza" },
@@ -66,13 +101,18 @@ export function showToast(message, type = "success") {
         info: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
     };
 
+    // FIX P0-1 (audit): Added `.toast-close` button so querySelector below
+    // finds a real element instead of returning null (→ TypeError).
+    // FIX P0-2 (audit): message is passed through escapeHtml to prevent XSS
+    // when server-supplied warning strings contain HTML characters.
     toast.innerHTML = `
         <span class="flex-shrink-0">${icons[type] || icons.info}</span>
-        <p class="text-sm font-medium">${message}</p>
+        <p class="text-sm font-medium flex-1">${escapeHtml(message)}</p>
+        <button class="toast-close ml-3 opacity-50 hover:opacity-100 transition-opacity text-lg leading-none flex-shrink-0" aria-label="Fechar">&times;</button>
     `;
 
     container.appendChild(toast);
-    
+
     // Trigger animation
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -85,6 +125,7 @@ export function showToast(message, type = "success") {
         toast.addEventListener('transitionend', () => toast.remove(), { once: true });
     };
 
+    // Safe: .toast-close is now guaranteed to exist in the template above
     toast.querySelector('.toast-close').onclick = dismiss;
     setTimeout(dismiss, 5000);
 }
@@ -290,26 +331,29 @@ export function renderRAG(result) {
     }
     
     if (result.articles && result.articles.length > 0) {
+        // FIX P0-2 (audit): All server-supplied fields (title, tldr, abstract,
+        // source, year, url) are escaped/validated before innerHTML injection.
+        // article.url is passed through safeUrl() to block javascript: URIs.
         medicoArticles.innerHTML = result.articles.map(article => `
-            <a href="${article.url}" target="_blank" rel="noopener noreferrer" class="block p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all group reveal-active">
+            <a href="${safeUrl(article.url)}" target="_blank" rel="noopener noreferrer" class="block p-4 rounded-xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all group reveal-active">
                 <div class="flex items-start justify-between gap-3 mb-2">
-                    <h5 class="text-sm font-bold text-white group-hover:text-cyan-300 transition line-clamp-2">${article.title}</h5>
+                    <h5 class="text-sm font-bold text-white group-hover:text-cyan-300 transition line-clamp-2">${escapeHtml(article.title)}</h5>
                     <div class="p-1.5 rounded-lg bg-white/5 group-hover:bg-cyan-500/20 transition">
                         <svg class="w-3.5 h-3.5 text-white/20 group-hover:text-cyan-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                     </div>
                 </div>
-                <p class="text-xs text-white/40 line-clamp-2 mb-3 leading-relaxed">${article.tldr || article.abstract || 'Sem resumo disponível.'}</p>
+                <p class="text-xs text-white/40 line-clamp-2 mb-3 leading-relaxed">${escapeHtml(article.tldr || article.abstract || 'Sem resumo disponível.')}</p>
                 <div class="flex items-center gap-3">
-                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 text-white/60 uppercase tracking-wider">${article.source}</span>
-                    ${article.year ? `<span class="text-[9px] font-bold text-white/30">${article.year}</span>` : ''}
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded bg-white/5 text-white/60 uppercase tracking-wider">${escapeHtml(article.source)}</span>
+                    ${article.year ? `<span class="text-[9px] font-bold text-white/30">${escapeHtml(String(article.year))}</span>` : ''}
                 </div>
             </a>
         `).join('');
 
         pacienteReferences.innerHTML = result.articles.slice(0, 2).map(article => `
-            <a href="${article.url}" target="_blank" class="flex items-center gap-2 text-xs text-pink-400 hover:text-pink-300 transition font-medium">
+            <a href="${safeUrl(article.url)}" target="_blank" class="flex items-center gap-2 text-xs text-pink-400 hover:text-pink-300 transition font-medium">
                 <div class="w-1.5 h-1.5 rounded-full bg-pink-500/50"></div>
-                <span class="line-clamp-1">${article.title}</span>
+                <span class="line-clamp-1">${escapeHtml(article.title)}</span>
             </a>
         `).join('');
         
@@ -351,25 +395,34 @@ export function renderMLOps(driftData, auditTrail) {
         }
     }
 
+    // FIX P0-2 (audit): drift feature names come from server — escape them.
     const details = document.getElementById('driftDetails');
     if (details && driftData?.drifting_features) {
         details.innerHTML = Object.entries(driftData.drifting_features).slice(0, 4).map(([f, dev]) => `
             <div class="bg-black/20 p-2 rounded border border-white/5">
-                <p class="text-[8px] text-white/40 uppercase mb-1 truncate">${f}</p>
-                <p class="text-xs font-bold text-yellow-400">+${(dev * 100).toFixed(1)}% desvio</p>
+                <p class="text-[8px] text-white/40 uppercase mb-1 truncate">${escapeHtml(f)}</p>
+                <p class="text-xs font-bold text-yellow-400">+${(Number(dev) * 100).toFixed(1)}% desvio</p>
             </div>
         `).join('');
     }
 
     const tbody = document.getElementById('auditTrailBody');
     if (tbody && auditTrail) {
-        tbody.innerHTML = auditTrail.slice(0, 5).map(log => `
+        // FIX P1-4 (audit): log.timestamp may be ISO string OR a legacy float.
+        // Normalise to a display string safely before calling .split().
+        tbody.innerHTML = auditTrail.slice(0, 5).map(log => {
+            const ts = typeof log.timestamp === 'string'
+                ? log.timestamp.split('T')[1]?.split('.')[0] ?? log.timestamp
+                : new Date(log.timestamp * 1000).toISOString().split('T')[1].split('.')[0];
+            const pred = log.output?.prediction ?? log.prediction;
+            const prob = log.output?.probability ?? log.probability ?? 0;
+            return `
             <tr class="border-b border-white/5 hover:bg-white/5 transition">
-                <td class="p-2 text-[10px] text-white/50 font-mono">${log.timestamp.split('T')[1].split('.')[0]}</td>
-                <td class="p-2 text-[10px] font-bold ${log.prediction === 1 ? 'text-red-400' : 'text-green-400'}">${log.prediction === 1 ? 'MALIGNO' : 'BENIGNO'}</td>
-                <td class="p-2 text-[10px] text-white/40">${((log.probability || 0) * 100).toFixed(1)}%</td>
-            </tr>
-        `).join('');
+                <td class="p-2 text-[10px] text-white/50 font-mono">${escapeHtml(ts)}</td>
+                <td class="p-2 text-[10px] font-bold ${pred === 1 ? 'text-red-400' : 'text-green-400'}">${pred === 1 ? 'MALIGNO' : 'BENIGNO'}</td>
+                <td class="p-2 text-[10px] text-white/40">${(Number(prob) * 100).toFixed(1)}%</td>
+            </tr>`;
+        }).join('');
     }
 }
 

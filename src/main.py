@@ -18,12 +18,14 @@ Iniciar o servidor:
     uvicorn src.main:app --reload
 """
 
+import asyncio
 import json
 import logging
 import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -494,7 +496,9 @@ async def make_prediction(request: Request, features: TumorFeatures) -> PredictR
         result = await predictor.predict(data_list)
 
         # 3. Persistência de Auditoria (Governança — Aula 7)
-        log_prediction(features.model_dump(), result)
+        # FIX P1-1: log_prediction does synchronous file I/O. Calling it
+        # directly inside async def blocks the event loop. Offload to thread.
+        await asyncio.to_thread(log_prediction, features.model_dump(), result)
 
     except FileNotFoundError as exc:
         raise HTTPException(
@@ -538,14 +542,20 @@ async def clinical_feedback(feedback: FeedbackRequest):
     """
     # Em produção, isso salvaria em um DB SQL (Aurora/Postgres)
     # Aqui, anexamos ao rastro de auditoria para processamento offline
+    # FIX P1-4: use ISO timestamp string (same format as log_prediction) so
+    # the JS renderMLOps `log.timestamp.split('T')` never receives a float.
+    # FIX P1-1: open() is blocking I/O — offload to thread.
     feedback_entry = {
-        "timestamp": time.time(),
+        "timestamp": datetime.now().isoformat(),
         "type": "clinical_feedback",
         "data": feedback.model_dump(),
     }
 
-    with open(AUDIT_FILE, "a", encoding="utf-8") as f:
-        f.write(json.dumps(feedback_entry) + "\n")
+    def _write_feedback() -> None:
+        with open(AUDIT_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(feedback_entry) + "\n")
+
+    await asyncio.to_thread(_write_feedback)
 
     return {"status": "success", "message": "Feedback clínico registrado com sucesso."}
 

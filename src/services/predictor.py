@@ -73,29 +73,41 @@ def _integrated_gradients(
     model: torch.nn.Module, inputs: torch.Tensor, steps: int = 20
 ) -> np.ndarray:
     """
-    Manual implementation of Integrated Gradients (XAI).
-    Calculates feature importance by integrating gradients along the path from baseline to input.
+    Manual implementation of Integrated Gradients (Sundararajan et al., ICML 2017).
+
+    Computes feature attributions by integrating gradients along the straight-line
+    path from the zero baseline to the actual input.
+
+    Fixes applied (audit P1-3):
+      - Alpha range changed from [0.1, 1.0] to (0, 1.0] — eliminates systematic
+        bias introduced by skipping the [0, 0.1] segment of the integral.
+      - model.zero_grad() called AFTER the loop to clean model-parameter gradients
+        that would otherwise accumulate across concurrent requests (memory leak).
     """
     baseline = torch.zeros_like(inputs)
-    alphas = torch.linspace(0.1, 1.0, steps)
+    # FIX: linspace(0,1,steps+1)[1:] gives steps evenly-spaced points in (0,1]
+    # — equivalent to the standard Riemann sum approximation of the IG integral.
+    alphas = torch.linspace(0, 1, steps + 1)[1:]
     accum_grads = torch.zeros_like(inputs)
 
     for alpha in alphas:
-        interpolated = baseline + alpha * (inputs - baseline)
-        interpolated.requires_grad = True
+        interpolated = (baseline + alpha * (inputs - baseline)).detach().requires_grad_(True)
 
-        # Logit output
+        # Logit output — gradient computation requires the graph to be built
         output = model(interpolated)
 
-        model.zero_grad()
+        model.zero_grad()        # zero model-parameter grads before backward
         output.backward()
 
         if interpolated.grad is not None:
-            accum_grads += interpolated.grad
+            accum_grads += interpolated.grad.detach()
+
+    # FIX: clean model-parameter gradients accumulated during the last backward()
+    model.zero_grad()
 
     avg_grads = accum_grads / steps
-    attributions = (inputs - baseline) * avg_grads
-    return attributions.detach().numpy().squeeze()
+    attributions = (inputs - baseline).detach() * avg_grads
+    return attributions.numpy().squeeze()
 
 
 class PredictorService:
@@ -165,6 +177,16 @@ class PredictorService:
         # 1. Preprocessing (StandardScaler)
         processed_data = self.preprocessor.transform(input_data)
 
+        # FIX P1-2: Guard against NaN/Inf that bypass Pydantic float validation.
+        # float('nan') and float('inf') are valid Python floats → Pydantic accepts
+        # them, but they propagate silently: sigmoid(NaN) = NaN → prediction always
+        # Benign (false-negative). Raise early with a descriptive message.
+        if np.isnan(processed_data).any() or np.isinf(processed_data).any():
+            raise ValueError(
+                "Input data contains NaN or infinite values after normalization. "
+                "Please review the submitted feature values."
+            )
+
         # 2. Remote Inference (Hugging Face)
         inference_source = "remote"
         remote_error = None
@@ -227,6 +249,12 @@ class PredictorService:
         # 5. Local XAI (Integrated Gradients)
         # We use the local proxy model for XAI to avoid high-latency remote gradient calls
         top_feature = "unknown"
+        if not self.model:
+            # FIX P2-2: log explicitly so ops can detect XAI unavailability
+            logger.warning(
+                "[XAI] Local proxy model not loaded — top_feature unavailable. "
+                "RAG will fall back to generic query."
+            )
         if self.model:
             try:
                 tensor_data = torch.tensor(processed_data, dtype=torch.float32)
@@ -266,21 +294,47 @@ class PredictorService:
 
 
 class _LazyPredictor:
-    """Lazy wrapper to defer resource loading until first request or health check."""
+    """
+    Lazy wrapper to defer resource loading until first request or health check.
+
+    FIX P1-5 (audit): double-checked locking via asyncio.Lock prevents multiple
+    concurrent async requests from initialising two separate PredictorService
+    instances when they race through the `_instance is None` check on startup.
+    The sync `_get_instance()` path is retained for non-async callers (health
+    probes, lifespan hook) which execute before the server accepts traffic.
+    """
 
     def __init__(self) -> None:
+        import asyncio
+
         self._instance: PredictorService | None = None
+        self._lock: asyncio.Lock = asyncio.Lock()
 
     def _get_instance(self) -> PredictorService:
+        """Sync accessor — safe for lifespan hook and health probes."""
         if self._instance is None:
-            self._instance = PredictorService()
-            self._instance.load_resources()
+            svc = PredictorService()
+            svc.load_resources()
+            self._instance = svc
+        return self._instance
+
+    async def _get_instance_async(self) -> PredictorService:
+        """Async accessor with double-checked locking — safe under concurrency."""
+        if self._instance is None:
+            async with self._lock:
+                # Re-check inside the lock: another coroutine may have
+                # completed initialisation while we were waiting.
+                if self._instance is None:
+                    svc = PredictorService()
+                    svc.load_resources()
+                    self._instance = svc
         return self._instance
 
     async def predict(
         self, input_data: list[list[float]], request_id: str = "internal"
     ) -> dict:
-        return await self._get_instance().predict(input_data, request_id=request_id)
+        instance = await self._get_instance_async()
+        return await instance.predict(input_data, request_id=request_id)
 
     def is_ready(self) -> bool:
         return self._get_instance().is_ready()
