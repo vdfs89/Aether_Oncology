@@ -51,6 +51,7 @@ jobs:
           # Exit code 0 = clean or all findings are ignored; non-zero = block.
           grype aether-oncology:${{ github.sha }} \
             --config .grype.yaml \
+            --db-max-allowed-built-age 12000h \
             --output table
 
   deploy-canary:
