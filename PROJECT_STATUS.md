@@ -1,17 +1,17 @@
-# Aether Oncology: Operational Status & System Architecture (v2.2.0)
+# Aether Oncology: Operational Status & System Architecture (v2.5.0)
 
 > **"Precision for Life"** — Central status, governance, and architecture manual for the Aether Oncology diagnostic platform.
 
 ---
 
-## 🟢 Platform Status: Production-Ready
+## 🟢 Platform Status: Production-Ready (Premium UI Release)
 
-The Aether Oncology system has reached full maturity for its MVP phase, featuring a mission-critical infrastructure designed for clinical resilience, high-fidelity inference, and rigorous data governance.
+The Aether Oncology system has been upgraded to a high-fidelity, premium interface (v2.5.0), merging clinical precision with Apple/Linear-grade UX standards.
 
 | Component | Status | Environment | Technology Stack |
 | :--- | :---: | :--- | :--- |
-| **Clinical Portal** | 🟢 Online | Vercel (Edge) | Vanilla JS · Vite · ESM |
-| **Inference API** | 🟢 Online | Render (FastAPI) | Python 3.11 · PyTorch · Hugging Face |
+| **Clinical Portal** | 🟢 Online | Vercel (Edge) | Premium UI · Vite · ESM · Chart.js |
+| **Inference API** | 🟢 Online | Render (FastAPI) | Python 3.12 · PyTorch · Hugging Face |
 | **Research Layer** | 🟢 Protected | External API | Semantic Scholar · Circuit Breaker |
 | **Audit Engine** | 🟢 Active | Persistent Log | Structured JSON · Trace Context |
 
@@ -30,8 +30,9 @@ Aether Oncology follows a decoupled, resilient architecture focused on **Gracefu
 ```mermaid
 graph TD
     subgraph "Frontend Layer (Vercel)"
-        UI["Portal Clínico v2.2.0"]
-        XAI["Explainable AI (Radar)"]
+        UI["Premium Portal v2.5.0"]
+        XAI["XAI Radar (Chart.js)"]
+        GLS["Glassmorphism Architecture"]
         HB["Heartbeat & Telemetry"]
     end
 
@@ -84,6 +85,11 @@ The following measures have been fully implemented and verified in the productio
 - **Statistical Drift Detection**: Replaced heuristic checks with the **Kolmogorov-Smirnov (KS) Test**, providing P-values for feature distribution changes.
 - **Structured Logging**: All backend events are emitted as machine-readable JSON for integration with Datadog/CloudWatch.
 - **Heartbeat Monitoring**: Real-time frontend connectivity tracking with automated 503 error handling (Cold Start guidance).
+### 4. Premium UI Architecture (v2.5.0)
+- **Token-Driven Design**: Standardized design tokens for gutters (`1rem` to `4rem`), containers (`80rem`), and typography (Poppins).
+- **Cinematic Motion**: Implemented `ux.js` for scroll-triggered reveal animations and viewport-aware parallax effects.
+- **Responsive Resilience**: Mobile-first architecture using CSS Grid and fluid units, eliminating horizontal overflow and magic-pixel offsets.
+- **Accessibility (A11Y)**: Integrated ARIA labels and semantic HTML5 for screen reader compatibility and keyboard navigation.
 
 ---
 
