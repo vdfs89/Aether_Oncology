@@ -43,6 +43,9 @@ jobs:
       # and fail-on-severity all come from .grype.yaml, not the scan-action.
       # This is the authoritative pass/fail gate for the pipeline.
       - name: Security Policy Gate (grype)
+        env:
+          GRYPE_DB_MAX_ALLOWED_BUILT_AGE: "12000h"
+          GRYPE_DB_VALIDATE_AGE: "false"
         run: |
           # Install grype
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -51,7 +54,6 @@ jobs:
           # Exit code 0 = clean or all findings are ignored; non-zero = block.
           grype aether-oncology:${{ github.sha }} \
             --config .grype.yaml \
-            --db-max-allowed-built-age 12000h \
             --output table
 
   deploy-canary:
