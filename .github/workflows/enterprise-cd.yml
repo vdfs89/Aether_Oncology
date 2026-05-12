@@ -13,32 +13,45 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Build Docker Image
         run: docker build -t aether-oncology:${{ github.sha }} .
-        
-      # Grype automatically discovers .grype.yaml from the repo root.
-      # .grype.yaml sets only-fixed: true (ignore unfixable CVEs) and
-      # fail-on-severity: critical — aligned with severity-cutoff below.
-      - name: Security Scan (SBOM)
+
+      # ── Step 1: Generate SARIF report (never fails the build) ──────────────
+      # anchore/scan-action generates the SARIF artefact used by CodeQL upload.
+      # fail-build: false ensures SARIF is always written — even when grype
+      # finds issues — so the Security tab always has up-to-date findings.
+      - name: Security Scan — SARIF Report
         id: scan
         uses: anchore/scan-action@v3
         with:
           image: "aether-oncology:${{ github.sha }}"
-          fail-build: true
-          # Fail only on CRITICAL (≥9.0 CVSS v3). HIGH CVEs without an
-          # available fix are suppressed by .grype.yaml (only-fixed: true).
+          fail-build: false
           severity-cutoff: critical
+          # SARIF is written to results.sarif by default (scan-action v3 default)
 
+      # ── Step 2: Upload SARIF to GitHub Security tab ────────────────────────
       - name: Upload SARIF vulnerability report
         uses: github/codeql-action/upload-sarif@v3
-        # Run even when scan fails so report is visible in Security tab.
-        # continue-on-error: true prevents a broken/empty SARIF (generated
-        # when grype exits non-zero) from cascading and blocking the job.
         if: always()
         continue-on-error: true
         with:
           sarif_file: results.sarif
+
+      # ── Step 3: Policy gate — grype reads .grype.yaml from repo root ───────
+      # Running grype directly gives us full control: ignore rules, only-fixed,
+      # and fail-on-severity all come from .grype.yaml, not the scan-action.
+      # This is the authoritative pass/fail gate for the pipeline.
+      - name: Security Policy Gate (grype)
+        run: |
+          # Install grype
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+          # Run grype against the built image using our policy (.grype.yaml).
+          # Exit code 0 = clean or all findings are ignored; non-zero = block.
+          grype aether-oncology:${{ github.sha }} \
+            --config .grype.yaml \
+            --output table
 
   deploy-canary:
     needs: build-and-scan
@@ -48,19 +61,19 @@ jobs:
       url: https://portal.aether-oncology.ai
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Kubeconfig
         run: |
           echo "${{ secrets.KUBECONFIG }}" > kubeconfig
           export KUBECONFIG=kubeconfig
-          
+
       - name: Deploy Canary (10%)
         run: |
           helm upgrade --install aether-oncology ./charts/aether-oncology \
             --set image.tag=${{ github.sha }} \
             --set canary.enabled=true \
             --set canary.weight=10
-            
+
       - name: Post-Deploy Health Check
         run: |
           echo "Waiting for canary deployment to stabilize..."
