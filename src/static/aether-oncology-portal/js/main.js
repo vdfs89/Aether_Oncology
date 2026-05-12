@@ -1,12 +1,30 @@
 /**
- * Aether Oncology | Main Orchestrator
- * Initialization and module coordination.
+ * Aether Oncology — Application Entry Point
+ * Vite bundles all ES modules. No CDN, no inline scripts.
  */
 
-import './ui.js';
-import './ux.js';
-import './charts.js';
+import { initNavbar, initMobileMenu, initActiveNav } from './ui.js';
+import { initScrollReveal, initCounters, initSmoothScroll } from './ux.js';
+import { initCharts } from './charts.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('%c Aether Oncology | Clinical Intelligence Platform Initialized ', 'background: #0D0F2B; color: #E6398A; font-weight: bold; padding: 4px;');
-});
+function boot() {
+  // UI
+  initNavbar();
+  initMobileMenu();
+  initActiveNav();
+
+  // UX
+  initScrollReveal();
+  initCounters();
+  initSmoothScroll();
+
+  // Charts (Chart.js from npm, rendered into <canvas> elements)
+  initCharts();
+}
+
+// Run after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
