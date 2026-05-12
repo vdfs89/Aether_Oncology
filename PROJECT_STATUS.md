@@ -1,12 +1,16 @@
-# Aether Oncology: Operational Status & System Architecture (v2.5.0)
+# Aether Oncology: Operational Status & System Architecture (v2.5.1)
 
 > **"Precision for Life"** — Central status, governance, and architecture manual for the Aether Oncology diagnostic platform.
 
 ---
 
-## 🟢 Platform Status: Production-Ready (Premium UI Release)
+## 🟢 Platform Status do Projeto: v2.5.1 (Premium UI + Build Fixed)
+**Data:** 11 de Maio, 2026
 
-The Aether Oncology system has been upgraded to a high-fidelity, premium interface (v2.5.0), merging clinical precision with Apple/Linear-grade UX standards.
+### 🚀 Resumo das Atualizações
+*   **Design System:** Implementação final da arquitetura "Luxury Clinical" com mobile-first responsive grid.
+*   **Build System Fix:** Migração do minificador de `terser` para `esbuild` no `vite.config.js` para resolver falhas de compilação em ambientes Docker e Vercel sem dependências opcionais.
+*   **Clinical UI:** Dashboard integrado com Chart.js, módulos de XAI (Explainable AI) e RAG (Scientific Evidence).
 
 | Component | Status | Environment | Technology Stack |
 | :--- | :---: | :--- | :--- |
