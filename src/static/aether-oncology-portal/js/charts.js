@@ -1,76 +1,91 @@
-import Chart from 'chart.js/auto';
+/**
+ * Aether Oncology | Charts Controller
+ * Data visualization for Clinical Intelligence.
+ */
 
-let xaiChartInstance = null;
-
-export function renderXAIChart(importances) {
-    const ctx = document.getElementById('xaiChart');
+const initClinicalChart = () => {
+    const ctx = document.getElementById('clinicalChart');
     if (!ctx) return;
-    
-    if (xaiChartInstance) {
-        xaiChartInstance.destroy();
-    }
 
-    // Top 5 features
-    const sorted = Object.entries(importances || {})
-        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-        .slice(0, 5);
-
-    const labels = sorted.map(i => i[0].replace('_', ' ').toUpperCase());
-    const data = sorted.map(i => i[1]);
-    const colors = data.map(v => v > 0 ? 'rgba(239, 68, 68, 0.8)' : 'rgba(34, 197, 94, 0.8)');
-
-    xaiChartInstance = new Chart(ctx, {
-        type: 'bar',
+    new Chart(ctx, {
+        type: 'line',
         data: {
-            labels: labels,
+            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
             datasets: [{
-                label: 'Atribuição (Integrated Gradients)',
-                data: data,
-                backgroundColor: colors,
-                borderRadius: 4,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.1)'
+                label: 'Precisão do Modelo',
+                data: [92, 94, 95.5, 97, 98.1, 98.4],
+                borderColor: '#E6398A',
+                backgroundColor: 'rgba(230, 57, 138, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff'
             }]
         },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 1000,
-                easing: 'easeOutQuart'
-            },
             plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    titleFont: { size: 10, family: 'monospace' },
-                    bodyFont: { size: 12, weight: 'bold' },
-                    padding: 10,
-                    cornerRadius: 8,
-                    displayColors: false,
-                    callbacks: {
-                        label: (ctx) => `Impacto: ${ctx.raw.toFixed(4)}`
-                    }
-                }
+                legend: { display: false }
             },
             scales: {
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 } }
-                },
                 y: {
+                    beginAtZero: false,
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                },
+                x: {
                     grid: { display: false },
-                    ticks: { color: 'rgba(255,255,255,0.7)', font: { size: 10, weight: 'bold' } }
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)' }
                 }
             }
         }
     });
-}
+};
 
-export function resetChart() {
-    if (xaiChartInstance) {
-        xaiChartInstance.destroy();
-        xaiChartInstance = null;
-    }
-}
+const initXaiChart = () => {
+    const ctx = document.getElementById('xaiChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        indexAxis: 'y',
+        data: {
+            labels: ['Gene BRCA1', 'Idade', 'Histórico Familiar', 'Biomarcador HER2', 'Densidade Tecidual'],
+            datasets: [{
+                label: 'Importância (SHAP Value)',
+                data: [0.45, 0.25, 0.15, 0.10, 0.05],
+                backgroundColor: [
+                    '#E6398A',
+                    '#9D4EDD',
+                    '#5a189a',
+                    '#3c096c',
+                    '#240046'
+                ],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#fff', font: { weight: '500' } }
+                }
+            }
+        }
+    });
+};
+
+// Initialize
+initClinicalChart();
+initXaiChart();

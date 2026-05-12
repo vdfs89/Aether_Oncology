@@ -1,459 +1,217 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aether Oncology | Clinical AI & Diagnostics</title>
-
-  <!-- Security: Content Security Policy -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://api.vitorsilva.engineer; connect-src 'self' http://localhost:8000 https://aether-oncology-api.onrender.com;">
-
-  <!-- SEO Meta -->
-  <meta name="description" content="Aether Oncology é uma plataforma de IA clínica para classificação de tumores mamários baseada em biópsia FNA, com XAI, RAG médico e monitoramento MLOps em tempo real.">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://api.vitorsilva.engineer/">
-
-  <!-- Open Graph -->
-  <meta property="og:type"        content="website">
-  <meta property="og:url"         content="https://api.vitorsilva.engineer/">
-  <meta property="og:title"       content="Aether Oncology | Clinical AI & Diagnostics">
-  <meta property="og:description" content="Plataforma de IA clínica para classificação de tumores mamários com Explainable AI, RAG médico e monitoramento MLOps.">
-  <meta property="og:image"       content="https://api.vitorsilva.engineer/images/Banner.png">
-  <meta property="og:locale"      content="pt_BR">
-
-  <!-- Twitter Cards -->
-  <meta name="twitter:card"        content="summary_large_image">
-  <meta name="twitter:title"       content="Aether Oncology | Clinical AI">
-  <meta name="twitter:description" content="Classificação de tumores mamários com IA explicável e evidências científicas em tempo real.">
-  <meta name="twitter:image"       content="https://api.vitorsilva.engineer/images/Banner.png">
-
-  <!-- Schema.org: MedicalWebPage -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "MedicalWebPage",
-    "name": "Aether Oncology",
-    "description": "Plataforma de IA clínica para classificação de tumores mamários",
-    "url": "https://api.vitorsilva.engineer/",
-    "medicalAudience": {"@type": "MedicalAudience", "audienceType": "Clinician"},
-    "about": {"@type": "MedicalCondition", "name": "Câncer de Mama"}
-  }
-  </script>
-
-  <link rel="icon" type="image/png" href="images/lotus-red.png">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <!-- Assets handled by Vite -->
-  <script type="module" src="js/main.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Oncology | Clinical Intelligence Platform</title>
+    <meta name="description" content="Decodificando o Futuro da Vida através de Inteligência Artificial Clínica de precisão.">
+    
+    <!-- Design System -->
+    <link rel="stylesheet" href="./css/portal.css">
+    
+    <!-- SEO & Favicon -->
+    <link rel="icon" type="image/png" href="./images/icone.png">
 </head>
-
 <body>
-  <div class="atmospheric-overlay"></div>
-  <div class="premium-grid"></div>
-  <div class="grain-texture"></div>
+    <div class="scene-overlay"></div>
+    <div class="noise-filter"></div>
 
-  <!-- ─── HEADER ─── -->
-  <header class="header-floating py-4">
-    <div class="container-premium flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <img src="images/lotus-red.png" alt="Logo Aether Oncology" class="w-8 h-8 pulse-ring rounded-full">
-        <span class="font-bold text-xl tracking-tighter text-glow-cyan">AETHER <span class="font-light text-purple-400">ONCOLOGY</span></span>
-      </div>
-
-      <nav class="hidden md:flex items-center gap-10">
-        <a href="#hero" class="nav-link">HOME</a>
-        <a href="#features" class="nav-link">TECNOLOGIA</a>
-        <a href="#portal" class="nav-link">CLINICAL CORE</a>
-      </nav>
-
-      <div class="flex items-center gap-6">
-        <a href="#portal" class="hidden sm:block px-6 py-2 bg-white text-[#030712] rounded-full text-[11px] font-bold hover:bg-white/90 transition shadow-lg shadow-white/10">CONECTAR</a>
-        <button id="menu-btn" class="md:hidden text-white" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="mobile-menu">
-          <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ─── MOBILE MENU ─── -->
-  <nav id="mobile-menu" role="dialog" aria-modal="true" aria-label="Menu de navegação" class="fixed inset-0 z-[60] bg-[#0B1026] flex-col items-center justify-center gap-8 text-2xl font-bold hidden">
-    <button id="close-menu" class="absolute top-8 right-8 text-white" aria-label="Fechar menu de navegação">
-      <svg class="w-10 h-10" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-    </button>
-    <a href="#hero"     class="hover:text-cyan-400 transition">HOME</a>
-    <a href="#features" class="hover:text-cyan-400 transition">TECNOLOGIA</a>
-    <a href="#portal"   class="hover:text-cyan-400 transition">PORTAL CLÍNICO</a>
-  </nav>
-
-  <!-- ─── HERO CINEMÁTICA ─── -->
-  <main>
-    <section id="hero" class="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div class="container-premium relative z-10 text-center">
-        <div class="fade-up">
-          <div class="inline-flex items-center gap-3 px-4 py-1.5 bg-surface-2 border border-white/5 rounded-full mb-10 backdrop-blur-md">
-            <span class="w-2 h-2 bg-brand-accent rounded-full animate-pulse shadow-[0_0_12px_var(--brand-accent)]"></span>
-            <span class="text-[10px] font-bold tracking-[0.3em] text-white/50 uppercase">Clinical Intelligence • <span id="hero-version" class="text-white/80">v2.2.0 Hardened</span></span>
-          </div>
-          
-          <h1 class="hero-title mb-10">
-            Inteligência que <br>
-            <span class="text-white/40">salva vidas.</span>
-          </h1>
-          
-          <p class="hero-subtitle mb-16 mx-auto">
-            Aether Oncology redefine a precisão diagnóstica através de redes neurais profundas e evidência científica global em tempo real.
-          </p>
-
-          <div class="flex items-center justify-center gap-8 mb-24">
-            <a href="#portal" class="btn-primary">INICIAR DIAGNÓSTICO</a>
-            <a href="#features" class="btn-secondary">EXPLORAR TECNOLOGIA</a>
-          </div>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container-premium nav-container">
+            <a href="#" class="nav-logo">AETHER ONCOLOGY</a>
+            <ul class="nav-links">
+                <li><a href="#features" class="nav-link">Tecnologia</a></li>
+                <li><a href="#clinical" class="nav-link">Inteligência</a></li>
+                <li><a href="#xai" class="nav-link">XAI</a></li>
+                <li><a href="#evidence" class="nav-link">Evidência</a></li>
+            </ul>
+            <a href="#cta" class="btn-premium btn-primary" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;">Portal Clínico</a>
         </div>
+    </nav>
 
-        <!-- Signature Element: Aether Core -->
-        <div class="aether-core-viewport fade-up delay-2">
-          <div class="aether-core-wrapper">
-            <div class="aether-core">
-              <div class="core-sphere"></div>
-              <div class="core-ring ring-1"></div>
-              <div class="core-ring ring-2"></div>
-              <div class="core-ring ring-3"></div>
-              <div class="core-glow"></div>
-            </div>
-            <div class="core-platform"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Atmospheric Lights -->
-      <div class="ambient-light light-1"></div>
-      <div class="ambient-light light-2"></div>
-    </section>
-
-    <!-- ─── STATS ─── -->
-    <section class="border-y border-white/5 bg-white/[0.01] py-16">
-      <div class="container-premium grid grid-cols-2 md:grid-cols-4 gap-16">
-        <div class="flex flex-col items-center md:items-start">
-          <p class="text-text-tertiary text-[10px] font-bold tracking-[0.2em] mb-3 uppercase">Casos Analisados</p>
-          <p class="text-4xl font-bold tracking-tighter">50.000<span class="text-cyan-400">+</span></p>
-        </div>
-        <div class="flex flex-col items-center md:items-start">
-          <p class="text-text-tertiary text-[10px] font-bold tracking-[0.2em] mb-3 uppercase">Sensibilidade</p>
-          <p class="text-4xl font-bold tracking-tighter">97.2<span class="text-purple-400">%</span></p>
-        </div>
-        <div class="flex flex-col items-center md:items-start">
-          <p class="text-text-tertiary text-[10px] font-bold tracking-[0.2em] mb-3 uppercase">Inference Time</p>
-          <p class="text-4xl font-bold tracking-tighter">38<span class="text-cyan-400">ms</span></p>
-        </div>
-        <div class="flex flex-col items-center md:items-start">
-          <p class="text-text-tertiary text-[10px] font-bold tracking-[0.2em] mb-3 uppercase">Global Coverage</p>
-          <p class="text-4xl font-bold tracking-tighter">120<span class="text-pink-400">+</span></p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── TECNOLOGIA ─── -->
-    <section id="features" class="section-spacing relative">
-      <div class="container-premium">
-        <div class="max-w-3xl mb-32">
-          <h2 class="text-4xl md:text-6xl font-bold tracking-tight mb-8">Arquitetura de <br><span class="text-white/40">Próxima Geração.</span></h2>
-          <p class="text-xl text-text-secondary leading-relaxed font-medium">Combinamos modelos de Deep Learning com Explainable AI e RAG para criar confiança absoluta entre médico e máquina. Transparência não é uma feature, é a fundação.</p>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-10">
-          <!-- Feat 1 -->
-          <div class="glass p-10 rounded-[2rem] border border-white/5 hover:border-white/20 transition-all duration-500 group">
-            <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
-            </div>
-            <h3 class="text-xl font-bold mb-4">Bio-Análise Deep</h3>
-            <p class="text-sm text-text-secondary leading-relaxed">Extração automática de 30 parâmetros morfométricos de biópsias FNA com redes neurais convolucionais de alta fidelidade.</p>
-          </div>
-
-          <!-- Feat 2 -->
-          <div class="glass p-10 rounded-[2rem] border border-white/5 hover:border-white/20 transition-all duration-500 group">
-            <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            </div>
-            <h3 class="text-xl font-bold mb-4">Explainable AI (XAI)</h3>
-            <p class="text-sm text-text-secondary leading-relaxed">Integrated Gradients identifica as características celulares que mais influenciaram o diagnóstico, eliminando a "caixa preta".</p>
-          </div>
-
-          <!-- Feat 3 -->
-          <div class="glass p-10 rounded-[2rem] border border-white/5 hover:border-white/20 transition-all duration-500 group">
-            <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-10 group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            </div>
-            <h3 class="text-xl font-bold mb-4">RAG Médico v2.1</h3>
-            <p class="text-sm text-text-secondary leading-relaxed">Evidências do PubMed e Cochrane integradas em tempo real. Medicina de precisão baseada em dados científicos atualizados.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── CINEMATIC TRANSITION ─── -->
-    <div class="cinematic-divider flex items-center justify-center">
-        <div class="text-center">
-            <img id="lotus-portal-link" src="images/lotus-red.png" alt="Início Portal" class="w-16 h-16 lotus-active mx-auto mb-4 cursor-pointer">
-            <p class="text-cyan-400 tracking-[0.5em] text-[10px] font-bold">INITIALIZING AETHER CORE</p>
-        </div>
-    </div>
-
-    <!-- ─── CLINICAL PORTAL ─── -->
-    <section id="portal" class="section-spacing bg-white/[0.01]">
-      <div class="container-premium">
-        <div class="text-center mb-24">
-          <h2 class="text-5xl font-bold tracking-tight mb-6">Clinical <span class="gradient-text">AI Workspace.</span></h2>
-          <div class="flex items-center justify-center gap-3">
-             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-             <span class="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase">Engine <span id="engine-version" class="text-white/60">v2.2.0</span>: Operational</span>
-          </div>
-        </div>
-
-        <div class="portal-container glass rounded-[2.5rem] overflow-hidden border border-white/5 relative z-10">
-          <!-- Draft Recovery Alert -->
-          <div id="draft-alert" class="hidden px-8 py-4 bg-cyan-500/10 border-b border-cyan-500/10 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                  <span class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.5)]"></span>
-                  <p class="text-[11px] font-bold text-cyan-400 tracking-widest uppercase">Draft detected: Restore previous clinical session?</p>
-              </div>
-              <div class="flex gap-6">
-                  <button id="restore-draft-btn" class="text-[11px] font-bold text-white hover:text-cyan-400 transition-all underline underline-offset-8 decoration-cyan-500/30 hover:decoration-cyan-500">RESTORE</button>
-                  <button id="discard-draft-btn" class="text-[11px] font-bold text-white/40 hover:text-white transition-all">DISCARD</button>
-              </div>
-          </div>
-
-          <div class="portal-header p-10 flex items-center justify-between border-b border-white/5">
-             <div>
-                <h3 class="text-2xl font-bold tracking-tight mb-2">Biomechanical <span class="text-white/40">Diagnosis.</span></h3>
-                <p class="text-sm text-text-secondary">Input FNA biopsy parameters for neural + RAG synthesis.</p>
-             </div>
-             <div class="flex gap-4 items-center">
-                <div id="platform-status" class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                    <span class="status-dot badge-live w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"></span>
-                    <span class="status-text text-[10px] font-bold text-white/60 tracking-widest uppercase">System: Stable</span>
-                    <span class="badge-ready hidden w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.6)]"></span>
-                </div>
-
-                <button id="mlops-refresh-btn" aria-label="Monitor model health" class="text-[10px] font-bold text-cyan-400/80 hover:text-cyan-400 transition-all flex items-center gap-2 bg-cyan-400/5 px-4 py-2 rounded-full border border-cyan-400/20">
-                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                   MLOps MONITOR
-                </button>
-             </div>
-          </div>
-
-          <div class="portal-body flex flex-col lg:flex-row">
-             <!-- Form -->
-             <div class="portal-left p-10 lg:w-[45%] border-r border-white/5">
-                <div class="flex items-center justify-between mb-8">
-                  <div class="text-[11px] font-bold text-white/40 tracking-[0.2em] uppercase">Nuclear Parameters</div>
-                  <div class="flex gap-2">
-                    <button id="sample-malignant" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition-all">MALIGNANT</button>
-                    <button id="sample-benign" class="text-[9px] font-bold px-3 py-1.5 rounded-lg border border-green-500/20 text-green-400/60 hover:bg-green-500/10 hover:text-green-400 transition-all">BENIGN</button>
-                  </div>
-                </div>
-                
-                <!-- Tabs -->
-                <div class="flex gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl" role="tablist">
-                   <button data-tab="mean" aria-selected="true" role="tab" id="tab-mean" aria-controls="group-mean" class="flex-1 py-3 text-[11px] font-bold tracking-widest rounded-xl transition-all duration-300 active bg-white/10 text-white">MEANS</button>
-                   <button data-tab="se" aria-selected="false" role="tab" id="tab-se" aria-controls="group-se" class="flex-1 py-3 text-[11px] font-bold tracking-widest rounded-xl transition-all duration-300 text-white/40 hover:text-white">STD ERROR</button>
-                   <button data-tab="worst" aria-selected="false" role="tab" id="tab-worst" aria-controls="group-worst" class="flex-1 py-3 text-[11px] font-bold tracking-widest rounded-xl transition-all duration-300 text-white/40 hover:text-white">WORST</button>
-                </div>
-
-                <!-- Form Panes -->
-                <div class="form-panes-container mb-10">
-                    <div id="group-mean" class="form-group-pane" role="tabpanel" aria-labelledby="tab-mean">
-                        <div class="grid grid-cols-2 gap-4" id="fields-mean"></div>
+    <main>
+        <!-- 1. Hero Premium -->
+        <section class="hero-section">
+            <div class="container-premium hero-grid">
+                <div class="hero-content animate-fade-in">
+                    <h1>Decodificando o <span style="color: var(--accent-magenta);">Futuro</span> da Vida</h1>
+                    <p>Aether Oncology une biologia computacional de elite e IA explicável para transformar diagnósticos complexos em decisões clínicas precisas.</p>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">98.4%</span>
+                            <span class="stat-label">Precisão Diagnóstica</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">< 2ms</span>
+                            <span class="stat-label">Latência de Inferência</span>
+                        </div>
                     </div>
-                    <div id="group-se" class="form-group-pane hidden" role="tabpanel" aria-labelledby="tab-se">
-                        <div class="grid grid-cols-2 gap-4" id="fields-se"></div>
-                    </div>
-                    <div id="group-worst" class="form-group-pane hidden" role="tabpanel" aria-labelledby="tab-worst">
-                        <div class="grid grid-cols-2 gap-4" id="fields-worst"></div>
+
+                    <div style="margin-top: 3rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="#cta" class="btn-premium btn-primary">Iniciar Diagnóstico</a>
+                        <a href="#evidence" class="btn-premium" style="border: 1px solid var(--glass-border);">Ver Evidência Científica</a>
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-4">
-                  <button id="analyzeBtn" class="w-full py-5 rounded-2xl bg-white text-black font-bold tracking-tight hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    START ENGINE SYNTHESIS
-                  </button>
-                  <div class="flex items-center justify-between px-2">
-                    <p class="text-[10px] text-white/20">Shortcut: <kbd class="px-1.5 py-0.5 bg-white/5 rounded border border-white/5">Ctrl + Enter</kbd></p>
-                    <button id="clear-form-btn" class="text-[10px] font-bold text-red-400/40 hover:text-red-400 transition-all uppercase tracking-widest">Clear Workspace</button>
-                  </div>
+                <div class="hero-visual">
+                    <div class="hero-image-container">
+                        <img src="./images/Banner.png" alt="Aether Clinical Analysis" loading="eager">
+                    </div>
                 </div>
-             </div>
+            </div>
+        </section>
 
-             <!-- Results -->
-             <div class="portal-right p-10 lg:w-[55%] bg-white/[0.01] flex flex-col">
-                <div class="text-[11px] font-bold text-white/40 tracking-[0.2em] uppercase mb-8">Real-time Synthesis</div>
-                
-                <div id="resultBadge" class="mb-10 p-8 rounded-[2rem] border border-dashed border-white/10 flex items-center justify-center min-h-[120px] transition-all duration-500" role="status" aria-live="polite">
-                   <p id="resultText" class="text-white/20 font-medium italic tracking-tight">Awaiting clinical input...</p>
+        <!-- 2. Features Grid -->
+        <section id="features" class="container-premium">
+            <div style="text-align: center; margin-bottom: 4rem;">
+                <h2 class="animate-fade-in">Arquitetura de Precisão</h2>
+                <p>Sistemas integrados para oncologia de alta performance.</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="glass-card feat-card">
+                    <div class="feat-card-body">
+                        <h3>Incerteza Bayesiana</h3>
+                        <p>Quantificação rigorosa de confiança em cada predição genômica, reduzindo falsos positivos.</p>
+                    </div>
                 </div>
+                <div class="glass-card feat-card">
+                    <div class="feat-card-body">
+                        <h3>RAG Integrado</h3>
+                        <p>Conexão em tempo real com bases como PubMed e Semantic Scholar para validação científica.</p>
+                    </div>
+                </div>
+                <div class="glass-card feat-card">
+                    <div class="feat-card-body">
+                        <h3>Edge-Ready</h3>
+                        <p>Modelos otimizados para execução local com privacidade total dos dados do paciente.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-                <div class="flex-1 flex flex-col">
-                   <div class="flex items-center justify-between mb-8">
-                     <p class="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em]">Explainable AI Matrix (XAI)</p>
-                     <span class="text-[9px] text-white/20 font-bold px-2 py-1 bg-white/5 rounded">INTEGRATED GRADIENTS</span>
-                   </div>
-                   
-                   <div class="flex-1 min-h-[300px] relative">
-                      <canvas id="xaiChart" aria-label="XAI Feature Importance Chart"></canvas>
-                   </div>
-
-                   <!-- ─── EVIDÊNCIA CIENTÍFICA ─── -->
-                   <div id="articlesSection" class="mt-12 pt-10 border-t border-white/5 hidden">
-                      <div id="topFeatureBanner" class="mb-10 p-6 rounded-3xl bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-white/5 relative overflow-hidden group">
-                          <div class="absolute inset-0 bg-white/[0.02] translate-y-full group-hover:translate-y-0 transition-transform duration-700"></div>
-                          <div class="relative z-10">
-                            <div class="flex items-center gap-3 mb-3">
-                                <div class="w-6 h-6 bg-cyan-400/20 rounded-lg flex items-center justify-center">
-                                  <svg class="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                </div>
-                                <span class="text-[11px] font-bold text-cyan-400 tracking-[0.2em] uppercase">Critical XAI Driver Identified</span>
+        <!-- 3. Clinical Intelligence -->
+        <section id="clinical">
+            <div class="container-premium">
+                <div class="glass-card">
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 3rem; align-items: center;">
+                        <div class="chart-content">
+                            <h2>Clinical Intelligence</h2>
+                            <p>Monitoramento em tempo real de biomarcadores e padrões tumorais via redes neurais convolucionais.</p>
+                            <div class="chart-container" style="margin-top: 2rem;">
+                                <canvas id="clinicalChart"></canvas>
                             </div>
-                            <p id="topFeatureText" class="text-lg font-bold text-white/90 leading-tight"></p>
-                          </div>
-                      </div>
-
-                      <div class="flex gap-4 mb-8" role="tablist">
-                          <button id="tabMedico" class="flex-1 py-3 text-[11px] font-bold tracking-widest rounded-xl transition-all duration-300 tab-evidence active" role="tab" aria-selected="true" aria-controls="medicoPanel">
-                              CLINICAL SPACE
-                          </button>
-                          <button id="tabPaciente" class="flex-1 py-3 text-[11px] font-bold tracking-widest rounded-xl transition-all duration-300 tab-evidence text-white/40" role="tab" aria-selected="false" aria-controls="pacientePanel">
-                              PATIENT SPACE
-                          </button>
-                      </div>
-
-                      <div id="medicoPanel" class="space-y-4" role="tabpanel">
-                          <div id="medicoArticles" class="space-y-4"></div>
-                      </div>
-
-                      <div id="pacientePanel" class="hidden" role="tabpanel">
-                          <div id="pacienteContent" class="p-8 rounded-3xl bg-white/5 border border-white/5">
-                              <p id="pacienteExplicacao" class="text-sm text-text-secondary leading-relaxed mb-6"></p>
-                              <div id="pacienteReferences" class="space-y-3"></div>
-                          </div>
-                      </div>
-                   </div>
-
-                   <!-- ─── MLOPS MONITORING ─── -->
-                   <div id="mlopsMonitor" class="mt-12 pt-10 border-t border-white/5 hidden">
-                      <div class="flex items-center justify-between mb-8">
-                         <div class="flex items-center gap-3">
-                            <span class="text-[11px] font-bold text-white/40 tracking-[0.2em] uppercase">Audit & Health Report</span>
-                         </div>
-                         <span id="driftStatusBadge" class="text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border border-white/10">STABLE</span>
-                      </div>
-                      <div id="driftDetails" class="grid grid-cols-2 gap-4 mb-8"></div>
-                      <div class="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
-                         <table class="audit-table w-full">
-                            <tbody id="auditTrailBody"></tbody>
-                         </table>
-                      </div>
-                   </div>
+                        </div>
+                    </div>
                 </div>
-             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
+            </div>
+        </section>
 
-    <!-- ─── COMPLIANCE & TRUST ─── -->
-    <section class="section-spacing border-t border-white/5">
-      <div class="container-premium">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-12 items-center opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-[10px] font-bold">SOC2</div>
-            <span class="text-[9px] font-bold tracking-widest uppercase">Compliance</span>
-          </div>
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-[10px] font-bold">HIPAA</div>
-            <span class="text-[9px] font-bold tracking-widest uppercase">Privacy</span>
-          </div>
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-[10px] font-bold">GDPR</div>
-            <span class="text-[9px] font-bold tracking-widest uppercase">Security</span>
-          </div>
-          <div class="flex flex-col items-center gap-3">
-            <div class="w-12 h-12 border border-white/20 rounded-full flex items-center justify-center text-[10px] font-bold">ISO</div>
-            <span class="text-[9px] font-bold tracking-widest uppercase">Quality</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
+        <!-- 4. Explainable AI (XAI) -->
+        <section id="xai" class="container-premium">
+            <div class="glass-card" style="background: linear-gradient(135deg, rgba(42, 27, 77, 0.4), rgba(13, 15, 43, 0.8));">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 4rem;">
+                    <div>
+                        <h2>XAI: Transparência Radical</h2>
+                        <p>Não entregamos apenas um resultado, mas o caminho lógico percorrido pela IA. Mapas de calor de SHAP e LIME integrados ao fluxo de trabalho.</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="xaiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-  <!-- ─── FOOTER ─── -->
-  <footer class="py-24 border-t border-white/5 relative overflow-hidden">
-    <div class="container-premium">
-      <div class="grid md:grid-cols-4 gap-16 mb-24">
-        <div class="col-span-2">
-          <div class="flex items-center gap-4 mb-8">
-            <img src="images/lotus-red.png" alt="Aether Oncology" class="w-8 h-8 filter brightness-200 contrast-200">
-            <span class="text-xl font-bold tracking-tighter">AETHER ONCOLOGY</span>
-          </div>
-          <p class="text-sm text-text-secondary leading-relaxed max-w-sm">Pioneering biomechanical clinical decision support systems. Built for hospitals that demand absolute diagnostic precision.</p>
-        </div>
-        
-        <div>
-          <h4 class="text-[11px] font-bold tracking-[0.3em] uppercase text-white/40 mb-8">Platform</h4>
-          <ul class="space-y-4 text-sm font-medium">
-            <li><a href="#features" class="hover:text-cyan-400 transition-colors">Technology</a></li>
-            <li><a href="#portal" class="hover:text-cyan-400 transition-colors">Clinical Portal</a></li>
-            <li><a href="/docs" class="hover:text-cyan-400 transition-colors">API Reference</a></li>
-          </ul>
-        </div>
+        <!-- 5. Scientific Evidence / RAG -->
+        <section id="evidence" class="container-premium">
+            <h2>Evidência Científica</h2>
+            <div class="evidence-list" style="margin-top: 2rem;">
+                <div class="evidence-item">
+                    <span style="color: var(--accent-magenta); font-size: 0.8rem; font-weight: 600;">PUBMED #23948</span>
+                    <h4 style="margin-block: 0.5rem;">Impacto da IA na Detecção de Carcinoma</h4>
+                    <p style="font-size: 0.9rem;">Estudo demonstra redução de 15% em diagnósticos tardios utilizando modelos Bayesianos.</p>
+                </div>
+                <div class="evidence-item">
+                    <span style="color: var(--accent-magenta); font-size: 0.8rem; font-weight: 600;">NATURE ONCOLOGY</span>
+                    <h4 style="margin-block: 0.5rem;">Validação de Biomarcadores Genômicos</h4>
+                    <p style="font-size: 0.9rem;">Aether Oncology apresenta correlação de 0.98 com biópsias tradicionais.</p>
+                </div>
+            </div>
+        </section>
 
-        <div>
-          <h4 class="text-[11px] font-bold tracking-[0.3em] uppercase text-white/40 mb-8">Legal</h4>
-          <ul class="space-y-4 text-sm font-medium">
-            <li><a href="privacy.html" class="hover:text-cyan-400 transition-colors">Privacy Policy</a></li>
-            <li><a href="terms.html" class="hover:text-cyan-400 transition-colors">Terms of Service</a></li>
-            <li><a href="#" class="hover:text-cyan-400 transition-colors">Compliance</a></li>
-          </ul>
+        <!-- 6. SRE Health Dock -->
+        <section class="container-premium">
+            <div class="glass-card" style="border-color: rgba(0, 255, 128, 0.2);">
+                <h3>SRE System Health</h3>
+                <div style="display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #00ff80; box-shadow: 0 0 10px #00ff80;"></div>
+                        <span>API Status: Normal</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background: #00ff80; box-shadow: 0 0 10px #00ff80;"></div>
+                        <span>Model Drift: 0.02%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Sustainability / Green AI -->
+        <section class="container-premium" style="text-align: center;">
+            <div style="max-width: 600px; margin: auto;">
+                <h2>Green AI Commitment</h2>
+                <p>Nossa infraestrutura utiliza 100% de energia renovável, com modelos quantizados que reduzem a pegada de carbono em 40% por inferência.</p>
+            </div>
+        </section>
+
+        <!-- 8. CTA Final -->
+        <section id="cta" class="container-premium" style="padding-bottom: 8rem;">
+            <div class="glass-card" style="text-align: center; background: radial-gradient(circle at center, var(--accent-purple), var(--bg-deep));">
+                <h2 style="font-size: 3rem;">Pronto para o Próximo Nível?</h2>
+                <p style="margin-bottom: 2rem;">Junte-se à revolução da oncologia digital.</p>
+                <a href="#" class="btn-premium btn-primary">Agendar Demonstração</a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 9. Footer Enterprise -->
+    <footer>
+        <div class="container-premium footer-grid">
+            <div>
+                <a href="#" class="nav-logo">AETHER</a>
+                <p style="font-size: 0.9rem; margin-top: 1rem;">Clinical Intelligence for the next generation of oncology.</p>
+            </div>
+            <div>
+                <h4>Produto</h4>
+                <ul style="list-style: none; margin-top: 1rem;">
+                    <li><a href="#" class="nav-link" style="font-size: 0.9rem;">Documentação</a></li>
+                    <li><a href="#" class="nav-link" style="font-size: 0.9rem;">API Reference</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Empresa</h4>
+                <ul style="list-style: none; margin-top: 1rem;">
+                    <li><a href="#" class="nav-link" style="font-size: 0.9rem;">Sobre Nós</a></li>
+                    <li><a href="#" class="nav-link" style="font-size: 0.9rem;">Carreiras</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Legal</h4>
+                <ul style="list-style: none; margin-top: 1rem;">
+                    <li><a href="./privacy.html" class="nav-link" style="font-size: 0.9rem;">Privacidade</a></li>
+                    <li><a href="./terms.html" class="nav-link" style="font-size: 0.9rem;">Termos</a></li>
+                </ul>
+            </div>
         </div>
-      </div>
-
-      <div class="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-        <p class="text-[10px] font-bold text-white/20 tracking-widest uppercase">© 2026 AETHER ONCOLOGY. ALL RIGHTS RESERVED.</p>
-        <div class="flex gap-8">
-          <a href="#" class="text-white/40 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
-          <a href="#" class="text-white/40 hover:text-white transition-colors"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849s-.011 3.584-.069 4.849c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.849-.07c-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849s.012-3.584.07-4.849c.149-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.337 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.337-.2 6.78-2.618 6.98-6.98.058-1.28.072-1.689.072-4.947s-.014-3.667-.072-4.947c-.2-4.349-2.619-6.78-6.98-6.98-1.281-.059-1.689-.073-4.948-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+        <div class="container-premium" style="margin-top: 4rem; text-align: center; font-size: 0.8rem; color: var(--text-secondary);">
+            &copy; 2026 Aether Oncology. Todos os direitos reservados.
         </div>
-      </div>
-      
-      <div class="mt-12 text-[10px] text-white/10 leading-relaxed text-center italic">
-        Medical disclaimer: Aether Oncology is a Clinical Decision Support System (CDSS) for research purposes. All final diagnostic decisions must be validated by a board-certified oncologist.
-      </div>
-    </div>
-  </footer>
+    </footer>
 
-  <!-- SRE Health Dock -->
-  <div id="sre-dock" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 items-end pointer-events-none">
-      <div id="platform-meta" class="hidden glass px-4 py-2 rounded-full border border-white/10 text-[9px] font-bold tracking-widest flex items-center gap-3 backdrop-blur-xl shadow-2xl pointer-events-auto">
-          <!-- Injected via JS -->
-      </div>
-      <div class="flex gap-2 pointer-events-auto">
-          <div class="badge-live glass px-3 py-1.5 rounded-full border border-white/5 text-[9px] font-bold tracking-widest flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-              <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-              LIVE
-          </div>
-          <div class="badge-ready hidden glass px-3 py-1.5 rounded-full border border-white/5 text-[9px] font-bold tracking-widest flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-              <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.6)]"></span>
-              READY
-          </div>
-      </div>
-  </div>
-
-  <div id="toast-container"></div>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>
-

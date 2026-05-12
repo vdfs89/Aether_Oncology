@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
+/**
+ * Aether Oncology | Vite Configuration
+ * Optimized for high-performance clinical portal delivery.
+ */
 export default defineConfig({
   root: 'src/static/aether-oncology-portal',
+  base: './',
   build: {
-    outDir: 'dist',
+    outDir: resolve(__dirname, 'src/static/aether-oncology-portal/dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
@@ -13,20 +18,35 @@ export default defineConfig({
         terms: resolve(__dirname, 'src/static/aether-oncology-portal/terms.html')
       },
       output: {
-        manualChunks: {
-          chartjs: ['chart.js']
+        entryFileNames: 'js/[name].[hash].js',
+        chunkFileNames: 'js/[name].[hash].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.css')) return 'css/[name].[hash][extname]';
+          return 'assets/[name].[hash][extname]';
         }
       }
     },
     target: 'esnext',
-    minify: 'esbuild',
-    cssMinify: true
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
+    cssCodeSplit: true,
+    sourcemap: false
   },
   server: {
+    port: 3000,
+    open: true,
+    cors: true,
     proxy: {
-      '/predict': 'http://localhost:8000',
-      '/health': 'http://localhost:8000',
-      '/audit': 'http://localhost:8000'
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
     }
   }
 });

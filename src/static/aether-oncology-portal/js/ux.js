@@ -1,33 +1,9 @@
 /**
- * Aether Oncology UX Module
- * Handles premium interactions, smooth scroll, and reveal animations.
+ * Aether Oncology | UX Controller
+ * Cinematic motion and scroll reveals.
  */
 
-export function initUX() {
-    initSmoothScroll();
-    initRevealAnimations();
-    initNavbarGlass();
-}
-
-function initSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
-            
-            const target = document.querySelector(targetId);
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-}
-
-function initRevealAnimations() {
+const initScrollReveal = () => {
     const observerOptions = {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
@@ -36,29 +12,29 @@ function initRevealAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('reveal-active');
+                entry.target.classList.add('animate-fade-in');
                 observer.unobserve(entry.target);
             }
         });
     }, observerOptions);
 
-    // Elements to reveal
-    const revealElements = document.querySelectorAll('.section-spacing, .glass, .container-premium > div');
-    revealElements.forEach(el => {
-        el.classList.add('reveal-hidden');
+    document.querySelectorAll('section, .glass-card').forEach(el => {
+        el.style.opacity = '0'; // Initial state for reveal
         observer.observe(el);
     });
-}
+};
 
-function initNavbarGlass() {
-    const header = document.querySelector('.header-floating');
-    if (!header) return;
+const initParallax = () => {
+    const heroImage = document.querySelector('.hero-image-container img');
+    
+    if (heroImage) {
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            heroImage.style.transform = `translateY(${scrolled * 0.1}px) scale(${1 + scrolled * 0.0001})`;
+        });
+    }
+};
 
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 20) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
-}
+// Initialize
+initScrollReveal();
+initParallax();
