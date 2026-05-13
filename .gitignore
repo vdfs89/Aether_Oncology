@@ -15,11 +15,13 @@ venv/
 env/
 .env
 
-# ─── Artefatos do modelo (gerados por make train) ─────────────────────────────
-models/*.pth
-models/*.pt
-models/*.joblib
-models/*.pkl
+# ─── Artefatos do modelo ──────────────────────────────────────────────────────
+# Permitimos o versionamento de artefatos pequenos (< 100KB) para garantir
+# o funcionamento do portal em ambientes como o Render.
+# models/*.pth
+# models/*.pt
+# models/*.joblib
+# models/*.pkl
 
 # ─── MLflow ───────────────────────────────────────────────────────────────────
 mlruns/

@@ -30,10 +30,6 @@ logger = logging.getLogger(__name__)
 # Constantes de Caminho e Configuração
 # ---------------------------------------------------------------------------
 
-_MODELS_DIR = Path(__file__).resolve().parents[2] / "models"
-_PIPELINE_PATH = _MODELS_DIR / "preprocessor.joblib"
-_MODEL_PATH = _MODELS_DIR / "aether_mlp_v2.pth"
-_CALIBRATOR_PATH = _MODELS_DIR / "calibrator.joblib"
 
 FEATURE_NAMES = [
     "radius_mean",
@@ -130,30 +126,65 @@ class PredictorService:
         self.green_monitor = GreenAIMonitor()
         self.model_version = "v1-decoupled"
 
+    def _find_models_dir(self) -> Path:
+        """
+        Heuristic to find the models directory across different environments
+        (Local Dev, Docker, Render, CI).
+        """
+        # 1. Try relative to this file (standard repo structure: src/services/predictor.py -> ../../models)
+        base_path = Path(__file__).resolve().parents[2] / "models"
+        if (base_path / "preprocessor.joblib").exists():
+            return base_path
+
+        # 2. Try absolute /app/models (Standard Docker structure)
+        docker_path = Path("/app/models")
+        if (docker_path / "preprocessor.joblib").exists():
+            return docker_path
+
+        # 3. Try current working directory
+        cwd_path = Path.cwd() / "models"
+        if (cwd_path / "preprocessor.joblib").exists():
+            return cwd_path
+
+        return base_path  # Default fallback
+
     def load_resources(self) -> None:
         """Loads required local artifacts (preprocessor and optional local model)."""
+        models_dir = self._find_models_dir()
+        logger.info(f"Searching for clinical artifacts in: {models_dir}")
+
+        pipeline_path = models_dir / "preprocessor.joblib"
+        model_path = models_dir / "aether_mlp_v2.pth"
+        calibrator_path = models_dir / "calibrator.joblib"
+
         try:
-            if not _PIPELINE_PATH.exists():
-                logger.error(f"Pipeline not found in '{_PIPELINE_PATH}'")
+            if not pipeline_path.exists():
+                logger.error(f"Pipeline not found in '{pipeline_path}'")
+                # Debug: list directory contents to help troubleshoot
+                if models_dir.exists():
+                    files = [f.name for f in models_dir.iterdir()]
+                    logger.info(f"Directory contents of '{models_dir}': {files}")
+                else:
+                    logger.error(f"Directory '{models_dir}' does not exist.")
             else:
-                self.preprocessor = joblib.load(_PIPELINE_PATH)
+                self.preprocessor = joblib.load(pipeline_path)
                 logger.info("Local Preprocessor loaded successfully.")
 
             # Proxy Model for XAI and Fallback
             self.model = MLP(input_shape=30)
-            if _MODEL_PATH.exists():
+            if model_path.exists():
                 self.model.load_state_dict(
-                    torch.load(_MODEL_PATH, weights_only=True, map_location="cpu")
+                    torch.load(model_path, weights_only=True, map_location="cpu")
                 )
                 self.model.eval()
                 logger.info("Local Proxy Model loaded for XAI/Fallback.")
             else:
                 logger.warning(
-                    f"Local weights not found in '{_MODEL_PATH}'. Fallback and XAI will be limited."
+                    f"Local weights not found in '{model_path}'. Fallback and XAI will be limited."
                 )
 
-            if _CALIBRATOR_PATH.exists():
-                self.calibrator = joblib.load(_CALIBRATOR_PATH)
+            if calibrator_path.exists():
+                self.calibrator = joblib.load(calibrator_path)
                 logger.info("Local Calibrator loaded.")
 
         except Exception as e:
