@@ -90,14 +90,16 @@ IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraes
 
 ---
 
-## 🛡️ SRE Hardening (v2.1)
+## 🛡️ SRE Hardening & SecOps (v2.2)
 
-A versão 2.1 introduz uma camada de **Site Reliability Engineering (SRE)** de nível empresarial:
+A versão mais recente introduz uma camada de **Site Reliability Engineering (SRE) e SecOps** de nível empresarial:
 
 - **Observabilidade Total**: Implementação de `X-Request-ID` em toda a stack, permitindo rastreabilidade de ponta a ponta (Audit Trail → Backend Logs).
 - **Segurança HIPAA-Grade**: Hardening de CORS (restrito a domínios de produção) e sanitização rigorosa de payloads.
+- **DevSecOps Pipeline**: Integração com o scanner **Grype** no CI/CD para detecção proativa de vulnerabilidades em containers, garantindo conformidade contínua.
+- **Build Otimizado (Esbuild)**: Transição de Terser para Esbuild no pipeline de deploy, resolvendo conflitos de dependência e acelerando o empacotamento estático.
 - **Circuit Breakers**: O sistema protege a si mesmo contra lentidões em APIs de terceiros (PubMed/Semantic Scholar), garantindo latência estável no diagnóstico.
-- **Decoupled Inference (v2.2)**: Arquitetura "Remote-First, Local-Fallback". A inferência principal ocorre via Hugging Face Inference API, com fallback automático para um modelo local PyTorch em caso de falha ou ativação do Circuit Breaker.
+- **Decoupled Inference**: Arquitetura "Remote-First, Local-Fallback". A inferência principal ocorre via Hugging Face Inference API, com fallback automático para um modelo local PyTorch em caso de falha.
 - **Statistical Audit**: O cálculo de Drift agora utiliza testes de significância estatística (P-values), elevando a governança de "heurística" para "acadêmica".
 
 ## 📊 Arquitetura e Análise Técnica
@@ -335,13 +337,15 @@ curl -X POST https://api.vitorsilva.engineer/predict \
 
 ---
 
-## 🖥️ Portal Clínico (Front-end Nativo)
+## 🖥️ Portal Clínico & "Luxury Clinical" UX (v2.2)
 
-Acessível na raiz da API (`https://api.vitorsilva.engineer/`), construído em HTML/CSS/JS puro para máxima performance:
-- Layout em painel duplo (Clinical UI)
-- Input focado nas 5 features primárias (auto-preenchimento inteligente para as outras 25)
-- **Explainable AI (XAI)**: Integração nativa com *Chart.js* mostrando a contribuição (Fator de Impacto) das features morfológicas na predição final da rede neural (vermelho para maligno, verde para benigno).
-- Erros de autenticação (403) mapeados no front.
+Acessível na raiz da API (`https://api.vitorsilva.engineer/` e `/portal.html`), o front-end foi completamente reescrito para refletir uma estética **"Luxury Clinical"**, unindo alta tecnologia com uma paleta baseada em constelações e biotecnologia:
+
+- **Lotus Pulsante**: Animação contínua (breathing effect) na navbar, transmitindo vida, resiliência e estabilidade ao sistema.
+- **Cinematic Inference Loader**: Simulação de latência arquitetural (2.5s) durante a predição para reforçar a complexidade visual do cálculo ("Processando tensores neurais...").
+- **Layout em painel duplo (Clinical UI)**: Input focado nas 5 features primárias com auto-preenchimento inteligente para as outras 25.
+- **Explainable AI (XAI)**: Integração nativa com *Chart.js* gerando Radar Charts em tempo real. A visualização traduz a contribuição exata de cada feature morfológica na rede neural (vermelho para maligno, verde para benigno).
+- **Tratamento de Exceções Nativo**: Erros 403 (Autenticação) e 503 (Cold Start) são gerenciados no front-end com modais elegantes e instrutivos.
 
 ---
 
