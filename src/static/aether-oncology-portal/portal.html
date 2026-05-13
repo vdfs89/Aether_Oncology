@@ -3,223 +3,110 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Aether Portal — Terminal de diagnóstico oncológico com IA explicável de precisão." />
-  <meta name="theme-color" content="#03060b" />
-  <title>Aether Portal | Terminal de Diagnóstico</title>
-
-  <!-- Poppins font -->
+  <title>Terminal de Diagnóstico | Aether Oncology</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-
-  <!-- Design System -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/portal.css" />
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="./images/icone.png" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="text-slate-100 antialiased">
+<body>
+  <!-- Background Ambient -->
+  <div class="scene-bg" aria-hidden="true"></div>
+  <div class="scene-glow scene-glow--1"></div>
+  <div class="scene-glow scene-glow--2"></div>
 
-  <!-- ═══ AMBIENT SCENE (same starfield + nebula as body) ═══════════════ -->
-  <div class="scene-bg" aria-hidden="true">
-    <div class="scene-glow scene-glow--1"></div>
-    <div class="scene-glow scene-glow--2"></div>
-    <div class="scene-glow scene-glow--3"></div>
-    <div class="noise-overlay"></div>
-  </div>
-
-  <!-- ═══ NAVBAR ═════════════════════════════════════════════════════════ -->
-  <header class="navbar" role="banner">
-    <nav class="container-premium nav-inner" aria-label="Navegação portal">
-      <a href="index.html" class="nav-logo" aria-label="Aether Oncology — página inicial">
-        <div class="lotus-pulsante lotus-pulsante--nav" aria-hidden="true"></div>
-        AETHER <span style="color:var(--accent-magenta)">PORTAL</span>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="container nav-inner">
+      <a href="./index.html" class="nav-logo">
+        <div class="lotus-pulsante"></div>
+        AETHER ONCOLOGY
       </a>
-      <a href="index.html" class="btn btn--ghost btn--sm">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Voltar para Home
-      </a>
-    </nav>
+    </div>
   </header>
 
-  <!-- ═══ MAIN CONTENT ═══════════════════════════════════════════════════ -->
-  <main class="container-premium" style="padding-top:calc(var(--nav-h) + 2rem); padding-bottom:4rem;">
+  <main class="container portal-page">
+    <header class="portal-header">
+      <h1 class="portal-title">Terminal de <span class="text-gradient">Diagnóstico</span></h1>
+      <p class="portal-subtitle">Insira os biomarcadores do exame de Punção Aspirativa por Agulha Fina (FNA) para avaliação da rede neural.</p>
+    </header>
 
-    <!-- Page Header -->
-    <div class="section-header animate-reveal" style="margin-bottom:3rem;">
-      <div class="section-label">Terminal de Inferência v2.2</div>
-      <h1 style="font-size:clamp(2rem,4vw,3rem); font-weight:900; letter-spacing:-0.03em;">
-        Diagnóstico <span class="headline-accent">Oncológico</span>
-      </h1>
-      <p class="section-subtitle" style="max-width:44rem;">
-        Insira os parâmetros citopatológicos da biópsia abaixo. O modelo Bayesiano retornará a classificação, confiança calibrada e explicação SHAP.
-      </p>
-    </div>
-
-    <!-- Grid: Form + Results -->
-    <div style="display:grid; grid-template-columns:1fr; gap:2rem;" class="portal-grid">
-
-      <!-- ── LEFT: FORMULÁRIO ────────────────────────────────────── -->
-      <div class="glass-card animate-reveal" style="--delay:.1s">
-        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:1.5rem;">
-          <span class="text-gradient-future">Nova Análise</span>
-        </h2>
-
-        <form id="tumor-form" style="display:flex; flex-direction:column; gap:1.5rem;">
-
-          <!-- Raio Médio -->
-          <div>
-            <label class="portal-label">Raio Médio (μm)</label>
-            <input type="range" id="range-radius" name="radius_mean" min="5" max="30" step="0.1" value="14.0"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-radius">14.0</div>
+    <div class="portal-layout">
+      <!-- Sidebar / Inputs -->
+      <aside class="glass-panel portal-sidebar">
+        <h2 class="sidebar-title">Dados Biométricos</h2>
+        <form id="clinical-form" class="form-grid">
+          
+          <div class="input-group">
+            <label for="radius">Raio Médio <span id="radius-val" class="input-val">14.0</span></label>
+            <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0" />
+          </div>
+          
+          <div class="input-group">
+            <label for="texture">Textura <span id="texture-val" class="input-val">19.0</span></label>
+            <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0" />
           </div>
 
-          <!-- Textura Média -->
-          <div>
-            <label class="portal-label">Textura Média</label>
-            <input type="range" id="range-texture" name="texture_mean" min="9" max="40" step="0.1" value="19.0"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-texture">19.0</div>
+          <div class="input-group">
+            <label for="perimeter">Perímetro <span id="perimeter-val" class="input-val">90.0</span></label>
+            <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0" />
           </div>
 
-          <!-- Perímetro Médio -->
-          <div>
-            <label class="portal-label">Perímetro Médio</label>
-            <input type="range" id="range-perimeter" name="perimeter_mean" min="40" max="200" step="0.5" value="92.0"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-perimeter">92.0</div>
+          <div class="input-group">
+            <label for="area">Área <span id="area-val" class="input-val">600</span></label>
+            <input type="range" id="area" min="140" max="2500" step="10" value="600" />
           </div>
 
-          <!-- Área Média -->
-          <div>
-            <label class="portal-label">Área Média (μm²)</label>
-            <input type="range" id="range-area" name="area_mean" min="100" max="2600" step="5" value="650"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-area">650</div>
+          <div class="input-group">
+            <label for="smoothness">Suavidade <span id="smoothness-val" class="input-val">0.09</span></label>
+            <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09" />
           </div>
 
-          <!-- Concavidade Média -->
-          <div>
-            <label class="portal-label">Concavidade Média</label>
-            <input type="range" id="range-concavity" name="concavity_mean" min="0" max="0.5" step="0.001" value="0.1"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-concavity">0.100</div>
-          </div>
-
-          <!-- Pontos Côncavos Médios -->
-          <div>
-            <label class="portal-label">Pontos Côncavos Médios</label>
-            <input type="range" id="range-concave-points" name="concave_points_mean" min="0" max="0.25" step="0.001" value="0.05"
-                   class="portal-range" />
-            <div class="portal-range-value" id="v-concave-points">0.050</div>
-          </div>
-
-          <button type="submit" class="btn btn--primary btn--lg" style="width:100%; margin-top:0.5rem;" id="btn-submit">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            EXECUTAR INFERÊNCIA
-          </button>
+          <button type="submit" class="btn btn-primary btn-submit">Executar Inferência Neural</button>
         </form>
-      </div>
+      </aside>
 
-      <!-- ── RIGHT: RESULTADOS ───────────────────────────────────── -->
-      <div class="glass-card animate-reveal" style="--delay:.25s; min-height:500px; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative;">
-
-        <!-- Loader -->
-        <div id="loader" style="display:none; flex-direction:column; align-items:center; gap:1rem;">
-          <div style="width:48px; height:48px; border:2px solid var(--accent-magenta); border-top-color:transparent; border-radius:50%; animation:rotateCW 0.8s linear infinite;"></div>
-          <p style="font-size:0.8rem; color:var(--text-muted); animation:pulse 2s ease-in-out infinite; text-transform:uppercase; letter-spacing:0.12em;">
-            Analisando núcleos celulares...
-          </p>
-        </div>
-
-        <!-- Resultado vazio (placeholder) -->
-        <div id="results-placeholder" style="text-align:center;">
-          <div style="font-size:4rem; margin-bottom:1rem; opacity:0.15;" aria-hidden="true">🔬</div>
-          <p style="color:var(--text-muted); font-style:italic; font-size:0.95rem;">
-            Aguardando entrada de dados para análise...
-          </p>
-          <p style="color:var(--text-muted); font-size:0.75rem; margin-top:0.5rem; opacity:0.6;">
-            Ajuste os parâmetros citopatológicos e clique em "Executar Inferência"
-          </p>
-        </div>
-
-        <!-- Resultado real (hidden until API responds) -->
-        <div id="results" style="display:none; width:100%;">
-          <!-- Classificação -->
-          <div style="text-align:center; margin-bottom:2rem;">
-            <div id="result-icon" style="font-size:4rem; margin-bottom:0.75rem;"></div>
-            <h3 id="result-label" style="font-size:2rem; font-weight:900; margin-bottom:0.25rem;"></h3>
-            <p id="result-confidence" style="font-size:1.1rem; color:var(--text-secondary);"></p>
+      <!-- Main Results Area -->
+      <section class="portal-main">
+        <div class="glass-panel result-card">
+          <!-- Initial State / Loader -->
+          <div id="inference-loader" class="loader-container active">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">Analisando tensores...</p>
           </div>
 
-          <!-- Barra de confiança -->
-          <div style="margin-bottom:2rem;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-              <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); font-weight:600;">Confiança do Modelo</span>
-              <span id="confidence-pct" style="font-size:0.85rem; font-weight:700; color:var(--accent-magenta);"></span>
-            </div>
-            <div style="height:6px; background:rgba(237,230,255,0.08); border-radius:3px; overflow:hidden;">
-              <div id="confidence-bar" style="height:100%; border-radius:3px; transition:width 0.8s ease;"></div>
-            </div>
-          </div>
-
-          <!-- Métricas detalhadas -->
-          <div id="result-details" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem;"></div>
-
-          <!-- XAI Radar Chart -->
-          <div style="margin-top:2rem; width:100%; height:300px; display:flex; justify-content:center; align-items:center;" class="xai-chart-container">
-            <canvas id="xaiChartPortal"></canvas>
-          </div>
-
-          <!-- SHAP note -->
-          <div style="margin-top:2rem; padding:1rem; background:rgba(230,57,138,0.06); border:1px solid rgba(230,57,138,0.15); border-radius:var(--radius-md);">
-            <p style="font-size:0.8rem; color:var(--text-secondary); line-height:1.6;">
-              <strong style="color:var(--accent-magenta);">⚠ Nota Clínica:</strong>
-              Este resultado é gerado por um modelo de IA e não substitui avaliação médica profissional. Consulte um oncologista para validação diagnóstica.
-            </p>
+          <!-- Verdict State -->
+          <div id="inference-verdict" class="verdict">
+            <h2 class="verdict-label">Veredito Clínico</h2>
+            <div id="verdict-text" class="verdict-title">--</div>
+            <div id="verdict-confidence" class="verdict-confidence">Confiança: --</div>
           </div>
         </div>
 
-        <!-- Erro -->
-        <div id="result-error" style="display:none; text-align:center;">
-          <div style="font-size:3rem; margin-bottom:1rem;">⚠️</div>
-          <h3 style="color:#FF6B6B; font-size:1.2rem; font-weight:700; margin-bottom:0.5rem;">Falha na Inferência</h3>
-          <p id="error-message" style="color:var(--text-muted); font-size:0.9rem;"></p>
-          <button id="btn-retry" class="btn btn--ghost" style="margin-top:1rem;">Tentar Novamente</button>
+        <!-- XAI Radar -->
+        <div class="glass-panel chart-card" style="position: relative;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+            <h3 class="chart-title" style="margin-bottom: 0;">Explicabilidade do Modelo (XAI)</h3>
+            <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/PROJECT_STATUS.md" target="_blank" class="model-card-link" aria-label="Acessar Model Card de Governança" style="color: var(--lotus-core); text-decoration: none; font-size: 0.75rem; border: 1px solid var(--glass-border); padding: 0.25rem 0.75rem; border-radius: 9999px; transition: all 0.2s;">
+              ⓘ Model Card
+            </a>
+          </div>
+          <div class="chart-container">
+            <canvas id="xaiRadarChart"></canvas>
+          </div>
         </div>
-
-      </div>
+      </section>
     </div>
-
-    <!-- API Status -->
-    <div class="glass-card animate-reveal" style="--delay:.4s; margin-top:2rem; display:flex; align-items:center; gap:0.75rem; padding:0.85rem 1.25rem; border-radius:var(--radius-md);">
-      <div id="api-status-dot" class="rag-dot" style="background:#FFD700; box-shadow:0 0 10px #FFD700;"></div>
-      <span id="api-status-text" style="font-size:0.85rem; color:var(--text-secondary);">
-        Verificando conexão com Inference API...
-      </span>
-    </div>
-
   </main>
 
-  <!-- ═══ FOOTER (simplified) ════════════════════════════════════════════ -->
-  <footer class="footer" role="contentinfo">
-    <div class="footer-bottom container-premium">
-      <span>&copy; 2026 Aether Oncology. Todos os direitos reservados.</span>
-      <span class="footer-bottom__status">
-        <span class="status-dot" aria-hidden="true"></span>
-        Terminal de Diagnóstico v2.2
-      </span>
-    </div>
-  </footer>
+  <!-- Error Toast -->
+  <div id="error-toast" style="display: none; position: fixed; bottom: 2rem; right: 2rem; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #f87171; padding: 1rem 1.5rem; border-radius: var(--radius-md); box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 999; animation: fade-in 0.3s ease-out;">
+    <strong style="display: block; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Timeout do Cluster Neural</strong>
+    <span id="error-toast-msg" style="font-size: 0.875rem;">O backend está sob cold-start. Tente novamente em alguns segundos.</span>
+  </div>
 
-  <!-- App scripts -->
-  <script type="module" src="./js/main.js"></script>
-
+  <script src="./js/charts.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 </html>

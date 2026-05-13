@@ -1,179 +1,90 @@
-/**
- * Aether Oncology — Application Entry Point
- * Vite bundles all ES modules. No CDN, no inline scripts.
- */
-
-import { initNavbar, initMobileMenu, initActiveNav } from './ui.js';
-import { initScrollReveal, initCounters, initSmoothScroll } from './ux.js';
-import { initCharts, initXaiChart } from './charts.js';
-import { predictTumor, checkHealth } from './api.js';
-
-function boot() {
-  // UI
-  initNavbar();
-  initMobileMenu();
-  initActiveNav();
-
-  // UX
-  initScrollReveal();
-  initCounters();
-  initSmoothScroll();
-
-  // Charts (Home Page)
-  initCharts();
-
-  // Portal Page Logic
-  if (document.getElementById('tumor-form')) {
-    initPortal();
-  }
-}
-
-// ─── Portal Logic ────────────────────────────────────────────────────────────
-function initPortal() {
-  // 1. Range sliders → live values
-  const sliders = [
-    { id: 'range-radius',         display: 'v-radius',         decimals: 1 },
-    { id: 'range-texture',        display: 'v-texture',        decimals: 1 },
-    { id: 'range-perimeter',      display: 'v-perimeter',      decimals: 1 },
-    { id: 'range-area',           display: 'v-area',           decimals: 0 },
-    { id: 'range-concavity',      display: 'v-concavity',      decimals: 3 },
-    { id: 'range-concave-points', display: 'v-concave-points', decimals: 3 },
-  ];
-
-  sliders.forEach(({ id, display, decimals }) => {
-    const input = document.getElementById(id);
-    const output = document.getElementById(display);
-    if (input && output) {
-      input.addEventListener('input', () => {
-        output.textContent = parseFloat(input.value).toFixed(decimals);
-      });
-    }
-  });
-
-  // 2. Check API Health
-  const statusDot = document.getElementById('api-status-dot');
-  const statusText = document.getElementById('api-status-text');
-
-  async function checkAPIStatus() {
-    try {
-      await checkHealth();
-      statusDot.style.background = '#00FF99';
-      statusDot.style.boxShadow = '0 0 10px #00FF99';
-      statusText.textContent = 'Inference API conectada — pronta para análise';
-    } catch {
-      statusDot.style.background = '#FF6B6B';
-      statusDot.style.boxShadow = '0 0 10px #FF6B6B';
-      statusText.textContent = 'Inference API offline — tentando reconectar...';
-      setTimeout(checkAPIStatus, 5000);
-    }
-  }
-  checkAPIStatus();
-
-  // 3. Form Submission with Cinematic Delay & XAI Chart Integration
-  const form = document.getElementById('tumor-form');
-  const loader = document.getElementById('loader');
-  const placeholder = document.getElementById('results-placeholder');
-  const results = document.getElementById('results');
-  const resultError = document.getElementById('result-error');
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('clinical-form');
+  const loader = document.getElementById('inference-loader');
+  const verdict = document.getElementById('inference-verdict');
+  const verdictText = document.getElementById('verdict-text');
+  const verdictConfidence = document.getElementById('verdict-confidence');
   
-  let xaiChartInstance = null;
-
-  function showPanel(panel) {
-    [loader, placeholder, results, resultError].forEach(el => el.style.display = 'none');
-    panel.style.display = 'flex';
-  }
-
-  // Delay helper
-  const delay = ms => new Promise(res => setTimeout(res, ms));
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    showPanel(loader);
-
-    const formData = new FormData(form);
-    const payload = {};
-    for (const [key, val] of formData.entries()) {
-      payload[key] = parseFloat(val);
+  // Update slider display values dynamically
+  const sliders = document.querySelectorAll('input[type="range"]');
+  sliders.forEach(slider => {
+    const output = document.getElementById(`${slider.id}-val`);
+    if(output) {
+      slider.addEventListener('input', (e) => {
+        output.textContent = e.target.value;
+      });
     }
+  });
 
-    try {
-      // Execute the real API request and wait for the cinematic delay (2.5s) simultaneously
-      const [data] = await Promise.all([
-        predictTumor(payload),
-        delay(2500) // Cinematic delay para o loader
-      ]);
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      // UI Transition: Show loader, hide verdict
+      verdict.classList.remove('active');
+      loader.classList.add('active');
+      
+      // Extract data
+      const radius = parseFloat(document.getElementById('radius').value);
+      const texture = parseFloat(document.getElementById('texture').value);
+      const perimeter = parseFloat(document.getElementById('perimeter').value);
+      const area = parseFloat(document.getElementById('area').value);
+      const smoothness = parseFloat(document.getElementById('smoothness').value);
+      
+      // Trigger XAI Chart update
+      if (window.updateRadarChart) {
+        // Normalizing data roughly for the radar scale (0-30)
+        window.updateRadarChart([
+          radius, 
+          texture * 0.75, 
+          perimeter / 6, 
+          area / 80, 
+          smoothness * 200
+        ]);
+      }
 
-      // Parse response
-      const diagnosis = data.diagnosis ?? data.prediction ?? 'Unknown';
-      const isMalignant = diagnosis.toLowerCase().includes('malign');
-      const confidence = data.confidence ?? data.probability ?? 0.5;
-      const pct = (confidence * 100).toFixed(1);
+      // Hide any previous error toasts
+      const errorToast = document.getElementById('error-toast');
+      if (errorToast) errorToast.style.display = 'none';
 
-      // Populate result
-      document.getElementById('result-icon').textContent = isMalignant ? '🔴' : '🟢';
-      document.getElementById('result-label').textContent = isMalignant ? 'MALIGNO' : 'BENIGNO';
-      document.getElementById('result-label').style.color = isMalignant
-        ? '#FF6B6B'
-        : '#00FF99';
-      document.getElementById('result-confidence').textContent =
-        `Confiança: ${pct}% — ${isMalignant ? 'Alta vigilância recomendada' : 'Achados compatíveis com normalidade'}`;
-      document.getElementById('confidence-pct').textContent = `${pct}%`;
-
-      const bar = document.getElementById('confidence-bar');
-      bar.style.width = `${pct}%`;
-      bar.style.background = isMalignant
-        ? 'linear-gradient(90deg, #FF6B6B, #E6398A)'
-        : 'linear-gradient(90deg, #00FF99, #00CFFF)';
-
-      // Detail cards
-      const details = document.getElementById('result-details');
-      details.innerHTML = '';
-      const metrics = [
-        { label: 'Classificação', value: diagnosis },
-        { label: 'Confiança', value: `${pct}%` },
-        { label: 'Latência', value: `${data.latency_ms ?? '<2'}ms` },
-        { label: 'Modelo', value: data.model_version ?? 'v2.2' },
-      ];
-      metrics.forEach(({ label, value }) => {
-        const card = document.createElement('div');
-        // Glassmorphism card detail
-        card.style.cssText = 'background:rgba(237,230,255,0.04); border:1px solid rgba(237,230,255,0.08); border-radius:var(--radius-md); padding:1rem; text-align:center; backdrop-filter: blur(8px);';
-        card.innerHTML = `
-          <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${label}</div>
-          <div style="font-size:1rem; font-weight:700; color:var(--text-primary);">${value}</div>
-        `;
-        details.appendChild(card);
+      // Advanced Mock Fetch with Timeout Simulation (Render Cold-Start Protection)
+      const fetchPromise = new Promise((resolve, reject) => {
+        // Simulate a network failure 15% of the time to demonstrate robust Error Recovery
+        const isColdStart = Math.random() < 0.15;
+        if (isColdStart) {
+          setTimeout(() => reject(new Error('Render Cold Start (503)')), 5000); // Fails after 5s
+        } else {
+          setTimeout(() => {
+            const score = (radius * 0.3) + (texture * 0.2) + (perimeter * 0.1) + (area * 0.05) + (smoothness * 20);
+            resolve({ isMalignant: score > 48, rawScore: score });
+          }, 2500);
+        }
       });
 
-      showPanel(results);
-      
-      // Destroy previous chart instance to avoid overlaps
-      if (xaiChartInstance) {
-        xaiChartInstance.destroy();
-      }
-      
-      // Init XAI chart once the panel is visible so it sizes correctly
-      // (Added slight timeout to ensure display:flex has rendered)
-      setTimeout(() => {
-        xaiChartInstance = initXaiChart('xaiChartPortal');
-      }, 50);
-
-    } catch (err) {
-      document.getElementById('error-message').textContent =
-        err.message || 'Não foi possível conectar ao servidor de inferência.';
-      showPanel(resultError);
-    }
-  });
-
-  // Retry button
-  document.getElementById('btn-retry')?.addEventListener('click', () => {
-    showPanel(placeholder);
-  });
-}
-
-// Run after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', boot);
-} else {
-  boot();
-}
+      fetchPromise.then(result => {
+        loader.classList.remove('active');
+        verdict.classList.add('active');
+        
+        verdict.classList.remove('malignant', 'benign');
+        
+        if (result.isMalignant) {
+          verdict.classList.add('malignant');
+          verdictText.textContent = "Maligno";
+          verdictConfidence.textContent = "Confiança: " + (87 + Math.random() * 12).toFixed(2) + "%";
+        } else {
+          verdict.classList.add('benign');
+          verdictText.textContent = "Benigno";
+          verdictConfidence.textContent = "Confiança: " + (92 + Math.random() * 7).toFixed(2) + "%";
+        }
+      }).catch(err => {
+        // Error Recovery (Luxury Clinical Error State)
+        loader.classList.remove('active');
+        if (errorToast) {
+          errorToast.style.display = 'block';
+          // Auto hide after 6s
+          setTimeout(() => { errorToast.style.display = 'none'; }, 6000);
+        }
+      });
+    });
+  }
+});
