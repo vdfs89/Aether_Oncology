@@ -161,7 +161,10 @@ Esta análise valida como o projeto atende (e supera) os requisitos de excelênc
 ## 🏗️ Estrutura do Repositório
 
 ```
-aether-oncology/
+├── .github/workflows/
+│   ├── unified-mlops-pipeline.yml # Pipeline unificado (Lint + Test + Train + CD)
+│   ├── ml-ct-pipeline.yml       # Retreino contínuo (Continuous Training)
+│   └── keep_alive.yml           # Pings Render (Liveness)
 ├── src/
 │   ├── main.py                  # API FastAPI (/predict + /health)
 │   ├── train.py                 # Pipeline de treino com Early Stopping e MLflow
@@ -169,24 +172,24 @@ aether-oncology/
 │   ├── models/
 │   │   └── mlp.py               # Arquitetura TumorMLP — única fonte de verdade
 │   └── services/
-│       ├── predictor.py         # PredictorService (Singleton) — importa MLP de mlp.py
+│       ├── predictor.py         # PredictorService (Singleton)
 │       └── research.py          # Integração com Semantic Scholar API
 ├── data/
 │   └── raw/                     # Dataset WDBC (Wisconsin Diagnostic Breast Cancer)
 ├── models/                      # Artefatos gerados: pesos .pth e pipeline .joblib
 ├── notebooks/
-│   └── eda_aether_oncology.ipynb  # EDA + baseline + treino MLP + tabela comparativa
+│   └── eda_aether_oncology.ipynb  # EDA + baseline + treino MLP
 ├── tests/
 │   ├── test_schema.py           # Validação de schema com Pandera
 │   └── test_api.py              # Testes de integração da API
 ├── docs/
 │   └── MODEL_CARD.md            # Documentação ética e limites do modelo
 ├── PROJECT_STATUS.md            # Fonte Única de Verdade (Status, Infra & Roadmap)
-├── Dockerfile                   # Imagem de produção (usuário não-root + healthcheck)
+├── Dockerfile                   # Imagem de produção
 ├── .dockerignore                # Exclui mlruns/, notebooks/, cache
 ├── .gitignore                   # Exclui artefatos, dados e cache
-├── Makefile                     # Automação completa do ciclo de desenvolvimento
-├── pyproject.toml               # Source of truth: dependências + ruff + pytest
+├── Makefile                     # Automação completa
+├── pyproject.toml               # Source of truth: dependências
 └── README.md
 ```
 

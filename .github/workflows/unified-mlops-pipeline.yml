@@ -1,0 +1,209 @@
+name: Unified MLOps Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # STAGE 1: Quality Gate (Lint + Test)
+  # ─────────────────────────────────────────────────────────────────────────
+  quality-gate:
+    name: Verification (Lint + Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Lint & Format (Ruff)
+        run: |
+          ruff check src/ tests/
+          ruff format src/ tests/ --check
+
+      - name: Generate Mock Dataset
+        run: python scratch/regenerate_data.py
+
+      - name: Run Tests with Coverage
+        run: pytest tests/ --cov=src --cov-report=xml
+
+      - name: Upload Test Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # STAGE 2: Model Training & Tracking
+  # ─────────────────────────────────────────────────────────────────────────
+  model-training:
+    name: Model Training (MLflow)
+    needs: quality-gate
+    # Only train on push to main to avoid unnecessary training on PRs
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install ".[dev]"
+
+      - name: Generate Fresh Dataset
+        run: python scratch/regenerate_data.py
+
+      - name: Train and Register Model
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: python -m src.train
+
+      - name: Upload Trained Model Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-model
+          path: models/
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # STAGE 3: Build & Security Scan
+  # ─────────────────────────────────────────────────────────────────────────
+  build-and-scan:
+    name: Docker Build & Security Scan
+    needs: model-training
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Trained Model
+        uses: actions/download-artifact@v4
+        with:
+          name: production-model
+          path: models/
+
+      - name: Build Docker Image
+        run: docker build -t aether-oncology:${{ github.sha }} .
+
+      - name: Security Scan — SARIF Report
+        uses: anchore/scan-action@v3
+        with:
+          image: "aether-oncology:${{ github.sha }}"
+          fail-build: false
+          severity-cutoff: critical
+
+      - name: Upload SARIF vulnerability report
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: results.sarif
+
+      - name: Security Policy Gate (Grype)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          grype aether-oncology:${{ github.sha }} --config .grype.yaml --output table
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # STAGE 4: Canary Deployment
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-canary:
+    name: Canary Deploy (10%)
+    needs: build-and-scan
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://portal.aether-oncology.ai
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Kubeconfig
+        run: |
+          if [ -z "${KUBECONFIG_B64}" ]; then
+            echo "KUBECONFIG_AVAILABLE=false" >> "$GITHUB_ENV"
+          else
+            mkdir -p ~/.kube
+            echo "${KUBECONFIG_B64}" | base64 -d > ~/.kube/config 2>/dev/null \
+              || echo "${KUBECONFIG_B64}" > ~/.kube/config
+            chmod 600 ~/.kube/config
+            echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+            echo "KUBECONFIG_AVAILABLE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Deploy Canary (10%)
+        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        run: |
+          helm upgrade --install aether-oncology ./charts/aether-oncology \
+            --namespace default --create-namespace --atomic --timeout 5m \
+            --set image.tag=${{ github.sha }} \
+            --set canary.enabled=true \
+            --set canary.weight=10
+
+      - name: Post-Deploy Health Check
+        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        run: |
+          MAX_RETRIES=12
+          COUNT=0
+          until [ "$(curl -sf https://portal.aether-oncology.ai/health | jq -r '.status' 2>/dev/null)" = "healthy" ]; do
+            if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
+              echo "::error::Canary health check timed out. Rolling back..."
+              helm rollback aether-oncology --namespace default
+              exit 1
+            fi
+            sleep 10
+            COUNT=$((COUNT+1))
+          done
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # STAGE 5: Production Promotion
+  # ─────────────────────────────────────────────────────────────────────────
+  promote-production:
+    name: Promote to 100%
+    needs: deploy-canary
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Kubeconfig
+        run: |
+          if [ -n "${KUBECONFIG_B64}" ]; then
+            mkdir -p ~/.kube
+            echo "${KUBECONFIG_B64}" | base64 -d > ~/.kube/config 2>/dev/null \
+              || echo "${KUBECONFIG_B64}" > ~/.kube/config
+            echo "KUBECONFIG_AVAILABLE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Promote to 100%
+        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        run: |
+          helm upgrade --install aether-oncology ./charts/aether-oncology \
+            --namespace default --atomic --timeout 5m \
+            --set image.tag=${{ github.sha }} \
+            --set canary.enabled=false

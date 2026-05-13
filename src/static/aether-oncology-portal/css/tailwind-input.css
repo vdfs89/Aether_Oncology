@@ -10,3 +10,14 @@
   --color-cyan: #00D4FF;
   --color-white: #F7F9FF;
 }
+
+/* Custom utilities to address linter warnings */
+@layer base {
+  img, svg, video, canvas, audio, iframe, embed, object {
+    vertical-align: initial; /* Fix: Property ignored on display: block */
+  }
+}
+
+@utility line-clamp-* {
+  line-clamp: var(--value); /* Fix: Also define standard line-clamp */
+}
