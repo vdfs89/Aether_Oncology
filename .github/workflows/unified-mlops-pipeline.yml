@@ -121,7 +121,9 @@ jobs:
       - name: Security Policy Gate (Grype)
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          grype aether-oncology:${{ github.sha }} --config .grype.yaml --output table
+          # Força atualização do banco de vulnerabilidades
+          /usr/local/bin/grype db update
+          /usr/local/bin/grype aether-oncology:${{ github.sha }} --config .grype.yaml --output table --fail-on-db-update-errors=false
 
   # ─────────────────────────────────────────────────────────────────────────
   # STAGE 4: Canary Deployment
