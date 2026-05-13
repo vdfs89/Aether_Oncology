@@ -253,6 +253,16 @@ async def read_index() -> HTMLResponse:
         return HTMLResponse(content=f.read())
 
 
+@app.get("/portal.html", response_class=HTMLResponse, include_in_schema=False)
+async def read_portal() -> HTMLResponse:
+    """Serve a página portal.html."""
+    portal_path = os.path.join(
+        os.path.dirname(__file__), "static", "aether-oncology-portal", "portal.html"
+    )
+    with open(portal_path, encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 # ---------------------------------------------------------------------------
 # Multimodality Readiness (v2.1)
 # ---------------------------------------------------------------------------
