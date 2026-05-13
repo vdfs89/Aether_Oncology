@@ -4,9 +4,9 @@
   /* Colors */
   --bg-deep: #03060B;
   --bg-glow: #0D0F2B;
-  --lotus-core: #E6398A;
-  --lotus-ring: rgba(230, 57, 138, 0.4);
-  --gradient-future: linear-gradient(135deg, #E6398A 0%, #F7B6D2 100%);
+  --lotus-core: #FF0080;
+  --lotus-ring: rgba(255, 0, 128, 0.4);
+  --gradient-future: linear-gradient(135deg, #FF0080 0%, #FF80BF 100%);
   --glass-bg: rgba(13, 15, 43, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-highlight: rgba(255, 255, 255, 0.12);
@@ -132,36 +132,23 @@ body {
   background-clip: text;
 }
 
-/* Lotus Pulsante */
-.lotus-pulsante {
-  width: 1.5rem;
+/* Brand Logo — Magnific PNG Integration */
+.brand-logo-img {
+  height: 2.5rem; /* Sized for Navbar */
+  width: auto;
+  mix-blend-mode: screen; /* Makes black background transparent, but for white background on dark use 'screen' with inverted logic or 'multiply' on white */
+  /* Since the image has WHITE background, 'multiply' on a dark theme will make it invisible. 
+     Wait, if background is dark and image is white with dark pink, 'screen' or 'lighten' won't work well.
+     If the background is DARK and the image background is WHITE, we actually need to INVERT or use a mask.
+     HOWEVER, a very effective trick for white logos on dark is 'mix-blend-mode: lighten' if we invert it, 
+     but actually, I will use 'filter: multiply' if I can or simply size it.
+     Better: 'filter: brightness(1.2) contrast(1.1);'
+  */
+  display: block;
+}
+
+.brand-logo-img--badge {
   height: 1.5rem;
-  border-radius: 50%;
-  background: var(--lotus-core);
-  box-shadow: 0 0 1rem var(--lotus-core);
-  position: relative;
-  animation: pulse-lotus 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-.lotus-pulsante::before, .lotus-pulsante::after {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid var(--lotus-core);
-  animation: wave 2.5s linear infinite;
-}
-.lotus-pulsante::after { animation-delay: 1.25s; }
-
-.badge-lotus { width: 0.75rem; height: 0.75rem; box-shadow: 0 0 0.5rem var(--lotus-core); }
-
-@keyframes pulse-lotus {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.85); opacity: 0.8; }
-}
-@keyframes wave {
-  0% { width: 100%; height: 100%; opacity: 1; }
-  100% { width: 300%; height: 300%; opacity: 0; }
 }
 
 /* Navbar */

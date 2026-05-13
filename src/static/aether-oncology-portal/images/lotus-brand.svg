@@ -1,0 +1,33 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lotusPinkGrad" x1="50" y1="20" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF0080" /> <!-- Pink Vibrante -->
+      <stop offset="100%" stop-color="#800040" stop-opacity="0.4" /> <!-- Vinho Profundo -->
+    </linearGradient>
+    <filter id="glowPink">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#glowPink)">
+    <!-- Pétala Central -->
+    <path d="M50 20C50 20 35 45 35 60C35 75 50 80 50 80C50 80 65 75 65 60C65 45 50 20 50 20Z" fill="url(#lotusPinkGrad)">
+       <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
+    </path>
+    
+    <!-- Pétalas Laterais Superiores -->
+    <path d="M48 40C30 30 10 45 10 60C10 70 25 77 40 77C35 65 48 40 48 40Z" fill="url(#lotusPinkGrad)" fill-opacity="0.9" />
+    <path d="M52 40C70 30 90 45 90 60C90 70 75 77 60 77C65 65 52 40 52 40Z" fill="url(#lotusPinkGrad)" fill-opacity="0.9" />
+
+    <!-- Pétalas de Base -->
+    <path d="M45 60C25 55 5 65 5 75C5 80 25 85 45 83V60Z" fill="url(#lotusPinkGrad)" fill-opacity="0.7" />
+    <path d="M55 60C75 55 95 65 95 75C95 80 75 85 55 83V60Z" fill="url(#lotusPinkGrad)" fill-opacity="0.7" />
+  </g>
+
+  <!-- Núcleo Radiante -->
+  <circle cx="50" cy="65" r="3" fill="#FFFFFF">
+    <animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite" />
+    <animate attributeName="fill-opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+  </circle>
+</svg>
