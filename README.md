@@ -341,9 +341,12 @@ curl -X POST https://api.vitorsilva.engineer/predict \
 
 Acessível na raiz da API (`https://api.vitorsilva.engineer/` e `/portal.html`), o front-end foi completamente reescrito para refletir uma estética **"Luxury Clinical"**, unindo alta tecnologia com uma paleta baseada em constelações e biotecnologia:
 
+- **Starfield & Nebula Background**: Fundo dinâmico com estrelas e nebulosas, criando profundidade e sofisticação visual aliada ao **Glassmorphism** nos painéis.
 - **Lotus Pulsante**: Animação contínua (breathing effect) na navbar, transmitindo vida, resiliência e estabilidade ao sistema.
 - **Cinematic Inference Loader**: Simulação de latência arquitetural (2.5s) durante a predição para reforçar a complexidade visual do cálculo ("Processando tensores neurais...").
 - **Layout em painel duplo (Clinical UI)**: Input focado nas 5 features primárias com auto-preenchimento inteligente para as outras 25.
+- **Responsive Resilience (Mobile-First)**: Arquitetura fluida usando CSS Grid e unidades relativas, garantindo perfeição em qualquer dispositivo.
+- **Acessibilidade (A11Y)**: Integração de ARIA labels e HTML5 semântico para leitores de tela e navegação por teclado.
 - **Explainable AI (XAI)**: Integração nativa com *Chart.js* gerando Radar Charts em tempo real. A visualização traduz a contribuição exata de cada feature morfológica na rede neural (vermelho para maligno, verde para benigno).
 - **Tratamento de Exceções Nativo**: Erros 403 (Autenticação) e 503 (Cold Start) são gerenciados no front-end com modais elegantes e instrutivos.
 
