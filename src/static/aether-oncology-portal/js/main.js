@@ -5,16 +5,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const verdictText = document.getElementById('verdict-text');
   const verdictConfidence = document.getElementById('verdict-confidence');
   
-  // Update slider display values dynamically
+  // Function to read sliders and update XAI Chart
+  const updateChartFromSliders = () => {
+    if (window.updateRadarChart) {
+      const radius = parseFloat(document.getElementById('radius').value);
+      const texture = parseFloat(document.getElementById('texture').value);
+      const perimeter = parseFloat(document.getElementById('perimeter').value);
+      const area = parseFloat(document.getElementById('area').value);
+      const smoothness = parseFloat(document.getElementById('smoothness').value);
+      
+      window.updateRadarChart([
+        radius, 
+        texture * 0.75, 
+        perimeter / 6, 
+        area / 80, 
+        smoothness * 200
+      ]);
+    }
+  };
+
+  // Update slider display values dynamically and update chart
   const sliders = document.querySelectorAll('input[type="range"]');
   sliders.forEach(slider => {
     const output = document.getElementById(`${slider.id}-val`);
     if(output) {
       slider.addEventListener('input', (e) => {
         output.textContent = e.target.value;
+        updateChartFromSliders();
       });
     }
   });
+
+  // Initialize chart with default values
+  setTimeout(updateChartFromSliders, 100);
 
   if (form) {
     form.addEventListener('submit', (e) => {
@@ -24,24 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
       verdict.classList.remove('active');
       loader.classList.add('active');
       
-      // Extract data
+      // Get values for scoring
       const radius = parseFloat(document.getElementById('radius').value);
       const texture = parseFloat(document.getElementById('texture').value);
       const perimeter = parseFloat(document.getElementById('perimeter').value);
       const area = parseFloat(document.getElementById('area').value);
       const smoothness = parseFloat(document.getElementById('smoothness').value);
-      
-      // Trigger XAI Chart update
-      if (window.updateRadarChart) {
-        // Normalizing data roughly for the radar scale (0-30)
-        window.updateRadarChart([
-          radius, 
-          texture * 0.75, 
-          perimeter / 6, 
-          area / 80, 
-          smoothness * 200
-        ]);
-      }
 
       // Hide any previous error toasts
       const errorToast = document.getElementById('error-toast');
