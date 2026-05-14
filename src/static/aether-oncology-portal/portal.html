@@ -1,150 +1,349 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Aether Oncology — Terminal de Diagnóstico Neural em tempo real." />
-  <meta name="theme-color" content="#0D0F2B" />
+  <meta name="description"
+    content="Aether Portal — Terminal de diagnóstico oncológico com IA explicável de precisão." />
+  <meta name="theme-color" content="#03060b" />
+  <title>Aether Portal | Terminal de Diagnóstico</title>
 
-  <title>Aether Terminal | Diagnóstico Neural</title>
-
+  <!-- Poppins font -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
 
+  <!-- Design System -->
   <link rel="stylesheet" href="./css/portal.css" />
-  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
-</head>
-<body>
 
-  <!-- ═══ AMBIENT ENGINE (seamless c/ landing) ════════════════════════════ -->
-  <div class="ambient" aria-hidden="true">
-    <div class="mesh-blob mesh-blob--1"></div>
-    <div class="mesh-blob mesh-blob--2"></div>
-    <div class="mesh-blob mesh-blob--3"></div>
-    <div class="mesh-blob mesh-blob--4"></div>
-    <canvas id="neuralCanvas" class="neural-canvas"></canvas>
-    <div class="grain"></div>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="./images/icone.png" />
+</head>
+
+<body class="text-slate-100 antialiased">
+
+  <!-- ═══ AMBIENT SCENE (same starfield + nebula as body) ═══════════════ -->
+  <div class="scene-bg" aria-hidden="true">
+    <div class="scene-glow scene-glow--1"></div>
+    <div class="scene-glow scene-glow--2"></div>
+    <div class="scene-glow scene-glow--3"></div>
+    <div class="noise-overlay"></div>
   </div>
 
-  <!-- ═══ NAVBAR ══════════════════════════════════════════════════════════ -->
+  <!-- ═══ NAVBAR ═════════════════════════════════════════════════════════ -->
   <header class="navbar" role="banner">
-    <div class="container-premium nav-inner">
-      <a href="/" class="nav-logo" aria-label="Aether Oncology">
-        <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="28" height="28" aria-hidden="true" />
-        <span class="nav-logo__text">AETHER</span>
+    <nav class="container-premium nav-inner" aria-label="Navegação portal">
+      <a href="index.html" class="nav-logo" aria-label="Aether Oncology — página inicial">
+        <div class="lotus-pulsante lotus-pulsante--nav" aria-hidden="true"></div>
+        AETHER <span style="color:var(--accent-magenta)">PORTAL</span>
       </a>
-
-      <div class="nav-status">
-        <span class="sre-dot sre-dot--green" style="width:8px;height:8px" aria-hidden="true"></span>
-        <span style="font-size:.7rem;color:var(--t3);letter-spacing:.1em">NODE_01 CONNECTED</span>
-      </div>
-
-      <div class="nav-actions">
-        <a href="/" class="btn btn--ghost btn--sm" aria-label="Voltar ao início">Início</a>
-      </div>
-    </div>
+      <a href="index.html" class="btn btn--ghost btn--sm">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+        Voltar para Home
+      </a>
+    </nav>
   </header>
 
-  <main class="container-premium" style="padding-top:calc(var(--nav-h) + var(--gutter-sm))">
+  <!-- ═══ MAIN CONTENT ═══════════════════════════════════════════════════ -->
+  <main class="container-premium" style="padding-top:calc(var(--nav-h) + 2rem); padding-bottom:4rem;">
 
-    <!-- ═══ Header do Terminal ════════════════════════════════════════════ -->
-    <header style="text-align:center;margin-bottom:var(--gutter-md)">
-      <h1 class="hero-h1" style="font-size:clamp(1.8rem,4vw,3rem);margin-bottom:.5rem">Terminal de <span class="hero-h1__accent">Diagnóstico</span></h1>
-      <p style="color:var(--t2);font-size:.95rem">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
-    </header>
+    <!-- Page Header -->
+    <div class="section-header animate-reveal" style="margin-bottom:3rem;">
+      <div class="section-label">Terminal de Inferência v2.2</div>
+      <h1 style="font-size:clamp(2rem,4vw,3rem); font-weight:900; letter-spacing:-0.03em;">
+        Diagnóstico <span class="headline-accent">Oncológico</span>
+      </h1>
+      <p class="section-subtitle" style="max-width:44rem;">
+        Insira os parâmetros citopatológicos da biópsia abaixo. O modelo Bayesiano retornará a classificação, confiança
+        calibrada e explicação SHAP.
+      </p>
+    </div>
 
-    <!-- ═══ Grid do Portal ══════════════════════════════════════════════ -->
-    <div class="portal-grid">
+    <!-- Grid: Form + Results -->
+    <div style="display:grid; grid-template-columns:1fr; gap:var(--gutter-md);" class="portal-grid">
 
-      <!-- ─── Sidebar ──────────────────────────────────────────────── -->
-      <aside class="bento-card portal-sidebar" style="border-radius:2.5rem">
-        <h3 style="font-size:1.1rem;margin-bottom:var(--gutter-sm);border-bottom:1px solid var(--glass-border);padding-bottom:.5rem">Parâmetros Clínicos</h3>
-        <form id="clinical-form" class="clinical-form">
+      <!-- ── LEFT: FORMULÁRIO ────────────────────────────────────── -->
+      <div class="glass-card animate-reveal" style="--delay:.1s">
+        <h2 style="font-size:1.5rem; font-weight:800; margin-bottom:1.5rem;">
+          <span class="text-gradient-future">Nova Análise</span>
+        </h2>
+
+        <form id="tumor-form" class="clinical-form">
           <div class="input-group">
-            <label>Raio Médio <span id="radius-val" class="val">14.0</span></label>
-            <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0" />
+            <label for="range-radius">Raio Médio</label>
+            <span class="value-display" id="v-radius">14.0</span>
+            <input type="range" id="range-radius" name="radius_mean" min="5" max="30" step="0.1" value="14.0" class="range-dense" />
           </div>
           <div class="input-group">
-            <label>Textura <span id="texture-val" class="val">19.0</span></label>
-            <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0" />
+            <label for="range-texture">Textura</label>
+            <span class="value-display" id="v-texture">19.0</span>
+            <input type="range" id="range-texture" name="texture_mean" min="9" max="40" step="0.1" value="19.0" class="range-dense" />
           </div>
           <div class="input-group">
-            <label>Perímetro <span id="perimeter-val" class="val">90.0</span></label>
-            <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0" />
+            <label for="range-perimeter">Perímetro</label>
+            <span class="value-display" id="v-perimeter">92.0</span>
+            <input type="range" id="range-perimeter" name="perimeter_mean" min="40" max="200" step="0.5" value="92.0" class="range-dense" />
           </div>
           <div class="input-group">
-            <label>Área <span id="area-val" class="val">600</span></label>
-            <input type="range" id="area" min="140" max="2500" step="10" value="600" />
+            <label for="range-area">Área</label>
+            <span class="value-display" id="v-area">650</span>
+            <input type="range" id="range-area" name="area_mean" min="100" max="2600" step="5" value="650" class="range-dense" />
           </div>
           <div class="input-group">
-            <label>Suavidade <span id="smoothness-val" class="val">0.09</span></label>
-            <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09" />
+            <label for="range-concavity">Concavidade</label>
+            <span class="value-display" id="v-concavity">0.100</span>
+            <input type="range" id="range-concavity" name="concavity_mean" min="0" max="0.5" step="0.001" value="0.1" class="range-dense" />
           </div>
-          <button type="submit" class="btn btn--primary" style="width:100%;margin-top:1rem">Executar Inferência</button>
+          <div class="input-group">
+            <label for="range-concave-points">Pnt Côncavos</label>
+            <span class="value-display" id="v-concave-points">0.050</span>
+            <input type="range" id="range-concave-points" name="concave_points_mean" min="0" max="0.25" step="0.001" value="0.05" class="range-dense" />
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--sm" style="width:100%; margin-top:0.25rem;" id="btn-submit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            EXECUTAR INFERÊNCIA
+          </button>
         </form>
-      </aside>
+      </div>
 
-      <!-- ─── Main Area ────────────────────────────────────────────── -->
-      <div class="portal-main-area">
+      <!-- ── RIGHT: RESULTADOS ───────────────────────────────────── -->
+      <div class="glass-card animate-reveal"
+        style="--delay:.25s; min-height:450px; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; padding: var(--gutter-md);">
 
-        <!-- Result Panel -->
-        <div class="bento-card result-panel" style="min-height:200px;display:flex;align-items:center;justify-content:center;border-radius:2.5rem">
-          <div id="inference-loader" class="loader-content active">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem">
-              <div style="width:80px;height:80px;position:relative">
-                <img src="./images/lotus-brand.svg" alt="" style="width:100%;height:100%;animation:pulse 1.5s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(230,57,138,.4))" />
-              </div>
-              <p style="letter-spacing:.2em;color:var(--green);font-size:.8rem">SINCRONIZANDO CLUSTER…</p>
+        <!-- Loader -->
+        <div id="loader" style="display:none; flex-direction:column; align-items:center; gap:1rem;">
+          <div
+            style="width:48px; height:48px; border:2px solid var(--accent-magenta); border-top-color:transparent; border-radius:50%; animation:rotateCW 0.8s linear infinite;">
+          </div>
+          <p
+            style="font-size:0.8rem; color:var(--text-muted); animation:pulse 2s ease-in-out infinite; text-transform:uppercase; letter-spacing:0.12em;">
+            Analisando núcleos celulares...
+          </p>
+        </div>
+
+        <!-- Resultado vazio (placeholder) -->
+        <div id="results-placeholder" class="results-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-bottom:1.25rem; opacity:0.3;">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p style="color:var(--t1); font-weight:700; font-size:0.9rem; margin-bottom:0.25rem;">Pronto para Análise</p>
+          <p style="color:var(--t3); font-size:0.75rem; max-width:200px; margin-inline:auto;">
+            Ajuste os parâmetros citopatológicos e clique em "Executar Inferência"
+          </p>
+        </div>
+
+        <!-- Resultado real (hidden until API responds) -->
+        <div id="results" style="display:none; width:100%;">
+          <!-- Cabeçalho do veredito -->
+          <div class="verdict-header">
+            <div id="result-icon" class="verdict-icon"></div>
+            <div id="inference-verdict" class="verdict-content">
+              <h3 id="result-label" class="verdict-title"></h3>
+              <p id="result-confidence" class="verdict-confidence"></p>
+            </div>
+          </div>
+          
+          <!-- Widget de confiança -->
+          <div class="confidence-widget">
+            <div class="confidence-labels">
+              <span class="confidence-label">Confiança do Modelo</span>
+              <span id="confidence-pct" class="confidence-value"></span>
+            </div>
+            <div class="confidence-track">
+              <div id="confidence-bar" class="confidence-fill"></div>
             </div>
           </div>
 
-          <div id="inference-verdict" class="verdict-content hidden">
-            <span class="bento-card__chip" style="margin-bottom:1rem">Resultado da Análise</span>
-            <h2 id="verdict-text" class="verdict-title">—</h2>
-            <div id="verdict-confidence" class="verdict-confidence">Confiança: —</div>
+          <!-- Métricas detalhadas -->
+          <div id="result-details" class="result-details-grid"></div>
+
+          <!-- XAI Radar Chart -->
+          <div class="xai-chart-container">
+            <canvas id="xaiChart"></canvas>
+          </div>
+
+          <!-- Nota Clínica -->
+          <div class="clinical-note">
+            <p>
+              <strong>⚠ Nota Clínica:</strong>
+              Este resultado é gerado por IA e não substitui avaliação médica. Consulte um especialista.
+            </p>
           </div>
         </div>
 
-        <!-- XAI Radar -->
-        <div class="bento-card chart-panel" style="border-radius:2.5rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--gutter-sm)">
-            <h3 style="font-size:1.1rem">Arquitetura de Decisão (XAI)</h3>
-            <div style="display:flex;gap:.5rem">
-              <span class="bento-card__chip" style="font-size:.6rem">Model Card</span>
-              <span class="bento-card__chip" style="font-size:.6rem">Audit</span>
-            </div>
-          </div>
-          <div style="height:300px;position:relative">
-            <canvas id="xaiRadarChart"></canvas>
-          </div>
+        <!-- Erro -->
+        <div id="result-error" style="display:none; text-align:center;">
+          <div style="font-size:3rem; margin-bottom:1rem;">⚠️</div>
+          <h3 style="color:#FF6B6B; font-size:1.2rem; font-weight:700; margin-bottom:0.5rem;">Falha na Inferência</h3>
+          <p id="error-message" style="color:var(--text-muted); font-size:0.9rem;"></p>
+          <button id="btn-retry" class="btn btn--ghost" style="margin-top:1rem;">Tentar Novamente</button>
         </div>
 
-        <!-- Evidence Vault (RAG) — hidden até diagnóstico -->
-        <div id="evidence-section" class="bento-card evidence-vault hidden" style="border-radius:2.5rem" aria-hidden="true">
-          <div class="vault-header">
-            <h3 class="vault-title">Cofre de Evidências (RAG)</h3>
-            <p class="vault-desc">Publicações científicas que corroboram o diagnóstico atual.</p>
-          </div>
-          <div id="evidence-grid" class="bento-grid" style="margin-bottom:0">
-            <!-- Injetado dinamicamente por triggerScientificRAG() -->
-          </div>
-        </div>
       </div>
     </div>
+
+    <!-- API Status -->
+    <div class="api-status-bar animate-reveal" style="--delay:.4s">
+      <div id="api-status-dot" class="rag-dot" style="background:#FFD700; box-shadow:0 0 10px #FFD700;"></div>
+      <span id="api-status-text" class="api-status-text">
+        Verificando conexão com Inference API...
+      </span>
+    </div>
+
   </main>
 
-  <!-- Error Toast -->
-  <div id="error-toast" class="error-toast hidden">
-    <div style="display:flex;gap:1rem;align-items:center">
-      <div style="width:4px;height:100%;background:#ef4444;border-radius:2px"></div>
-      <div>
-        <strong style="display:block;font-size:.8rem;text-transform:uppercase;color:var(--t1)">Erro de Conexão</strong>
-        <span id="error-toast-msg" style="font-size:.75rem;color:var(--t3)">Cold-start detectado. Tente novamente.</span>
-      </div>
+  <!-- ═══ FOOTER (simplified) ════════════════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer-bottom container-premium">
+      <span>&copy; 2026 Aether Oncology. Todos os direitos reservados.</span>
+      <span class="footer-bottom__status">
+        <span class="status-dot" aria-hidden="true"></span>
+        Terminal de Diagnóstico v2.2
+      </span>
     </div>
-  </div>
+  </footer>
 
+  <!-- Portal-specific scripts -->
+  <script type="module">
+    import { predictTumor, checkHealth } from './js/api.js';
+    import { initNavbar } from './js/ui.js';
+    import { initScrollReveal } from './js/ux.js';
+
+    // ── Init UI ───────────────────────────────────────────────
+    initNavbar();
+    initScrollReveal();
+
+    // ── Range sliders → live values ───────────────────────────
+    const sliders = [
+      { id: 'range-radius', display: 'v-radius', decimals: 1 },
+      { id: 'range-texture', display: 'v-texture', decimals: 1 },
+      { id: 'range-perimeter', display: 'v-perimeter', decimals: 1 },
+      { id: 'range-area', display: 'v-area', decimals: 0 },
+      { id: 'range-concavity', display: 'v-concavity', decimals: 3 },
+      { id: 'range-concave-points', display: 'v-concave-points', decimals: 3 },
+    ];
+
+    sliders.forEach(({ id, display, decimals }) => {
+      const input = document.getElementById(id);
+      const output = document.getElementById(display);
+      if (input && output) {
+        input.addEventListener('input', () => {
+          output.textContent = parseFloat(input.value).toFixed(decimals);
+        });
+      }
+    });
+
+    // ── Check API Health ──────────────────────────────────────
+    const statusDot = document.getElementById('api-status-dot');
+    const statusText = document.getElementById('api-status-text');
+
+    async function checkAPIStatus() {
+      try {
+        await checkHealth();
+        statusDot.style.background = '#00FF99';
+        statusDot.style.boxShadow = '0 0 10px #00FF99';
+        statusText.textContent = 'Inference API conectada — pronta para análise';
+      } catch {
+        statusDot.style.background = '#FF6B6B';
+        statusDot.style.boxShadow = '0 0 10px #FF6B6B';
+        statusText.textContent = 'Inference API offline — tentando reconectar...';
+        setTimeout(checkAPIStatus, 5000);
+      }
+    }
+    checkAPIStatus();
+
+    // ── Form submission ───────────────────────────────────────
+    const form = document.getElementById('tumor-form');
+    const loader = document.getElementById('loader');
+    const placeholder = document.getElementById('results-placeholder');
+    const results = document.getElementById('results');
+    const resultError = document.getElementById('result-error');
+
+    function showPanel(panel) {
+      [loader, placeholder, results, resultError].forEach(el => el.style.display = 'none');
+      panel.style.display = 'flex';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showPanel(loader);
+
+      const formData = new FormData(form);
+      const payload = {};
+      for (const [key, val] of formData.entries()) {
+        payload[key] = parseFloat(val);
+      }
+
+      try {
+        const data = await predictTumor(payload);
+
+        // Parse response
+        const diagnosis = data.diagnosis ?? data.prediction ?? 'Unknown';
+        const isMalignant = diagnosis.toLowerCase().includes('malign');
+        const confidence = data.confidence ?? data.probability ?? 0.5;
+        const pct = (confidence * 100).toFixed(1);
+
+        // Populate result
+        document.getElementById('result-icon').textContent = isMalignant ? '🔴' : '🟢';
+        document.getElementById('result-label').textContent = isMalignant ? 'MALIGNO' : 'BENIGNO';
+        document.getElementById('result-label').style.color = isMalignant
+          ? '#FF6B6B'
+          : '#00FF99';
+        document.getElementById('result-confidence').textContent =
+          `Confiança: ${pct}% — ${isMalignant ? 'Alta vigilância recomendada' : 'Achados compatíveis com normalidade'}`;
+        document.getElementById('confidence-pct').textContent = `${pct}%`;
+
+        const bar = document.getElementById('confidence-bar');
+        bar.style.width = `${pct}%`;
+        bar.style.background = isMalignant
+          ? 'linear-gradient(90deg, #FF6B6B, #E6398A)'
+          : 'linear-gradient(90deg, #00FF99, #00CFFF)';
+
+        // Detail cards
+        const details = document.getElementById('result-details');
+        details.innerHTML = '';
+        const metrics = [
+          { label: 'Classificação', value: diagnosis },
+          { label: 'Confiança', value: `${pct}%` },
+          { label: 'Latência', value: `${data.latency_ms ?? '<2'}ms` },
+          { label: 'Modelo', value: data.model_version ?? 'v2.2' },
+        ];
+        metrics.forEach(({ label, value }) => {
+          const card = document.createElement('div');
+          card.style.cssText = 'background:rgba(237,230,255,0.04); border:1px solid rgba(237,230,255,0.08); border-radius:var(--radius-md); padding:1rem; text-align:center;';
+          card.innerHTML = `
+            <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${label}</div>
+            <div style="font-size:1rem; font-weight:700; color:var(--text-primary);">${value}</div>
+          `;
+          details.appendChild(card);
+        });
+
+        showPanel(results);
+      } catch (err) {
+        document.getElementById('error-message').textContent =
+          err.message || 'Não foi possível conectar ao servidor de inferência.';
+        showPanel(resultError);
+      }
+    });
+
+    // Retry button
+    document.getElementById('btn-retry')?.addEventListener('click', () => {
+      showPanel(placeholder);
+    });
+  </script>
+  <!-- App scripts -->
   <script type="module" src="./js/main.js"></script>
+
 </body>
+
 </html>

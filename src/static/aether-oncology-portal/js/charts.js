@@ -122,25 +122,33 @@ export function initXaiChart(canvasId) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 10,
+          bottom: 10,
+          left: 20,
+          right: 20
+        }
+      },
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { boxWidth: 10, boxHeight: 10, borderRadius: 50, useBorderRadius: true, padding: 16, color: COLORS.tickText },
+          labels: { boxWidth: 8, boxHeight: 8, borderRadius: 50, useBorderRadius: true, padding: 12, color: COLORS.tickText, font: { size: 10 } },
         },
         tooltip: {
           backgroundColor: 'rgba(13,15,43,0.92)',
           borderColor: 'rgba(237,230,255,0.12)',
           borderWidth: 1,
-          padding: 12,
+          padding: 8,
         },
       },
       scales: {
         r: {
           min: 0, max: 1,
-          ticks: { stepSize: 0.25, color: COLORS.tickText, backdropColor: 'transparent', callback: (v) => `${(v*100).toFixed(0)}%` },
+          ticks: { stepSize: 0.25, display: false },
           grid: { color: COLORS.gridLine },
           angleLines: { color: 'rgba(237,230,255,0.06)' },
-          pointLabels: { color: COLORS.tickText, font: { size: 10, weight: '600' } },
+          pointLabels: { color: COLORS.tickText, font: { size: 9, weight: '600' }, padding: 5 },
         },
       },
     },
