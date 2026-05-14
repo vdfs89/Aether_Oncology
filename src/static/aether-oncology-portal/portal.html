@@ -1,137 +1,150 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aether Terminal | Diagnóstico Neural</title>
-    
-    <!-- Design System -->
-    <link rel="stylesheet" href="./css/enterprise-design-system.css">
-    <!-- Portal Specific Styling -->
-    <link rel="stylesheet" href="./css/portal-terminal.css">
-    <link rel="icon" type="image/svg+xml" href="./images/file.svg">
-    
-    <!-- External Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Aether Oncology — Terminal de Diagnóstico Neural em tempo real." />
+  <meta name="theme-color" content="#0D0F2B" />
+
+  <title>Aether Terminal | Diagnóstico Neural</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./css/portal.css" />
+  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
 </head>
-<body class="portal-body">
-    <!-- ═══ Background Engine ═══ -->
-    <div class="scene-bg" id="starfield">
-        <div class="noise-overlay"></div>
+<body>
+
+  <!-- ═══ AMBIENT ENGINE (seamless c/ landing) ════════════════════════════ -->
+  <div class="ambient" aria-hidden="true">
+    <div class="mesh-blob mesh-blob--1"></div>
+    <div class="mesh-blob mesh-blob--2"></div>
+    <div class="mesh-blob mesh-blob--3"></div>
+    <div class="mesh-blob mesh-blob--4"></div>
+    <canvas id="neuralCanvas" class="neural-canvas"></canvas>
+    <div class="grain"></div>
+  </div>
+
+  <!-- ═══ NAVBAR ══════════════════════════════════════════════════════════ -->
+  <header class="navbar" role="banner">
+    <div class="container-premium nav-inner">
+      <a href="/" class="nav-logo" aria-label="Aether Oncology">
+        <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="28" height="28" aria-hidden="true" />
+        <span class="nav-logo__text">AETHER</span>
+      </a>
+
+      <div class="nav-status">
+        <span class="sre-dot sre-dot--green" style="width:8px;height:8px" aria-hidden="true"></span>
+        <span style="font-size:.7rem;color:var(--t3);letter-spacing:.1em">NODE_01 CONNECTED</span>
+      </div>
+
+      <div class="nav-actions">
+        <a href="/" class="btn btn--ghost btn--sm" aria-label="Voltar ao início">Início</a>
+      </div>
     </div>
+  </header>
 
-    <!-- ═══ Navigation ═══ -->
-    <nav class="navbar">
-        <div class="container-premium nav-inner">
-            <a href="/" class="nav-logo">
-                <img src="./images/file.svg" alt="Aether Oncology" class="brand-logo-img">
-                <span class="font-display" style="font-size: 1.25rem; letter-spacing: 0.1em;">AETHER</span>
-            </a>
-            <div class="nav-status">
-                <span style="width: 8px; height: 8px; background: var(--color-emerald); border-radius: 50%; box-shadow: 0 0 10px var(--color-emerald);"></span>
-                <span style="font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 0.1em;">NODE_01 CONNECTED</span>
+  <main class="container-premium" style="padding-top:calc(var(--nav-h) + var(--gutter-sm))">
+
+    <!-- ═══ Header do Terminal ════════════════════════════════════════════ -->
+    <header style="text-align:center;margin-bottom:var(--gutter-md)">
+      <h1 class="hero-h1" style="font-size:clamp(1.8rem,4vw,3rem);margin-bottom:.5rem">Terminal de <span class="hero-h1__accent">Diagnóstico</span></h1>
+      <p style="color:var(--t2);font-size:.95rem">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
+    </header>
+
+    <!-- ═══ Grid do Portal ══════════════════════════════════════════════ -->
+    <div class="portal-grid">
+
+      <!-- ─── Sidebar ──────────────────────────────────────────────── -->
+      <aside class="bento-card portal-sidebar" style="border-radius:2.5rem">
+        <h3 style="font-size:1.1rem;margin-bottom:var(--gutter-sm);border-bottom:1px solid var(--glass-border);padding-bottom:.5rem">Parâmetros Clínicos</h3>
+        <form id="clinical-form" class="clinical-form">
+          <div class="input-group">
+            <label>Raio Médio <span id="radius-val" class="val">14.0</span></label>
+            <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0" />
+          </div>
+          <div class="input-group">
+            <label>Textura <span id="texture-val" class="val">19.0</span></label>
+            <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0" />
+          </div>
+          <div class="input-group">
+            <label>Perímetro <span id="perimeter-val" class="val">90.0</span></label>
+            <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0" />
+          </div>
+          <div class="input-group">
+            <label>Área <span id="area-val" class="val">600</span></label>
+            <input type="range" id="area" min="140" max="2500" step="10" value="600" />
+          </div>
+          <div class="input-group">
+            <label>Suavidade <span id="smoothness-val" class="val">0.09</span></label>
+            <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09" />
+          </div>
+          <button type="submit" class="btn btn--primary" style="width:100%;margin-top:1rem">Executar Inferência</button>
+        </form>
+      </aside>
+
+      <!-- ─── Main Area ────────────────────────────────────────────── -->
+      <div class="portal-main-area">
+
+        <!-- Result Panel -->
+        <div class="bento-card result-panel" style="min-height:200px;display:flex;align-items:center;justify-content:center;border-radius:2.5rem">
+          <div id="inference-loader" class="loader-content active">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1.5rem">
+              <div style="width:80px;height:80px;position:relative">
+                <img src="./images/lotus-brand.svg" alt="" style="width:100%;height:100%;animation:pulse 1.5s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(230,57,138,.4))" />
+              </div>
+              <p style="letter-spacing:.2em;color:var(--green);font-size:.8rem">SINCRONIZANDO CLUSTER…</p>
             </div>
+          </div>
+
+          <div id="inference-verdict" class="verdict-content hidden">
+            <span class="bento-card__chip" style="margin-bottom:1rem">Resultado da Análise</span>
+            <h2 id="verdict-text" class="verdict-title">—</h2>
+            <div id="verdict-confidence" class="verdict-confidence">Confiança: —</div>
+          </div>
         </div>
-    </nav>
 
-    <main class="container-premium animate-reveal" style="padding-top: var(--space-lg);">
-        <header style="text-align: center; margin-bottom: var(--space-md);">
-            <div class="lotus-container-small" style="width: 40px; height: 40px; margin-bottom: 1rem;">
-                <img src="./images/file.svg" alt="Aether Lotus" class="lotus-pulsante">
+        <!-- XAI Radar -->
+        <div class="bento-card chart-panel" style="border-radius:2.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--gutter-sm)">
+            <h3 style="font-size:1.1rem">Arquitetura de Decisão (XAI)</h3>
+            <div style="display:flex;gap:.5rem">
+              <span class="bento-card__chip" style="font-size:.6rem">Model Card</span>
+              <span class="bento-card__chip" style="font-size:.6rem">Audit</span>
             </div>
-            <h1 class="text-gradient" style="font-size: 2.5rem;">Terminal de <span style="color: var(--color-white)">Diagnóstico</span></h1>
-            <p class="text-secondary">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
-        </header>
-
-        <div class="portal-grid">
-            <!-- Sidebar: Parameters -->
-            <aside class="glass-panel bento-card portal-sidebar">
-                <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-glass-border); padding-bottom: 0.5rem;">Parâmetros Clínicos</h3>
-                <form id="clinical-form" class="clinical-form">
-                    <div class="input-group">
-                        <label>Raio Médio <span id="radius-val" class="val">14.0</span></label>
-                        <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0">
-                    </div>
-                    <div class="input-group">
-                        <label>Textura <span id="texture-val" class="val">19.0</span></label>
-                        <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0">
-                    </div>
-                    <div class="input-group">
-                        <label>Perímetro <span id="perimeter-val" class="val">90.0</span></label>
-                        <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0">
-                    </div>
-                    <div class="input-group">
-                        <label>Área <span id="area-val" class="val">600</span></label>
-                        <input type="range" id="area" min="140" max="2500" step="10" value="600">
-                    </div>
-                    <div class="input-group">
-                        <label>Suavidade <span id="smoothness-val" class="val">0.09</span></label>
-                        <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09">
-                    </div>
-                    <button type="submit" class="btn-premium btn-primary" style="width: 100%; margin-top: 1rem;">Executar Inferência</button>
-                </form>
-            </aside>
-
-            <!-- Main: Visualization & Results -->
-            <div class="portal-main-area">
-                <!-- Inference Status / Result -->
-                <div class="glass-panel bento-card result-panel" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                    <div id="inference-loader" class="loader-content active">
-                        <div class="lotus-container-small" style="width: 80px; height: 80px;">
-                            <img src="./images/file.svg" alt="Loading" class="lotus-pulsante">
-                        </div>
-                        <p style="margin-top: 1.5rem; letter-spacing: 0.2em; color: var(--color-emerald); font-size: 0.8rem;">SINCRONIZANDO CLUSTER...</p>
-                    </div>
-
-                    <div id="inference-verdict" class="verdict-content hidden">
-                        <span class="tag-neon" style="margin-bottom: 1rem;">Resultado da Análise</span>
-                        <h2 id="verdict-text" class="verdict-title">--</h2>
-                        <div id="verdict-confidence" class="verdict-confidence">Confiança: --</div>
-                    </div>
-                </div>
-
-                <!-- XAI Radar -->
-                <div class="glass-panel bento-card chart-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="font-size: 1.1rem;">Arquitetura de Decisão (XAI)</h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="#" class="tag-neon" style="text-decoration: none; font-size: 0.6rem;">Model Card</a>
-                            <a href="#" class="tag-neon" style="text-decoration: none; font-size: 0.6rem;">Audit</a>
-                        </div>
-                    </div>
-                    <div class="chart-container" style="height: 300px; position: relative;">
-                        <canvas id="xaiRadarChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Evidence Vault (RAG) -->
-                <div id="evidence-section" class="glass-panel bento-card evidence-vault hidden">
-                    <div class="vault-header">
-                        <h3 class="vault-title">Cofre de Evidências (RAG)</h3>
-                        <p class="vault-desc">Publicações científicas que corroboram o diagnóstico atual.</p>
-                    </div>
-                    <div id="evidence-grid" class="bento-grid-mini">
-                        <!-- Dynamic content -->
-                    </div>
-                </div>
-            </div>
+          </div>
+          <div style="height:300px;position:relative">
+            <canvas id="xaiRadarChart"></canvas>
+          </div>
         </div>
-    </main>
 
-    <!-- Error Toast -->
-    <div id="error-toast" class="error-toast hidden">
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <div style="width: 4px; height: 100%; background: #ef4444;"></div>
-            <div>
-                <strong style="display: block; font-size: 0.8rem; text-transform: uppercase;">Erro de Conexão</strong>
-                <span id="error-toast-msg" style="font-size: 0.75rem; color: var(--text-secondary);">Cold-start detectado. Tente novamente.</span>
-            </div>
+        <!-- Evidence Vault (RAG) — hidden até diagnóstico -->
+        <div id="evidence-section" class="bento-card evidence-vault hidden" style="border-radius:2.5rem" aria-hidden="true">
+          <div class="vault-header">
+            <h3 class="vault-title">Cofre de Evidências (RAG)</h3>
+            <p class="vault-desc">Publicações científicas que corroboram o diagnóstico atual.</p>
+          </div>
+          <div id="evidence-grid" class="bento-grid" style="margin-bottom:0">
+            <!-- Injetado dinamicamente por triggerScientificRAG() -->
+          </div>
         </div>
+      </div>
     </div>
+  </main>
 
-    <!-- Scripts -->
-    <script src="./js/starfield.js"></script>
-    <script src="./js/charts.js"></script>
-    <script src="./js/main.js"></script>
+  <!-- Error Toast -->
+  <div id="error-toast" class="error-toast hidden">
+    <div style="display:flex;gap:1rem;align-items:center">
+      <div style="width:4px;height:100%;background:#ef4444;border-radius:2px"></div>
+      <div>
+        <strong style="display:block;font-size:.8rem;text-transform:uppercase;color:var(--t1)">Erro de Conexão</strong>
+        <span id="error-toast-msg" style="font-size:.75rem;color:var(--t3)">Cold-start detectado. Tente novamente.</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

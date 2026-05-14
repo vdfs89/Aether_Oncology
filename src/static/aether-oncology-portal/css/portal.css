@@ -130,7 +130,7 @@ p{color:var(--t2);line-height:1.75}
 .btn--lg{font-size:1rem;padding:.9rem 2rem;border-radius:var(--r-lg)}
 
 /* ── 8. GLASS CARD ─────────────────────────────────────────────────────── */
-.glass-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:var(--gutter-md);overflow:hidden;transition:background var(--t-mid) ease}
+.glass-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:var(--gutter-md);overflow:hidden;transition:background var(--t-mid) ease}
 
 /* ── 9. SECTION UTILITIES ──────────────────────────────────────────────── */
 .section{padding-block:var(--section-py)}
@@ -153,7 +153,7 @@ p{color:var(--t2);line-height:1.75}
 .hero-badge__dot{width:6px;height:6px;border-radius:50%;background:var(--magenta);box-shadow:0 0 8px var(--magenta);animation:pulse 2s ease-in-out infinite}
 
 /* Headline */
-.hero-h1{font-size:clamp(3.5rem,9vw,7.5rem);font-weight:900;line-height:.95;letter-spacing:-.05em;color:var(--t1);margin-bottom:1.5rem;max-width:14ch}
+.hero-h1{font-size:clamp(3.5rem,9vw,7.5rem);font-weight:900;line-height:.95;letter-spacing:-.04em;color:var(--t1);margin-bottom:1.5rem;max-width:14ch}
 .hero-h1__accent{font-style:normal;background:linear-gradient(135deg,var(--magenta) 0%,var(--pink) 50%,var(--lavender) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
 .hero-sub{font-size:1.1rem;color:var(--t2);max-width:38rem;margin-bottom:2.5rem;line-height:1.75}
@@ -226,9 +226,11 @@ p{color:var(--t2);line-height:1.75}
   .bento-card--wide{grid-column:span 2}
 }
 
-.bento-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:1.75rem;display:flex;flex-direction:column;gap:1rem;transition:transform var(--t-mid) var(--ease-out),background var(--t-mid) ease,box-shadow var(--t-mid) ease;overflow:hidden;position:relative}
+.bento-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:1.75rem;display:flex;flex-direction:column;gap:1rem;transition:transform var(--t-mid) var(--ease-out),background var(--t-mid) ease,box-shadow var(--t-mid) ease;overflow:hidden;position:relative}
 .bento-card:hover{transform:translateY(-5px);background:var(--glass-hover)}
-.bento-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(60% 60% at 50% 0%,rgba(230,57,138,.07) 0%,transparent 100%);pointer-events:none}
+.bento-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.15) 0%,transparent 40%);pointer-events:none}
+.bento-card::after{content:'';position:absolute;inset:0;border-radius:inherit;background:radial-gradient(60% 60% at 50% 0%,rgba(230,57,138,.07) 0%,transparent 100%);pointer-events:none}
+.bento-card>*{position:relative;z-index:2}
 .bento-card--glow-magenta:hover{box-shadow:0 0 40px rgba(230,57,138,.2),0 20px 40px rgba(0,0,0,.3)}
 .bento-card--glow-cyan:hover{box-shadow:0 0 40px rgba(0,207,255,.15),0 20px 40px rgba(0,0,0,.3)}
 .bento-card--glow-lavender:hover{box-shadow:0 0 40px rgba(237,230,255,.12),0 20px 40px rgba(0,0,0,.3)}
@@ -255,7 +257,7 @@ p{color:var(--t2);line-height:1.75}
 .pipe-arrow{color:var(--t3);font-size:.75rem}
 
 /* ── 13. GLASS SECTION (Clinical / XAI) ────────────────────────────────── */
-.glass-section{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:var(--gutter-lg) var(--gutter-md);overflow:hidden}
+.glass-section{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:var(--gutter-lg) var(--gutter-md);overflow:hidden}
 
 .glass-section__grid{display:grid;grid-template-columns:1fr;gap:var(--gutter-lg);align-items:center}
 @media(min-width:1024px){.glass-section__grid{grid-template-columns:1fr 1.6fr}}
@@ -270,7 +272,7 @@ p{color:var(--t2);line-height:1.75}
 .feature-list li::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--magenta);flex-shrink:0}
 
 /* XAI layout */
-.xai-layout{background:linear-gradient(135deg,rgba(42,27,77,.5),rgba(13,15,43,.9));backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:var(--gutter-lg) var(--gutter-md);display:grid;grid-template-columns:1fr;gap:var(--gutter-lg);align-items:center;overflow:hidden}
+.xai-layout{background:linear-gradient(135deg,rgba(42,27,77,.5),rgba(13,15,43,.9));backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:var(--gutter-lg) var(--gutter-md);display:grid;grid-template-columns:1fr;gap:var(--gutter-lg);align-items:center;overflow:hidden}
 @media(min-width:1024px){.xai-layout{grid-template-columns:1.3fr 1fr}}
 
 .xai-layout__chart{height:340px;max-width:420px;margin-inline:auto;width:100%}
@@ -286,7 +288,9 @@ p{color:var(--t2);line-height:1.75}
 .evidence-grid{display:grid;grid-template-columns:1fr;gap:1.125rem;margin-bottom:1.25rem}
 @media(min-width:768px){.evidence-grid{grid-template-columns:repeat(3,1fr)}}
 
-.evidence-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;transition:transform var(--t-mid) var(--ease-out),box-shadow var(--t-mid) ease;overflow:hidden}
+.evidence-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;transition:transform var(--t-mid) var(--ease-out),box-shadow var(--t-mid) ease;overflow:hidden}
+.evidence-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,transparent 35%);pointer-events:none}
+.evidence-card>*{position:relative;z-index:1}
 .evidence-card:hover{transform:translateY(-4px);box-shadow:0 0 36px rgba(230,57,138,.15)}
 
 .evidence-card__meta{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
@@ -396,5 +400,47 @@ p{color:var(--t2);line-height:1.75}
   .reveal{opacity:1;transform:none;transition:none}
 }
 
-/* ── 21. UTILITIES ─────────────────────────────────────────────────────── */
+/* ── 21. PORTAL-SPECIFIC ───────────────────────────────────────────────── */
+.portal-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;padding-bottom:var(--gutter-lg)}
+@media(min-width:1024px){.portal-grid{grid-template-columns:320px 1fr}}
+
+.portal-sidebar{height:fit-content}
+
+.clinical-form{display:flex;flex-direction:column;gap:1.25rem}
+
+.input-group{display:flex;flex-direction:column;gap:.5rem}
+.input-group label{font-size:.8rem;color:var(--t2);display:flex;justify-content:space-between;font-weight:500}
+.input-group label .val{color:var(--green);font-family:monospace;font-weight:700}
+.input-group input[type="range"]{width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;outline:none;appearance:none;accent-color:var(--green)}
+.input-group input[type="range"]::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:var(--green);cursor:pointer;box-shadow:0 0 8px var(--green)}
+
+.portal-main-area{display:flex;flex-direction:column;gap:1.5rem}
+
+.verdict-content{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.verdict-title{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;letter-spacing:-.02em}
+#inference-verdict.malignant .verdict-title{color:#ef4444;filter:drop-shadow(0 0 15px rgba(239,68,68,.3))}
+#inference-verdict.benign .verdict-title{color:#10b981;filter:drop-shadow(0 0 15px rgba(16,185,129,.3))}
+.verdict-confidence{font-family:monospace;font-size:1.1rem;color:var(--t2);background:rgba(255,255,255,.05);padding:.5rem 1.5rem;border-radius:100px;display:inline-block}
+
+.loader-content{display:flex;align-items:center;justify-content:center}
+.loader-content.hidden{display:none!important}
+
+.evidence-vault .vault-header{margin-bottom:var(--gutter-sm)}
+.evidence-vault .vault-title{font-size:1.1rem;font-weight:700;color:var(--t1);margin-bottom:.25rem}
+.evidence-vault .vault-desc{font-size:.82rem;color:var(--t3)}
+
+/* Evidence card neon tags */
+.evidence-tag-neon{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.06em;padding:.2rem .65rem;border-radius:2rem}
+.evidence-tag-neon--magenta{background:rgba(230,57,138,.12);color:var(--magenta);border:1px solid rgba(230,57,138,.25)}
+.evidence-tag-neon--cyan{background:rgba(0,207,255,.1);color:var(--cyan);border:1px solid rgba(0,207,255,.22)}
+.evidence-tag-neon--lavender{background:rgba(237,230,255,.08);color:var(--lavender);border:1px solid rgba(237,230,255,.18)}
+
+.error-toast{position:fixed;bottom:2rem;right:2rem;background:rgba(13,15,43,.92);border:1px solid rgba(239,68,68,.2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:1rem 1.5rem;border-radius:var(--r-lg);box-shadow:0 20px 40px rgba(0,0,0,.4);z-index:10000;animation:slideUp .4s var(--ease-out);min-width:280px}
+.error-toast.hidden{display:none!important}
+
+@keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.hidden{display:none!important}
+
+/* ── 22. UTILITIES ─────────────────────────────────────────────────────── */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
