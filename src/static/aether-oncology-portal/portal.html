@@ -21,7 +21,7 @@
 
 <body class="text-slate-100 antialiased">
 
-  <!-- ═══ AMBIENT ENGINE (Synced with Home) ══════════════════════════════ -->
+  <!-- ═══ AMBIENT ENGINE (Synced with Home v4) ══════════════════════════ -->
   <div class="ambient" aria-hidden="true">
     <div class="mesh-blob mesh-blob--1"></div>
     <div class="mesh-blob mesh-blob--2"></div>
@@ -47,42 +47,42 @@
     </nav>
   </header>
 
-  <!-- ═══ PORTAL LAYOUT ══════════════════════════════════════════════════ -->
+  <!-- ═══ PORTAL COCKPIT ══════════════════════════════════════════════════ -->
   <main class="portal-container container-premium">
     
-    <!-- Sidebar: Controls -->
+    <!-- Sidebar (Left): Clinical Controls -->
     <aside class="portal-sidebar animate-reveal">
       <div class="glass-card clinical-panel">
         <div class="panel-header">
-          <div class="section-label">Parâmetros Citopatológicos</div>
-          <h2 class="panel-title">Entrada de Dados</h2>
+          <div class="section-label">Medical Intelligence</div>
+          <h2 class="panel-title">Entrada Biofísica</h2>
         </div>
 
         <form id="clinical-form" class="clinical-form">
           <div class="input-grid">
             <div class="input-group">
-              <label for="radius_mean">Raio Médio</label>
+              <label for="radius_mean">Raio Médio (μm)</label>
               <div class="range-wrapper">
                 <input type="range" id="radius_mean" name="radius_mean" min="5" max="30" step="0.1" value="14.0" class="range-dense" />
                 <span class="value-display" id="radius_mean-val">14.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="texture_mean">Textura</label>
+              <label for="texture_mean">Textura (G-scale)</label>
               <div class="range-wrapper">
                 <input type="range" id="texture_mean" name="texture_mean" min="9" max="40" step="0.1" value="19.0" class="range-dense" />
                 <span class="value-display" id="texture_mean-val">19.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="perimeter_mean">Perímetro</label>
+              <label for="perimeter_mean">Perímetro (μm)</label>
               <div class="range-wrapper">
                 <input type="range" id="perimeter_mean" name="perimeter_mean" min="40" max="200" step="0.5" value="92.0" class="range-dense" />
                 <span class="value-display" id="perimeter_mean-val">92.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="area_mean">Área</label>
+              <label for="area_mean">Área (μm²)</label>
               <div class="range-wrapper">
                 <input type="range" id="area_mean" name="area_mean" min="100" max="2600" step="5" value="650" class="range-dense" />
                 <span class="value-display" id="area_mean-val">650</span>
@@ -97,7 +97,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn--primary btn--sm w-full" id="btn-submit">
+          <button type="submit" class="btn btn--primary btn--sm w-full" id="btn-submit" style="margin-top: 0.5rem;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -108,85 +108,90 @@
 
         <div class="api-health-check">
           <div id="api-status-dot" class="status-indicator"></div>
-          <span id="api-status-text" class="status-text">Motor de Inferência Online</span>
+          <span id="api-status-text" class="status-text">Motor Online</span>
         </div>
       </div>
     </aside>
 
-    <!-- Main Section: Results & Evidence -->
+    <!-- Main Dashboard (Right): Analytics & Evidence -->
     <section class="portal-main animate-reveal" style="--delay:.2s">
       
-      <!-- Inference Result Card -->
+      <!-- Diagnosis & XAI Card -->
       <div class="glass-card result-panel" id="result-display-container">
         
         <!-- Placeholder -->
         <div id="results-placeholder" class="placeholder-content">
-          <div class="lotus-pulsante lotus-pulsante--sm" style="margin-bottom: 2rem;"></div>
-          <h3>Aguardando Dados</h3>
-          <p>Configure os parâmetros celulares na barra lateral para iniciar a análise Bayesiana.</p>
+          <div class="lotus-pulsante lotus-pulsante--sm"></div>
+          <h3>Aguardando Parâmetros</h3>
+          <p>Configure os dados citopatológicos para iniciar a análise.</p>
         </div>
 
         <!-- Loader -->
         <div id="inference-loader" class="loader-content hidden">
           <div class="scanner-line"></div>
           <div class="spinner-premium"></div>
-          <p>Mapeando padrões morfológicos...</p>
+          <p>Processando Verificação Bayesiana...</p>
         </div>
 
-        <!-- Real Results -->
+        <!-- Verdict Dashboard -->
         <div id="inference-verdict" class="results-layout hidden">
           <div class="results-header">
-            <div class="verdict-badge">
-              <h3 id="verdict-text"></h3>
+            <div class="verdict-main-box">
+              <span class="verdict-label">Diagnóstico IA</span>
+              <h3 id="verdict-text" class="verdict-text-large"></h3>
             </div>
-            <div class="confidence-info">
-              <div class="label">Confiança Calibrada</div>
+            <div class="confidence-box">
+              <span class="label">Confiança Calibrada</span>
               <div id="verdict-confidence" class="value"></div>
+              <div class="confidence-track">
+                <div id="confidence-bar" class="confidence-fill"></div>
+              </div>
             </div>
           </div>
 
-          <div class="confidence-track">
-            <div id="confidence-bar" class="confidence-fill"></div>
-          </div>
-
-          <!-- Analysis Bento -->
+          <!-- Analysis Grid -->
           <div class="analysis-grid">
             <div class="analysis-metrics">
               <div class="metric-card">
-                <span class="label">BI-RADS Est.</span>
+                <span class="label">Score BI-RADS</span>
                 <span class="value">Cat. 4C</span>
               </div>
               <div class="metric-card">
-                <span class="label">SHAP Max</span>
+                <span class="label">Importância SHAP</span>
                 <span class="value">0.91</span>
               </div>
             </div>
             <div class="analysis-chart">
+              <div class="chart-label">Distribuição de Probabilidades (XAI)</div>
               <canvas id="xaiChart"></canvas>
             </div>
           </div>
           
           <div class="clinical-disclaimer">
-            <strong>AVISO:</strong> Resultado probabilístico gerado por motor de IA. Requer validação clínica por oncologista.
+            <span class="icon">⚠️</span>
+            <p><strong>ONCOLOGY ADVISORY:</strong> Resultado probabilístico baseado em modelos neurais. Requer validação clínica por oncologista.</p>
           </div>
         </div>
 
-        <!-- Error State -->
+        <!-- Error Handler -->
         <div id="error-toast" class="error-content hidden">
           <div class="error-icon">⚠️</div>
-          <h3>Erro de Processamento</h3>
-          <p>Ocorreu uma falha na comunicação com o motor de inferência. Tente novamente.</p>
+          <h3>Erro no Motor</h3>
+          <p>Falha na comunicação com o servidor de inferência.</p>
         </div>
       </div>
 
-      <!-- RAG Evidence Grid (PubMed Integration) -->
+      <!-- Auto-RAG Evidence (PubMed) -->
       <div id="evidence-section" class="evidence-container hidden">
-        <div class="section-header-compact">
-          <div class="section-label">Scientific RAG</div>
-          <h2 class="section-title-sm">Evidências PubMed Correlacionadas</h2>
+        <div class="evidence-header-compact">
+          <div class="pulse-status">
+            <span class="dot"></span>
+            <span class="label">Evidence Engine Live</span>
+          </div>
+          <h2 class="evidence-title">Evidências Científicas Correlacionadas (PubMed)</h2>
         </div>
         <div id="evidence-grid" class="evidence-grid">
-          <!-- Dynamically injected by main.js -->
+          <!-- Dynamically injected by main.js after diagnosis -->
         </div>
       </div>
 
