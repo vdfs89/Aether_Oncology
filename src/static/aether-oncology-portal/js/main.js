@@ -128,14 +128,14 @@ function triggerScientificRAG(diagnosisType) {
 
     card.innerHTML = `
       <div class="evidence-card__meta">
-        <span class="evidence-badge evidence-tag-neon ${art.tagClass}">${art.tag}</span>
-        <span class="evidence-year">${art.relevance}% relevante</span>
+        <span class="evidence-tag-neon ${art.tagClass}">${art.tag}</span>
+        <span class="evidence-relevance">${art.relevance}% Match</span>
       </div>
       <h4 class="evidence-card__h4">${art.title}</h4>
-      <p class="evidence-card__p">${art.author} &middot; ${art.journal}</p>
-      <a href="${art.link}" target="_blank" rel="noopener noreferrer" class="btn btn--ghost btn--sm" style="align-self:flex-start;margin-top:auto">
-        Ver no PubMed
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <p class="evidence-card__p"><strong>${art.author}</strong> &middot; ${art.journal}</p>
+      <a href="${art.link}" target="_blank" rel="noopener noreferrer" class="btn btn--ghost btn--sm" style="align-self:flex-start;margin-top:auto;border-radius:12px;padding:0.4rem 0.8rem;font-size:0.75rem">
+        <span>Acessar PubMed</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" style="margin-left:4px">
           <path d="M2 6h6.5M6 3l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </a>
@@ -175,11 +175,11 @@ function bindPortalForm() {
     loader.classList.remove('hidden');
     if (errorToast) errorToast.classList.add('hidden');
 
-    const radius    = parseFloat(document.getElementById('radius').value);
-    const texture   = parseFloat(document.getElementById('texture').value);
-    const perimeter = parseFloat(document.getElementById('perimeter').value);
-    const area      = parseFloat(document.getElementById('area').value);
-    const smoothness= parseFloat(document.getElementById('smoothness').value);
+    const radius    = parseFloat(document.getElementById('radius_mean').value);
+    const texture   = parseFloat(document.getElementById('texture_mean').value);
+    const perimeter = parseFloat(document.getElementById('perimeter_mean').value);
+    const area      = parseFloat(document.getElementById('area_mean').value);
+    const smoothness= parseFloat(document.getElementById('smoothness_mean').value);
 
     // Mock inference (simula cold start 15%)
     const p = new Promise((resolve, reject) => {
