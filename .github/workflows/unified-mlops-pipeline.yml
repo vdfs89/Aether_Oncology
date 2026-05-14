@@ -102,19 +102,18 @@ jobs:
           path: models/
 
 
-      - name: Maximize Build Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          temp-reserve-mb: 512
-          remove-dotnet: true
-          remove-android: true
-          remove-haskell: true
-          remove-codeql: true
-          remove-docker-images: true
-
-      - name: Prune Docker
-        run: docker system prune -af
+      - name: Free Disk Space
+        run: |
+          echo "Initial disk space:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker system prune -af
+          echo "Space after cleanup:"
+          df -h
 
       - name: Ensure Models Directory
         run: mkdir -p models
@@ -137,7 +136,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: ${{ steps.scan.sarif }}
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
   # ─────────────────────────────────────────────────────────────────────────
   # STAGE 4: Canary Deployment
