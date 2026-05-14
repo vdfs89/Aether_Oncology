@@ -10,9 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
         datasets: [{
             label: 'Impacto SHAP',
             data: [0, 0, 0, 0, 0],
-            backgroundColor: 'rgba(34, 211, 238, 0.2)',
-            borderColor: '#22D3EE',
-            pointBackgroundColor: '#A855F7',
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderColor: '#10b981',
+            pointBackgroundColor: '#22d3ee',
             pointBorderColor: '#FFFFFF',
             borderWidth: 2,
             pointRadius: 4

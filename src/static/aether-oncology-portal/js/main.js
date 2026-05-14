@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       
       // UI Transition: Show loader, hide verdict
-      verdict.classList.remove('active');
-      loader.classList.add('active');
+      verdict.classList.add('hidden');
+      loader.classList.remove('hidden');
       
       // Get values for scoring
       const radius = parseFloat(document.getElementById('radius').value);
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Hide any previous error toasts
       const errorToast = document.getElementById('error-toast');
-      if (errorToast) errorToast.style.display = 'none';
+      if (errorToast) errorToast.classList.add('hidden');
 
       // Advanced Mock Fetch with Timeout Simulation (Render Cold-Start Protection)
       const fetchPromise = new Promise((resolve, reject) => {
@@ -75,29 +75,29 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       fetchPromise.then(result => {
-        loader.classList.remove('active');
-        verdict.classList.add('active');
+        loader.classList.add('hidden');
+        verdict.classList.remove('hidden');
         
         verdict.classList.remove('malignant', 'benign');
         
         if (result.isMalignant) {
           verdict.classList.add('malignant');
           verdictText.textContent = "Maligno";
-          verdictConfidence.textContent = "Fidelidade Diagnóstica: " + (87 + Math.random() * 12).toFixed(2) + "%";
+          verdictConfidence.textContent = "Confiança: " + (87 + Math.random() * 12).toFixed(2) + "%";
           updateScientificEvidence('malignant');
         } else {
           verdict.classList.add('benign');
           verdictText.textContent = "Benigno";
-          verdictConfidence.textContent = "Fidelidade Diagnóstica: " + (92 + Math.random() * 7).toFixed(2) + "%";
+          verdictConfidence.textContent = "Confiança: " + (92 + Math.random() * 7).toFixed(2) + "%";
           updateScientificEvidence('benign');
         }
       }).catch(err => {
         // Error Recovery (Luxury Clinical Error State)
-        loader.classList.remove('active');
+        loader.classList.add('hidden');
         if (errorToast) {
-          errorToast.style.display = 'block';
+          errorToast.classList.remove('hidden');
           // Auto hide after 6s
-          setTimeout(() => { errorToast.style.display = 'none'; }, 6000);
+          setTimeout(() => { errorToast.classList.add('hidden'); }, 6000);
         }
       });
     });
@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Clear previous
     evidenceGrid.innerHTML = '';
-    evidenceSection.style.display = 'block';
-    evidenceSection.classList.add('animate-reveal');
+    evidenceSection.classList.remove('hidden');
+    evidenceSection.classList.add('reveal-vault');
 
     const articles = {
       malignant: [

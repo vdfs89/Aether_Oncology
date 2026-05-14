@@ -1,134 +1,137 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Design System (Luxury Clinical v3.0) -->
-  <link rel="stylesheet" href="./css/enterprise-design-system.css" />
-  <link rel="stylesheet" href="./css/portal.css" />
-  <link rel="icon" type="image/svg+xml" href="./images/file.svg" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether Terminal | Diagnóstico Neural</title>
+    
+    <!-- Design System -->
+    <link rel="stylesheet" href="./css/enterprise-design-system.css">
+    <!-- Portal Specific Styling -->
+    <link rel="stylesheet" href="./css/portal-terminal.css">
+    <link rel="icon" type="image/svg+xml" href="./images/file.svg">
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <!-- ═══ Background Scene (Synchronized) ═══ -->
-  <div class="scene-bg" id="starfield">
-    <div class="noise-overlay"></div>
-  </div>
-
-  <!-- ═══ Header ═══ -->
-  <header class="navbar">
-    <div class="container-premium nav-inner">
-      <a href="/" class="nav-logo">
-        <img src="./images/file.svg" alt="Aether Oncology" class="brand-logo-img" />
-      </a>
-      <div class="nav-status">
-        <span class="status-indicator online"></span>
-        <span class="status-text">NODE_01 CONNECTED</span>
-      </div>
+<body class="portal-body">
+    <!-- ═══ Background Engine ═══ -->
+    <div class="scene-bg" id="starfield">
+        <div class="noise-overlay"></div>
     </div>
-  </header>
 
-  <main class="container-premium portal-page animate-reveal">
-    <header class="portal-header">
-      <div class="lotus-container-small" style="margin-bottom: var(--space-md);">
-        <img src="./images/file.svg" alt="Aether Lotus" class="lotus-pulsante-mini" />
-      </div>
-      <h1 class="portal-title text-gradient-future">Terminal de <span class="text-gradient">Diagnóstico</span></h1>
-      <p class="portal-subtitle">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
-    </header>
-
-    <div class="portal-layout">
-      <!-- Sidebar / Inputs -->
-      <aside class="glass-panel portal-sidebar">
-        <h2 class="sidebar-title">Dados Biométricos</h2>
-        <form id="clinical-form" class="form-grid">
-          
-          <div class="input-group">
-            <label for="radius">Raio Médio <span id="radius-val" class="input-val">14.0</span></label>
-            <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0" />
-          </div>
-          
-          <div class="input-group">
-            <label for="texture">Textura <span id="texture-val" class="input-val">19.0</span></label>
-            <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0" />
-          </div>
-
-          <div class="input-group">
-            <label for="perimeter">Perímetro <span id="perimeter-val" class="input-val">90.0</span></label>
-            <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0" />
-          </div>
-
-          <div class="input-group">
-            <label for="area">Área <span id="area-val" class="input-val">600</span></label>
-            <input type="range" id="area" min="140" max="2500" step="10" value="600" />
-          </div>
-
-          <div class="input-group">
-            <label for="smoothness">Suavidade <span id="smoothness-val" class="input-val">0.09</span></label>
-            <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09" />
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-submit">Executar Inferência Neural</button>
-        </form>
-      </aside>
-
-      <!-- Main Results Area -->
-      <section class="portal-main">
-        <div class="glass-panel result-card terminal-premium">
-          <!-- Initial State / Loader (Lotus Clinical Feedback) -->
-          <div id="inference-loader" class="loader-container active">
-            <div class="lotus-container-small">
-              <img src="./images/file.svg" alt="Aether Neural Engine" class="lotus-pulsante" />
+    <!-- ═══ Navigation ═══ -->
+    <nav class="navbar">
+        <div class="container-premium nav-inner">
+            <a href="/" class="nav-logo">
+                <img src="./images/file.svg" alt="Aether Oncology" class="brand-logo-img">
+                <span class="font-display" style="font-size: 1.25rem; letter-spacing: 0.1em;">AETHER</span>
+            </a>
+            <div class="nav-status">
+                <span style="width: 8px; height: 8px; background: var(--color-emerald); border-radius: 50%; box-shadow: 0 0 10px var(--color-emerald);"></span>
+                <span style="font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 0.1em;">NODE_01 CONNECTED</span>
             </div>
-            <p class="loader-text">SINCRONIZANDO CLUSTER NEURAL...</p>
-          </div>
+        </div>
+    </nav>
 
-          <!-- Verdict State -->
-          <div id="inference-verdict" class="verdict">
-            <div class="verdict-header">
-              <span class="status-indicator online pulsing"></span>
-              <h2 class="verdict-label">ANÁLISE CONCLUÍDA</h2>
+    <main class="container-premium animate-reveal" style="padding-top: var(--space-lg);">
+        <header style="text-align: center; margin-bottom: var(--space-md);">
+            <div class="lotus-container-small" style="width: 40px; height: 40px; margin-bottom: 1rem;">
+                <img src="./images/file.svg" alt="Aether Lotus" class="lotus-pulsante">
             </div>
-            <div id="verdict-text" class="verdict-title text-gradient-future">--</div>
-            <div id="verdict-confidence" class="verdict-confidence">Fidelidade Diagnóstica: --</div>
-          </div>
-        </div>
+            <h1 class="text-gradient" style="font-size: 2.5rem;">Terminal de <span style="color: var(--color-white)">Diagnóstico</span></h1>
+            <p class="text-secondary">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
+        </header>
 
-        <!-- XAI Radar -->
-        <div class="glass-panel chart-card terminal-premium">
-          <div class="chart-header">
-            <h3 class="chart-title">Arquitetura de Decisão (XAI)</h3>
-            <div class="header-actions">
-              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/MODEL_CARD.md" target="_blank" class="btn-micro">Model Card</a>
-              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/AUDIT_REPORT.md" target="_blank" class="btn-micro">Audit</a>
+        <div class="portal-grid">
+            <!-- Sidebar: Parameters -->
+            <aside class="glass-panel bento-card portal-sidebar">
+                <h3 style="font-size: 1.1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-glass-border); padding-bottom: 0.5rem;">Parâmetros Clínicos</h3>
+                <form id="clinical-form" class="clinical-form">
+                    <div class="input-group">
+                        <label>Raio Médio <span id="radius-val" class="val">14.0</span></label>
+                        <input type="range" id="radius" min="6" max="30" step="0.1" value="14.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Textura <span id="texture-val" class="val">19.0</span></label>
+                        <input type="range" id="texture" min="9" max="40" step="0.1" value="19.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Perímetro <span id="perimeter-val" class="val">90.0</span></label>
+                        <input type="range" id="perimeter" min="40" max="190" step="1" value="90.0">
+                    </div>
+                    <div class="input-group">
+                        <label>Área <span id="area-val" class="val">600</span></label>
+                        <input type="range" id="area" min="140" max="2500" step="10" value="600">
+                    </div>
+                    <div class="input-group">
+                        <label>Suavidade <span id="smoothness-val" class="val">0.09</span></label>
+                        <input type="range" id="smoothness" min="0.05" max="0.16" step="0.001" value="0.09">
+                    </div>
+                    <button type="submit" class="btn-premium btn-primary" style="width: 100%; margin-top: 1rem;">Executar Inferência</button>
+                </form>
+            </aside>
+
+            <!-- Main: Visualization & Results -->
+            <div class="portal-main-area">
+                <!-- Inference Status / Result -->
+                <div class="glass-panel bento-card result-panel" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                    <div id="inference-loader" class="loader-content active">
+                        <div class="lotus-container-small" style="width: 80px; height: 80px;">
+                            <img src="./images/file.svg" alt="Loading" class="lotus-pulsante">
+                        </div>
+                        <p style="margin-top: 1.5rem; letter-spacing: 0.2em; color: var(--color-emerald); font-size: 0.8rem;">SINCRONIZANDO CLUSTER...</p>
+                    </div>
+
+                    <div id="inference-verdict" class="verdict-content hidden">
+                        <span class="tag-neon" style="margin-bottom: 1rem;">Resultado da Análise</span>
+                        <h2 id="verdict-text" class="verdict-title">--</h2>
+                        <div id="verdict-confidence" class="verdict-confidence">Confiança: --</div>
+                    </div>
+                </div>
+
+                <!-- XAI Radar -->
+                <div class="glass-panel bento-card chart-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="font-size: 1.1rem;">Arquitetura de Decisão (XAI)</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="#" class="tag-neon" style="text-decoration: none; font-size: 0.6rem;">Model Card</a>
+                            <a href="#" class="tag-neon" style="text-decoration: none; font-size: 0.6rem;">Audit</a>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 300px; position: relative;">
+                        <canvas id="xaiRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Evidence Vault (RAG) -->
+                <div id="evidence-section" class="glass-panel bento-card evidence-vault hidden">
+                    <div class="vault-header">
+                        <h3 class="vault-title">Cofre de Evidências (RAG)</h3>
+                        <p class="vault-desc">Publicações científicas que corroboram o diagnóstico atual.</p>
+                    </div>
+                    <div id="evidence-grid" class="bento-grid-mini">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="chart-container">
-            <canvas id="xaiRadarChart"></canvas>
-          </div>
         </div>
+    </main>
 
-        <!-- ═══ Clinical Evidence Vault (RAG) ═══ -->
-        <div id="evidence-section" class="evidence-vault glass-panel terminal-premium" style="display: none;">
-          <div class="vault-header">
-            <h3 class="vault-title">Cofre de Evidências Científicas</h3>
-            <p class="vault-desc">Artigos relevantes recuperados via RAG baseados no veredito clínico.</p>
-          </div>
-          <div id="evidence-grid" class="bento-grid-mini">
-            <!-- Cards injected by main.js -->
-          </div>
+    <!-- Error Toast -->
+    <div id="error-toast" class="error-toast hidden">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="width: 4px; height: 100%; background: #ef4444;"></div>
+            <div>
+                <strong style="display: block; font-size: 0.8rem; text-transform: uppercase;">Erro de Conexão</strong>
+                <span id="error-toast-msg" style="font-size: 0.75rem; color: var(--text-secondary);">Cold-start detectado. Tente novamente.</span>
+            </div>
         </div>
-      </section>
     </div>
-  </main>
 
-  <!-- Error Toast -->
-  <div id="error-toast" style="display: none; position: fixed; bottom: 2rem; right: 2rem; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #f87171; padding: 1rem 1.5rem; border-radius: var(--radius-md); box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 999; animation: fade-in 0.3s ease-out;">
-    <strong style="display: block; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Timeout do Cluster Neural</strong>
-    <span id="error-toast-msg" style="font-size: 0.875rem;">O backend está sob cold-start. Tente novamente em alguns segundos.</span>
-  </div>
-
-  <script src="./js/charts.js"></script>
-  <script src="./js/main.js"></script>
+    <!-- Scripts -->
+    <script src="./js/starfield.js"></script>
+    <script src="./js/charts.js"></script>
+    <script src="./js/main.js"></script>
 </body>
 </html>
