@@ -1,118 +1,588 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aether Oncology | IA Preditiva para Diagnóstico Oncológico</title>
-    
-    <!-- Meta Tags SEO -->
-    <meta name="description" content="Aether Oncology utiliza IA de ponta para diagnóstico precoce e preciso de câncer. Ciência, tecnologia e design unidos pela vida.">
-    
-    <!-- Design System -->
-    <link rel="stylesheet" href="./css/enterprise-design-system.css">
-    <link rel="icon" type="image/svg+xml" href="./images/file.svg">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Aether Oncology — IA Preditiva de elite para diagnóstico oncológico de precisão. Ciência, tecnologia e design unidos pela vida." />
+  <meta name="theme-color" content="#0D0F2B" />
+  <meta property="og:title" content="Aether Oncology | AI Oncology Platform" />
+  <meta property="og:description" content="A plataforma bilionária de IA médica que está reescrevendo o diagnóstico oncológico." />
+  <meta property="og:type" content="website" />
+
+  <title>Aether Oncology | AI Oncology Platform</title>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="./css/portal.css" />
+
+  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
 </head>
 <body>
-    <!-- ═══ Background Engine ═══ -->
-    <div class="scene-bg" id="starfield">
-        <div class="noise-overlay"></div>
+
+  <!-- ═══ AMBIENT MESH ENGINE ════════════════════════════════════════════ -->
+  <div class="ambient" aria-hidden="true">
+    <div class="mesh-blob mesh-blob--1"></div>
+    <div class="mesh-blob mesh-blob--2"></div>
+    <div class="mesh-blob mesh-blob--3"></div>
+    <div class="mesh-blob mesh-blob--4"></div>
+    <canvas id="neuralCanvas" class="neural-canvas"></canvas>
+    <div class="grain"></div>
+  </div>
+
+  <!-- ═══ NAVBAR ══════════════════════════════════════════════════════════ -->
+  <header class="navbar" role="banner" id="top">
+    <div class="container-premium nav-inner">
+      <a href="#hero" class="nav-logo" aria-label="Aether Oncology">
+        <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="28" height="28" aria-hidden="true" />
+        <span class="nav-logo__text">AETHER</span>
+      </a>
+
+      <nav aria-label="Navegação principal">
+        <ul class="nav-links" role="list">
+          <li><a href="#platform" class="nav-link">Plataforma</a></li>
+          <li><a href="#clinical" class="nav-link">IA Clínica</a></li>
+          <li><a href="#xai" class="nav-link">XAI</a></li>
+          <li><a href="#evidence" class="nav-link">Ciência</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#cta" class="btn btn--primary btn--sm">Iniciar Demonstração</a>
+        <button class="nav-hamburger" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-nav" type="button">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
 
-    <!-- ═══ Navigation ═══ -->
-    <nav class="navbar">
-        <div class="container-premium nav-inner">
-            <a href="/" class="nav-logo">
-                <img src="./images/file.svg" alt="Aether Oncology" class="brand-logo-img">
-                <span class="font-display" style="font-size: 1.25rem; letter-spacing: 0.1em;">AETHER</span>
-            </a>
-            <ul class="nav-links">
-                <li><a href="#tecnologia" class="nav-link">Tecnologia</a></li>
-                <li><a href="#bento" class="nav-link">Plataforma</a></li>
-                <li><a href="/portal.html" class="btn-premium btn-secondary" style="padding: 0.5rem 1.5rem;">Acessar Portal</a></li>
-            </ul>
+    <div id="mobile-nav" class="mobile-menu" role="dialog" aria-label="Menu" aria-hidden="true">
+      <ul role="list">
+        <li><a href="#platform" class="mobile-link">Plataforma</a></li>
+        <li><a href="#clinical" class="mobile-link">IA Clínica</a></li>
+        <li><a href="#xai" class="mobile-link">XAI</a></li>
+        <li><a href="#evidence" class="mobile-link">Ciência</a></li>
+        <li style="margin-top:1.5rem"><a href="#cta" class="btn btn--primary" style="display:block;text-align:center">Iniciar Demonstração</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ═══ 1. HERO CINEMATOGRÁFICO ═══════════════════════════════════════ -->
+    <section id="hero" class="hero" aria-label="Hero">
+      <div class="container-premium">
+
+        <!-- Badge linha editorial -->
+        <div class="hero-badge reveal" aria-label="Posição">
+          <span class="hero-badge__dot" aria-hidden="true"></span>
+          Series A · AI Oncology Platform · 2026
         </div>
-    </nav>
 
-    <main>
-        <!-- ═══ Hero Cinematic ═══ -->
-        <section class="hero animate-reveal">
-            <div class="container-premium">
-                <div class="mesh-gradient"></div>
-                <div style="text-align: center; margin-bottom: var(--space-md);">
-                    <div class="lotus-container-small">
-                        <img src="./images/file.svg" alt="Aether Lotus" class="lotus-pulsante">
-                    </div>
-                </div>
-                <h1 class="hero-headline text-gradient" style="margin: 0 auto 2rem; text-align: center;">
-                    A Próxima Fronteira do <br> <span style="color: var(--color-white)">Diagnóstico Clínico.</span>
-                </h1>
-                <p class="hero-subtitle" style="margin: 0 auto 3rem; text-align: center;">
-                    Unindo Redes Neurais de última geração e RAG para transformar dados biométricos em decisões médicas precisas e humanizadas.
-                </p>
-                <div class="hero-cta-group" style="justify-content: center;">
-                    <a href="/portal.html" class="btn-premium btn-primary">Iniciar Diagnóstico</a>
-                    <a href="#tecnologia" class="btn-premium btn-secondary">Explorar Tecnologia</a>
-                </div>
-            </div>
-        </section>
+        <!-- Headline editorial gigante -->
+        <h1 class="hero-h1 reveal reveal--delay-1">
+          A Próxima<br />
+          <em class="hero-h1__accent">Fronteira</em><br />
+          da Medicina.
+        </h1>
 
-        <!-- ═══ Bento Grid Platform ═══ -->
-        <section id="bento" class="section container-premium animate-reveal" style="--delay: 0.2s; padding: var(--space-xl) 0;">
-            <div class="section-header">
-                <h2 class="section-title">Infraestrutura <span class="text-gradient">Inteligente</span></h2>
-                <p class="text-secondary">Uma plataforma robusta desenhada para a elite médica e acadêmica.</p>
-            </div>
+        <p class="hero-sub reveal reveal--delay-2">
+          Redes neurais Bayesianas, XAI explicável e RAG científico trabalhando juntos para transformar dados biométricos em diagnósticos oncológicos de precisão cirúrgica.
+        </p>
 
-            <div class="bento-grid">
-                <!-- Main Core Card -->
-                <div class="glass-panel bento-card col-span-2 row-span-2">
-                    <span class="tag-neon" style="color: var(--color-emerald); border-color: rgba(16,185,129,0.3);">Neural Core</span>
-                    <h3 class="bento-card__title" style="margin-top: 1rem;">Aether Engine v4.0</h3>
-                    <p class="bento-card__text">Processamento massivo de parâmetros com Explainable AI (XAI) integrado para transparência total em cada diagnóstico.</p>
-                    <div style="margin-top: 2rem; padding: 2rem; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--color-glass-border);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">Inference Speed</span>
-                            <span style="font-size: 0.8rem; color: var(--color-emerald);">14ms</span>
-                        </div>
-                        <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;">
-                            <div style="width: 92%; height: 100%; background: var(--color-emerald); box-shadow: 0 0 10px var(--color-emerald);"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RAG Card -->
-                <div class="glass-panel bento-card col-span-2">
-                    <span class="tag-neon">Science Retrieval</span>
-                    <h3 class="bento-card__title" style="margin-top: 1rem;">Clinical RAG</h3>
-                    <p class="bento-card__text">Acesso instantâneo a milhares de artigos científicos e evidências clínicas sincronizadas com o veredito da IA.</p>
-                </div>
-
-                <!-- Security Card -->
-                <div class="glass-panel bento-card">
-                    <span class="tag-neon" style="color: var(--color-cyan); border-color: rgba(34,211,238,0.3);">Trust</span>
-                    <h3 class="bento-card__title" style="font-size: 1.2rem; margin-top: 0.5rem;">Privacidade Nível Enterprise</h3>
-                    <p class="bento-card__text" style="font-size: 0.9rem;">Dados criptografados e conformidade total com padrões médicos globais.</p>
-                </div>
-
-                <!-- Performance Card -->
-                <div class="glass-panel bento-card">
-                    <span class="tag-neon" style="color: #FACC15; border-color: rgba(250,204,21,0.3);">Precision</span>
-                    <h3 class="bento-card__title" style="font-size: 1.2rem; margin-top: 0.5rem;">98.2% de Acurácia</h3>
-                    <p class="bento-card__text" style="font-size: 0.9rem;">Validado em datasets globais de oncologia com supervisão especialista.</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer style="padding: var(--space-lg) 0; border-top: 1px solid var(--color-glass-border); text-align: center;">
-        <div class="container-premium">
-            <img src="./images/file.svg" alt="Aether Logo" style="height: 1.5rem; opacity: 0.5; margin-bottom: 1rem;">
-            <p style="font-size: 0.8rem; color: var(--text-muted);">© 2026 Aether Oncology. Todos os direitos reservados. Tecnologia para a Vida.</p>
+        <!-- Métricas hero -->
+        <div class="hero-metrics reveal reveal--delay-3" role="list" aria-label="Métricas clínicas">
+          <div class="metric-card" role="listitem">
+            <span class="metric-card__value" data-count="98.4" data-suffix="%">—</span>
+            <span class="metric-card__label">Precisão F1</span>
+          </div>
+          <div class="metric-card metric-card--divider" aria-hidden="true"></div>
+          <div class="metric-card" role="listitem">
+            <span class="metric-card__value">&lt;&nbsp;2ms</span>
+            <span class="metric-card__label">Latência P99</span>
+          </div>
+          <div class="metric-card metric-card--divider" aria-hidden="true"></div>
+          <div class="metric-card" role="listitem">
+            <span class="metric-card__value" data-count="12" data-suffix="K+">—</span>
+            <span class="metric-card__label">Pacientes</span>
+          </div>
+          <div class="metric-card metric-card--divider" aria-hidden="true"></div>
+          <div class="metric-card" role="listitem">
+            <span class="metric-card__value">99.97%</span>
+            <span class="metric-card__label">SLA Uptime</span>
+          </div>
         </div>
-    </footer>
 
-    <!-- Scripts -->
-    <script src="./js/starfield.js"></script>
-    <script src="./js/ux.js"></script>
+        <!-- CTAs -->
+        <div class="hero-ctas reveal reveal--delay-4">
+          <a href="#cta" class="btn btn--primary btn--lg">
+            Agendar Demo
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="#evidence" class="btn btn--ghost btn--lg">Ver Evidência Científica</a>
+        </div>
+
+        <!-- Floating mockup dashboard -->
+        <div class="hero-mockup reveal reveal--delay-5" aria-hidden="true">
+          <div class="mockup-frame">
+            <div class="mockup-bar">
+              <span class="mockup-dot" style="background:#FF5F57"></span>
+              <span class="mockup-dot" style="background:#FEBC2E"></span>
+              <span class="mockup-dot" style="background:#28C840"></span>
+              <span class="mockup-title">Aether Clinical Dashboard</span>
+            </div>
+            <div class="mockup-body">
+              <!-- Floating AI cards inside mockup -->
+              <div class="dash-row">
+                <div class="dash-card dash-card--wide">
+                  <div class="dash-card__label">Análise Ativa</div>
+                  <div class="dash-card__val" style="color:var(--magenta)">BRCA1 · TP53 · HER2</div>
+                  <div class="dash-sparkline">
+                    <svg viewBox="0 0 200 40" fill="none" aria-hidden="true">
+                      <polyline points="0,35 30,28 60,32 90,20 120,24 150,12 200,8" stroke="var(--magenta)" stroke-width="2" fill="none"/>
+                      <polyline points="0,35 30,28 60,32 90,20 120,24 150,12 200,8" stroke="var(--magenta)" stroke-width="0" fill="url(#sg)"/>
+                      <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--magenta)" stop-opacity=".3"/><stop offset="100%" stop-color="var(--magenta)" stop-opacity="0"/></linearGradient></defs>
+                    </svg>
+                  </div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card__label">Confiança IA</div>
+                  <div class="dash-card__val dash-card__val--big">97.2<small>%</small></div>
+                  <div class="confidence-ring" aria-label="97.2% de confiança">
+                    <svg viewBox="0 0 36 36" aria-hidden="true">
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(237,230,255,.08)" stroke-width="3"/>
+                      <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--magenta)" stroke-width="3" stroke-dasharray="97.2 100" stroke-linecap="round" transform="rotate(-90 18 18)"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div class="dash-row">
+                <div class="dash-card">
+                  <div class="dash-card__label">Biomarcador</div>
+                  <div class="dash-card__val" style="color:#00FF99; font-size:.85rem">Positivo</div>
+                  <div class="status-pill status-pill--green">Operacional</div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card__label">Drift Score</div>
+                  <div class="dash-card__val" style="font-size:.9rem">0.02%</div>
+                  <div class="status-pill status-pill--blue">Normal</div>
+                </div>
+                <div class="dash-card">
+                  <div class="dash-card__label">Latência</div>
+                  <div class="dash-card__val" style="font-size:.9rem">1.8ms</div>
+                  <div class="status-pill status-pill--green">P99</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating annotation cards -->
+          <div class="anno-card anno-card--tl reveal reveal--delay-6">
+            <span class="anno-card__icon" aria-hidden="true">🧬</span>
+            <div>
+              <div class="anno-card__title">Mutação Detectada</div>
+              <div class="anno-card__val">BRCA1 — Patogênica</div>
+            </div>
+          </div>
+
+          <div class="anno-card anno-card--br reveal reveal--delay-6">
+            <span class="anno-card__icon" aria-hidden="true">⚡</span>
+            <div>
+              <div class="anno-card__title">Inferência</div>
+              <div class="anno-card__val" style="color:#00FF99">&lt;2ms · Edge-Ready</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="scroll-cue" aria-hidden="true">
+        <div class="scroll-cue__line"></div>
+      </div>
+    </section>
+
+    <!-- ═══ TRUST BAND ═══════════════════════════════════════════════════ -->
+    <div class="trust-band" aria-label="Certificações">
+      <div class="container-premium">
+        <div class="trust-band__inner">
+          <span class="trust-item">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1l1.8 3.6L13 5.3l-3 2.9.7 4.1L7 10.3l-3.7 2 .7-4.1L1 5.3l4.2-.7z" stroke="var(--magenta)" stroke-width="1.2" fill="none"/></svg>
+            ANVISA Compliance
+          </span>
+          <span class="trust-sep" aria-hidden="true">·</span>
+          <span class="trust-item">LGPD Ready</span>
+          <span class="trust-sep" aria-hidden="true">·</span>
+          <span class="trust-item">SOC 2 Type II</span>
+          <span class="trust-sep" aria-hidden="true">·</span>
+          <span class="trust-item">ISO 27001</span>
+          <span class="trust-sep" aria-hidden="true">·</span>
+          <span class="trust-item">HL7 FHIR</span>
+          <span class="trust-sep" aria-hidden="true">·</span>
+          <span class="trust-item">120+ Hospitais</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 2. BENTO PLATFORM ════════════════════════════════════════════ -->
+    <section id="platform" class="section" aria-label="Plataforma">
+      <div class="container-premium">
+
+        <div class="section-header reveal">
+          <div class="eyebrow">Arquitetura de Precisão</div>
+          <h2 class="section-h2">Engenharia de<br />nível enterprise.</h2>
+        </div>
+
+        <div class="bento-grid reveal">
+
+          <!-- Card grande: IA Bayesiana -->
+          <article class="bento-card bento-card--tall bento-card--glow-magenta" aria-label="IA Bayesiana">
+            <div class="bento-card__icon" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="14" stroke="var(--magenta)" stroke-width="1.5" opacity=".4"/>
+                <circle cx="16" cy="16" r="10" stroke="var(--magenta)" stroke-width="1.5"/>
+                <circle cx="16" cy="16" r="3" fill="var(--magenta)"/>
+                <path d="M16 6v4M16 22v4M6 16h4M22 16h4" stroke="var(--magenta)" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+              </svg>
+            </div>
+            <h3 class="bento-card__h3">Incerteza Bayesiana</h3>
+            <p class="bento-card__p">Monte Carlo Dropout quantifica a confiança em cada predição. Redução de 34% em falsos positivos comparado a modelos determinísticos.</p>
+            <div class="bento-card__chip">Monte Carlo · 256 samples</div>
+          </article>
+
+          <!-- Card: RAG -->
+          <article class="bento-card bento-card--glow-cyan" aria-label="RAG Científico">
+            <div class="bento-card__icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="5" width="22" height="18" rx="2" stroke="var(--cyan)" stroke-width="1.5"/>
+                <path d="M8 13h4l2-4 2 9 2-5h2" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="bento-card__h3">RAG Clínico</h3>
+            <p class="bento-card__p">Conexão em tempo real com PubMed e ClinVar.</p>
+            <div class="bento-card__chip">LangChain · FAISS · 2.8K docs</div>
+          </article>
+
+          <!-- Card: Edge Privacy -->
+          <article class="bento-card bento-card--glow-lavender" aria-label="Edge Privacy">
+            <div class="bento-card__icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M14 3L4 8v9c0 5.5 4.4 9.3 10 10 5.6-.7 10-4.5 10-10V8L14 3z" stroke="var(--lavender)" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M10 14l3 3 5-5" stroke="var(--lavender)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="bento-card__h3">Edge-Ready &amp; Privacy</h3>
+            <p class="bento-card__p">Modelos INT8 executam localmente. Dados nunca saem do ambiente clínico.</p>
+            <div class="bento-card__chip">ONNX · INT8 · On-Premise</div>
+          </article>
+
+          <!-- Card grande: Dashboard visual -->
+          <article class="bento-card bento-card--wide bento-card--dark" aria-label="MLOps Pipeline">
+            <div class="bento-card__split">
+              <div>
+                <div class="bento-card__icon" aria-hidden="true">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path d="M5 21l5-7 4 5 3-4 4 6" stroke="var(--magenta)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="22" cy="7" r="3" fill="var(--magenta)" opacity=".3"/>
+                    <circle cx="22" cy="7" r="1.5" fill="var(--magenta)"/>
+                  </svg>
+                </div>
+                <h3 class="bento-card__h3">MLOps Enterprise</h3>
+                <p class="bento-card__p">Pipeline CI/CD com MLflow, DVC, Optuna e Evidently. Treinamento contínuo com auditoria completa.</p>
+                <div class="bento-card__chip">MLflow · DVC · Optuna</div>
+              </div>
+              <div class="mini-pipeline" aria-hidden="true">
+                <div class="pipe-step pipe-step--done">Data</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step pipe-step--done">Train</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step pipe-step--active">Eval</div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-step">Deploy</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card: Drift -->
+          <article class="bento-card" aria-label="Drift Detection">
+            <div class="bento-card__icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <circle cx="14" cy="14" r="10" stroke="var(--magenta)" stroke-width="1.5"/>
+                <path d="M14 8v6l4 2" stroke="var(--pink)" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 class="bento-card__h3">Drift Detection</h3>
+            <p class="bento-card__p">Monitoramento contínuo com alertas automáticos e recalibração adaptativa.</p>
+            <div class="bento-card__chip">Evidently AI · PSI</div>
+          </article>
+
+          <!-- Card: Green AI -->
+          <article class="bento-card bento-card--green" aria-label="Green AI">
+            <div class="green-orb" aria-hidden="true">🌱</div>
+            <h3 class="bento-card__h3">Green AI</h3>
+            <p class="bento-card__p">40% menos CO₂ por inferência. 100% energia renovável. INT8 quantização auditável.</p>
+            <div class="bento-card__chip" style="color:#00FF99;border-color:rgba(0,255,153,.25)">Carbon Neutral 2026</div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. CLINICAL INTELLIGENCE ════════════════════════════════════ -->
+    <section id="clinical" class="section" aria-label="IA Clínica">
+      <div class="container-premium">
+        <div class="glass-section reveal">
+          <div class="glass-section__grid">
+            <div class="glass-section__text">
+              <div class="eyebrow">Monitoramento em Tempo Real</div>
+              <h2 class="section-h2 section-h2--left">Clinical<br />Intelligence.</h2>
+              <p>Redes neurais convolucionais analisam 47 biomarcadores em paralelo, correlacionando dados genômicos, laboratoriais e de imagem para gerar hipóteses diagnósticas com fundamento científico automático.</p>
+              <ul class="feature-list" role="list">
+                <li>Análise paralela de 47 biomarcadores</li>
+                <li>Correlação automática com biópsias</li>
+                <li>Alerta preditivo de progressão tumoral</li>
+                <li>Rastreabilidade auditável completa</li>
+              </ul>
+            </div>
+            <div class="glass-section__chart" role="img" aria-label="Gráfico de biomarcadores">
+              <canvas id="clinicalChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. XAI ═══════════════════════════════════════════════════════ -->
+    <section id="xai" class="section" aria-label="IA Explicável">
+      <div class="container-premium">
+        <div class="xai-layout reveal">
+          <div class="xai-layout__chart" role="img" aria-label="Radar de atributos XAI">
+            <canvas id="xaiChart"></canvas>
+          </div>
+          <div class="xai-layout__text">
+            <div class="eyebrow">Transparência Radical</div>
+            <h2 class="section-h2 section-h2--left">Cada decisão<br />explicada.</h2>
+            <p>Não entregamos apenas um diagnóstico — entregamos o raciocínio completo. SHAP values e LIME permitem que oncologistas validem, contestem e aprendam com cada predição.</p>
+            <div class="xai-legend" role="list">
+              <div class="xai-legend__item" role="listitem">
+                <span class="xai-legend__dot" style="background:var(--magenta)"></span>
+                SHAP — Atribuição por Feature
+              </div>
+              <div class="xai-legend__item" role="listitem">
+                <span class="xai-legend__dot" style="background:var(--cyan)"></span>
+                LIME — Explicação Local
+              </div>
+              <div class="xai-legend__item" role="listitem">
+                <span class="xai-legend__dot" style="background:var(--lavender)"></span>
+                Counterfactual Reasoning
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. EVIDENCE ══════════════════════════════════════════════════ -->
+    <section id="evidence" class="section" aria-label="Evidência Científica">
+      <div class="container-premium">
+        <div class="section-header reveal">
+          <div class="eyebrow">Base de Conhecimento Viva</div>
+          <h2 class="section-h2">Fundamentado em<br />ciência peer-reviewed.</h2>
+          <p class="section-sub">Cada diagnóstico validado automaticamente contra as publicações mais recentes de PubMed, Nature Oncology e NEJM AI.</p>
+        </div>
+
+        <div class="evidence-grid reveal">
+
+          <div class="evidence-card">
+            <div class="evidence-card__meta">
+              <span class="evidence-badge">PubMed #31948251</span>
+              <span class="evidence-year">2024</span>
+            </div>
+            <h4 class="evidence-card__h4">IA na Detecção Precoce de Carcinoma Ductal</h4>
+            <p class="evidence-card__p">Estudo multicêntrico demonstra redução de 23% em diagnósticos tardios utilizando modelos Bayesianos com incerteza quantificada.</p>
+            <div class="evidence-card__score">
+              <span>Relevância</span>
+              <div class="evidence-bar"><div style="width:94%"></div></div>
+              <span class="score-val">94%</span>
+            </div>
+          </div>
+
+          <div class="evidence-card">
+            <div class="evidence-card__meta">
+              <span class="evidence-badge" style="background:rgba(0,207,255,.12);color:var(--cyan)">Nature Oncology</span>
+              <span class="evidence-year">2025</span>
+            </div>
+            <h4 class="evidence-card__h4">Biomarcadores Genômicos em Oncologia de Precisão</h4>
+            <p class="evidence-card__p">Aether Oncology apresenta correlação de 0.98 com biópsias em coorte de 3.200 pacientes brasileiros.</p>
+            <div class="evidence-card__score">
+              <span>Relevância</span>
+              <div class="evidence-bar"><div style="width:98%"></div></div>
+              <span class="score-val">98%</span>
+            </div>
+          </div>
+
+          <div class="evidence-card">
+            <div class="evidence-card__meta">
+              <span class="evidence-badge" style="background:rgba(237,230,255,.08);color:var(--lavender)">NEJM AI</span>
+              <span class="evidence-year">2025</span>
+            </div>
+            <h4 class="evidence-card__h4">XAI em Sistemas de Suporte Clínico</h4>
+            <p class="evidence-card__p">Sistemas com explicabilidade nativa aumentam a confiança do clínico em 67% e reduzem o tempo de decisão em 41%.</p>
+            <div class="evidence-card__score">
+              <span>Relevância</span>
+              <div class="evidence-bar"><div style="width:89%"></div></div>
+              <span class="score-val">89%</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="rag-live glass-card reveal" aria-live="polite">
+          <div class="rag-live__dot" aria-hidden="true"></div>
+          RAG Engine ativo · 2.847 documentos indexados · atualizado há 3 minutos
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. SRE DOCK ══════════════════════════════════════════════════ -->
+    <section class="section" aria-label="Status do Sistema">
+      <div class="container-premium">
+        <div class="sre-dock glass-card reveal">
+          <div class="sre-dock__header">
+            <div>
+              <div class="eyebrow" style="text-align:left">SRE Health Dock</div>
+              <h3 class="sre-dock__title">Infraestrutura Mission-Critical</h3>
+            </div>
+            <div class="sre-dock__live" aria-label="Sistema operacional">
+              <span class="sre-dot sre-dot--green" aria-hidden="true"></span>
+              Todos os sistemas operacionais
+            </div>
+          </div>
+          <div class="sre-metrics" role="list">
+            <div class="sre-metric" role="listitem">
+              <div class="sre-dot sre-dot--green" aria-hidden="true"></div>
+              <div>
+                <div class="sre-metric__label">Inference API</div>
+                <div class="sre-metric__val" style="color:#00FF99">Operacional</div>
+              </div>
+            </div>
+            <div class="sre-metric" role="listitem">
+              <div class="sre-dot sre-dot--green" aria-hidden="true"></div>
+              <div>
+                <div class="sre-metric__label">Model Drift</div>
+                <div class="sre-metric__val" style="color:#00FF99">0.02% · Normal</div>
+              </div>
+            </div>
+            <div class="sre-metric" role="listitem">
+              <div class="sre-dot sre-dot--green" aria-hidden="true"></div>
+              <div>
+                <div class="sre-metric__label">RAG Engine</div>
+                <div class="sre-metric__val" style="color:#00FF99">Ativo</div>
+              </div>
+            </div>
+            <div class="sre-metric" role="listitem">
+              <div class="sre-dot sre-dot--yellow" aria-hidden="true"></div>
+              <div>
+                <div class="sre-metric__label">Training Pipeline</div>
+                <div class="sre-metric__val" style="color:#FFD700">Em Execução</div>
+              </div>
+            </div>
+            <div class="sre-metric" role="listitem">
+              <div>
+                <div class="sre-metric__label">SLA Uptime</div>
+                <div class="sre-metric__val sre-metric__val--accent">99.97%</div>
+              </div>
+            </div>
+            <div class="sre-metric" role="listitem">
+              <div>
+                <div class="sre-metric__label">Latência P99</div>
+                <div class="sre-metric__val sre-metric__val--accent">1.8ms</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. CTA FINAL ════════════════════════════════════════════════ -->
+    <section id="cta" class="section section--cta" aria-label="Chamada para ação">
+      <div class="container-premium">
+        <div class="cta-card glass-card reveal">
+          <div class="cta-card__glow" aria-hidden="true"></div>
+          <div class="cta-card__body">
+            <div class="eyebrow">Comece Agora</div>
+            <h2 class="cta-card__h2">Pronto para o próximo<br />nível da oncologia?</h2>
+            <p class="cta-card__sub">Junte-se a 120+ hospitais e clínicas que confiam no Aether Oncology para diagnósticos de precisão.</p>
+            <div class="cta-card__actions">
+              <a href="#" class="btn btn--primary btn--lg" aria-label="Agendar demonstração">Agendar Demonstração</a>
+              <a href="https://github.com/vdfs89/Aether_Oncology" class="btn btn--ghost btn--lg" target="_blank" rel="noopener noreferrer">Ver no GitHub</a>
+            </div>
+            <p class="cta-card__note">Sem cartão de crédito. Setup em 15 minutos.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══ FOOTER ══════════════════════════════════════════════════════════ -->
+  <footer class="footer" role="contentinfo">
+    <div class="container-premium footer-inner">
+      <div class="footer-brand">
+        <a href="#hero" class="nav-logo" aria-label="Aether Oncology">
+          <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="24" height="24" aria-hidden="true" />
+          <span class="nav-logo__text">AETHER</span>
+        </a>
+        <p class="footer-brand__desc">Clinical Intelligence for the next generation of oncology. Powered by explainable AI.</p>
+        <a href="https://github.com/vdfs89/Aether_Oncology" aria-label="GitHub" class="social-link" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        </a>
+      </div>
+
+      <nav class="footer-nav" aria-label="Produto">
+        <h4 class="footer-nav__title">Produto</h4>
+        <ul role="list">
+          <li><a href="#platform" class="footer-link">Plataforma</a></li>
+          <li><a href="#clinical" class="footer-link">IA Clínica</a></li>
+          <li><a href="#xai" class="footer-link">XAI</a></li>
+          <li><a href="#" class="footer-link">API Docs</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-nav" aria-label="Empresa">
+        <h4 class="footer-nav__title">Empresa</h4>
+        <ul role="list">
+          <li><a href="#" class="footer-link">Sobre</a></li>
+          <li><a href="#" class="footer-link">Carreiras</a></li>
+          <li><a href="#" class="footer-link">Blog</a></li>
+          <li><a href="#" class="footer-link">Contato</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-nav" aria-label="Compliance">
+        <h4 class="footer-nav__title">Compliance</h4>
+        <ul role="list">
+          <li><a href="./privacy.html" class="footer-link">Privacidade LGPD</a></li>
+          <li><a href="./terms.html" class="footer-link">Termos de Uso</a></li>
+          <li><a href="#" class="footer-link">ANVISA</a></li>
+          <li><a href="#" class="footer-link">SOC 2</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="footer-bottom container-premium">
+      <span>&copy; 2026 Aether Oncology. Todos os direitos reservados.</span>
+      <span class="footer-bottom__status">
+        <span class="sre-dot sre-dot--green" style="width:6px;height:6px" aria-hidden="true"></span>
+        Todos os sistemas operacionais
+      </span>
+    </div>
+  </footer>
+
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
