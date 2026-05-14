@@ -3,36 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terminal de Diagnóstico | Aether Oncology</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Design System (Luxury Clinical v3.0) -->
+  <link rel="stylesheet" href="./css/enterprise-design-system.css" />
   <link rel="stylesheet" href="./css/portal.css" />
-  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
+  <link rel="icon" type="image/svg+xml" href="./images/file.svg" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <!-- Background Ambient -->
-  <div class="scene-bg" aria-hidden="true"></div>
-  <div class="scene-glow scene-glow--1"></div>
-  <div class="scene-glow scene-glow--2"></div>
+  <!-- ═══ Background Scene (Synchronized) ═══ -->
+  <div class="scene-bg" id="starfield">
+    <div class="noise-overlay"></div>
+  </div>
 
-  <!-- Navbar -->
+  <!-- ═══ Header ═══ -->
   <header class="navbar">
-    <div class="container nav-inner">
-      <a href="/" class="nav-logo" aria-label="Aether Oncology — retornar ao início">
+    <div class="container-premium nav-inner">
+      <a href="/" class="nav-logo">
         <img src="./images/file.svg" alt="Aether Oncology" class="brand-logo-img" />
       </a>
+      <div class="nav-status">
+        <span class="status-indicator online"></span>
+        <span class="status-text">NODE_01 CONNECTED</span>
+      </div>
     </div>
   </header>
 
-  <main class="container portal-page">
+  <main class="container-premium portal-page animate-reveal">
     <header class="portal-header">
-      <div class="hero-badge" style="margin-bottom: var(--space-md);">
-        <img src="./images/file.svg" alt="" class="brand-logo-img brand-logo-img--badge" aria-hidden="true" />
+      <div class="lotus-container-small" style="margin-bottom: var(--space-md);">
+        <img src="./images/file.svg" alt="Aether Lotus" class="lotus-pulsante-mini" />
       </div>
-      <h1 class="portal-title">Terminal de <span class="text-gradient">Diagnóstico</span></h1>
-      <p class="portal-subtitle">Insira os biomarcadores do exame de Punção Aspirativa por Agulha Fina (FNA) para avaliação da rede neural.</p>
+      <h1 class="portal-title text-gradient-future">Terminal de <span class="text-gradient">Diagnóstico</span></h1>
+      <p class="portal-subtitle">Processamento de biomarcadores em tempo real via Aether Neural Engine.</p>
     </header>
 
     <div class="portal-layout">
@@ -72,36 +74,48 @@
 
       <!-- Main Results Area -->
       <section class="portal-main">
-        <div class="glass-panel result-card">
-          <!-- Initial State / Loader -->
+        <div class="glass-panel result-card terminal-premium">
+          <!-- Initial State / Loader (Lotus Clinical Feedback) -->
           <div id="inference-loader" class="loader-container active">
-            <div class="loader-spinner"></div>
-            <p class="loader-text">Analisando tensores...</p>
+            <div class="lotus-container-small">
+              <img src="./images/file.svg" alt="Aether Neural Engine" class="lotus-pulsante" />
+            </div>
+            <p class="loader-text">SINCRONIZANDO CLUSTER NEURAL...</p>
           </div>
 
           <!-- Verdict State -->
           <div id="inference-verdict" class="verdict">
-            <h2 class="verdict-label">Veredito Clínico</h2>
-            <div id="verdict-text" class="verdict-title">--</div>
-            <div id="verdict-confidence" class="verdict-confidence">Confiança: --</div>
+            <div class="verdict-header">
+              <span class="status-indicator online pulsing"></span>
+              <h2 class="verdict-label">ANÁLISE CONCLUÍDA</h2>
+            </div>
+            <div id="verdict-text" class="verdict-title text-gradient-future">--</div>
+            <div id="verdict-confidence" class="verdict-confidence">Fidelidade Diagnóstica: --</div>
           </div>
         </div>
 
         <!-- XAI Radar -->
-        <div class="glass-panel chart-card" style="position: relative;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
-            <h3 class="chart-title" style="margin-bottom: 0;">Explicabilidade do Modelo (XAI)</h3>
-            <div style="display: flex; gap: 0.5rem;">
-              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/MODEL_CARD.md" target="_blank" class="model-card-link" aria-label="Acessar Model Card de Governança" style="color: var(--lotus-core); text-decoration: none; font-size: 0.75rem; border: 1px solid var(--glass-border); padding: 0.25rem 0.75rem; border-radius: 9999px; transition: all 0.2s; background: rgba(255,255,255,0.03);">
-                ⓘ Model Card
-              </a>
-              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/AUDIT_REPORT.md" target="_blank" class="model-card-link" aria-label="Acessar Relatório de Auditoria de Compliance" style="color: var(--text-muted); text-decoration: none; font-size: 0.75rem; border: 1px solid var(--glass-border); padding: 0.25rem 0.75rem; border-radius: 9999px; transition: all 0.2s; background: rgba(255,255,255,0.03);">
-                🛡️ Audit Report
-              </a>
+        <div class="glass-panel chart-card terminal-premium">
+          <div class="chart-header">
+            <h3 class="chart-title">Arquitetura de Decisão (XAI)</h3>
+            <div class="header-actions">
+              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/MODEL_CARD.md" target="_blank" class="btn-micro">Model Card</a>
+              <a href="https://github.com/vdfs89/Aether_Oncology/blob/main/docs/AUDIT_REPORT.md" target="_blank" class="btn-micro">Audit</a>
             </div>
           </div>
           <div class="chart-container">
             <canvas id="xaiRadarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- ═══ Clinical Evidence Vault (RAG) ═══ -->
+        <div id="evidence-section" class="evidence-vault glass-panel terminal-premium" style="display: none;">
+          <div class="vault-header">
+            <h3 class="vault-title">Cofre de Evidências Científicas</h3>
+            <p class="vault-desc">Artigos relevantes recuperados via RAG baseados no veredito clínico.</p>
+          </div>
+          <div id="evidence-grid" class="bento-grid-mini">
+            <!-- Cards injected by main.js -->
           </div>
         </div>
       </section>
