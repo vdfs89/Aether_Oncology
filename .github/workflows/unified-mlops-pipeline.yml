@@ -101,29 +101,43 @@ jobs:
           name: production-model
           path: models/
 
-      - name: Build Docker Image
-        run: docker build -t aether-oncology:${{ github.sha }} .
 
-      - name: Security Scan — SARIF Report
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          temp-reserve-mb: 512
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+          remove-docker-images: true
+
+      - name: Prune Docker
+        run: docker system prune -af
+
+      - name: Ensure Models Directory
+        run: mkdir -p models
+
+      - name: Build Docker Image
+        run: |
+          docker build -t aether-oncology:${{ github.sha }} .
+
+      - name: Security Scan & Policy Gate (Grype)
         uses: anchore/scan-action@v3
+        id: scan
         with:
           image: "aether-oncology:${{ github.sha }}"
-          fail-build: false
+          fail-build: true
           severity-cutoff: critical
+          output-format: sarif
+          config-file: .grype.yaml
 
       - name: Upload SARIF vulnerability report
         uses: github/codeql-action/upload-sarif@v3
         if: always()
-        continue-on-error: true
         with:
-          sarif_file: results.sarif
-
-      - name: Security Policy Gate (Grype)
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-          # Força atualização do banco de vulnerabilidades
-          /usr/local/bin/grype db update
-          /usr/local/bin/grype aether-oncology:${{ github.sha }} --config .grype.yaml --output table
+          sarif_file: ${{ steps.scan.sarif }}
 
   # ─────────────────────────────────────────────────────────────────────────
   # STAGE 4: Canary Deployment

@@ -20,7 +20,7 @@ export function initNavbar() {
 // ─── Mobile hamburger menu ────────────────────────────────────────────────
 export function initMobileMenu() {
   const btn  = document.querySelector('.nav-hamburger');
-  const menu = document.getElementById('mobile-menu');
+  const menu = document.getElementById('mobile-nav');
   if (!btn || !menu) return;
 
   const toggle = (forceClose = false) => {

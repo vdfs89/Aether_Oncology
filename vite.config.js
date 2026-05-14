@@ -14,6 +14,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/static/aether-oncology-portal/index.html'),
+        portal: resolve(__dirname, 'src/static/aether-oncology-portal/portal.html'),
         privacy: resolve(__dirname, 'src/static/aether-oncology-portal/privacy.html'),
         terms: resolve(__dirname, 'src/static/aether-oncology-portal/terms.html')
       },

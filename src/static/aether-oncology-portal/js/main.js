@@ -8,17 +8,24 @@ import { initNavbar, initMobileMenu, initActiveNav } from './ui.js';
 import { initScrollReveal, initCounters, initSmoothScroll, initNeural } from './ux.js';
 import { initCharts } from './charts.js';
 
+
 // ─── Boot ────────────────────────────────────────────────────────────────
 function boot() {
-  initNeural();
-  initNavbar();
-  initMobileMenu();
-  initActiveNav();
-  initScrollReveal();
-  initCounters();
-  initSmoothScroll();
-  initCharts();
-  bindPortalForm();  // Only binds if the form exists (portal.html)
+  console.log('🚀 Aether Oncology — Initializing Terminal Engine...');
+  try {
+    initNeural();
+    initNavbar();
+    initMobileMenu();
+    initActiveNav();
+    initScrollReveal();
+    initCounters();
+    initSmoothScroll();
+    initCharts();
+    bindPortalForm();
+    console.log('✅ Terminal Ready.');
+  } catch (err) {
+    console.error('❌ Critical Error during Terminal Boot:', err);
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -199,15 +206,23 @@ function bindPortalForm() {
       verdict.classList.remove('hidden');
       verdict.classList.remove('malignant', 'benign');
 
+
+      const confidenceBar = document.getElementById('confidence-bar');
+      const confValue = (result.isMalignant ? (87 + Math.random() * 12) : (92 + Math.random() * 7));
+
       if (result.isMalignant) {
         verdict.classList.add('malignant');
+        verdict.classList.remove('benign');
         verdictText.textContent = 'Maligno';
-        verdictConfidence.textContent = `Confiança: ${(87 + Math.random() * 12).toFixed(2)}%`;
+        verdictConfidence.textContent = `Confiança: ${confValue.toFixed(2)}%`;
+        if (confidenceBar) confidenceBar.style.width = `${confValue}%`;
         triggerScientificRAG('malignant');
       } else {
         verdict.classList.add('benign');
+        verdict.classList.remove('malignant');
         verdictText.textContent = 'Benigno';
-        verdictConfidence.textContent = `Confiança: ${(92 + Math.random() * 7).toFixed(2)}%`;
+        verdictConfidence.textContent = `Confiança: ${confValue.toFixed(2)}%`;
+        if (confidenceBar) confidenceBar.style.width = `${confValue}%`;
         triggerScientificRAG('benign');
       }
     }).catch(() => {
