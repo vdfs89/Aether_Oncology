@@ -622,84 +622,115 @@ p{color:var(--t2);line-height:1.75}
 .results-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-}
-
-.verdict-badge {
-  display: flex;
+  gap: 2rem;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  padding-block: 1rem;
 }
 
-.verdict-badge h3 {
-  font-size: 2rem;
-  letter-spacing: -0.04em;
-}
-
-.analysis-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-}
-@media (min-width: 768px) {
-  .analysis-grid {
-    grid-template-columns: 1fr 1.2fr;
-  }
-}
-
-.analysis-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.875rem;
-}
-
-.metric-card {
-  background: rgba(13,15,43,0.3);
-  border: 1px solid rgba(237,230,255,0.05);
-  border-radius: 1.25rem;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  transition: all 0.3s var(--ease-out);
-}
-.metric-card:hover {
-  background: rgba(13,15,43,0.5);
-  border-color: rgba(230,57,138,0.2);
-  transform: translateY(-2px);
-}
-
-.metric-card .label {
-  font-size: 0.58rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--t3);
-}
-
-.metric-card .value {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--t1);
-  letter-spacing: -0.02em;
-}
-
-.analysis-chart {
-  background: rgba(13,15,43,0.2);
-  border-radius: var(--r-lg);
-  padding: 1rem;
+.analysis-chart-premium {
+  width: 100%;
+  height: 380px; /* Approximately 60% of card height */
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.analysis-chart-premium canvas {
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 0 20px rgba(230, 57, 138, 0.15));
+  animation: radarPulse 4s ease-in-out infinite;
+}
+
+.verdict-container-premium {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.verdict-label-premium {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--t3);
+  text-transform: uppercase;
+}
+
+.verdict-massive {
+  font-size: clamp(3.5rem, 8vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  margin-block: 0.25rem;
+  background: linear-gradient(135deg, #fff 0%, var(--lavender) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 30px rgba(255,255,255,0.1));
+}
+
+#inference-verdict.malignant .verdict-massive {
+  background: linear-gradient(135deg, var(--magenta) 0%, var(--pink) 100%);
+  -webkit-background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(230, 57, 138, 0.4));
+}
+
+#inference-verdict.benign .verdict-massive {
+  background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(0, 255, 153, 0.3));
+}
+
+.confidence-value-premium {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--t2);
+  letter-spacing: 0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.confidence-track-premium {
+  width: 100%;
+  max-width: 280px;
+  height: 4px;
+  background: rgba(237,230,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--magenta), var(--pink));
+  width: 0%;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 15px var(--magenta);
+}
+
+@keyframes radarPulse {
+  0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 20px rgba(230, 57, 138, 0.15)); }
+  50% { transform: scale(1.02); opacity: 0.95; filter: drop-shadow(0 0 40px rgba(230, 57, 138, 0.3)); }
 }
 
 .clinical-disclaimer {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--t3);
-  padding: 0.75rem;
-  border-left: 2px solid var(--magenta);
-  background: rgba(230,57,138,0.05);
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(230,57,138,0.03);
+  border: 1px solid rgba(230,57,138,0.08);
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  max-width: 500px;
+  margin-top: 1rem;
 }
+
+
 
 /* Evidence Section */
 .evidence-container {

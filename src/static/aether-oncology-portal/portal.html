@@ -133,37 +133,20 @@
           <p>Processando Verificação Bayesiana...</p>
         </div>
 
-        <!-- Verdict Dashboard -->
         <div id="inference-verdict" class="results-layout hidden">
-          <div class="results-header">
-            <div class="verdict-main-box">
-              <span class="verdict-label">Diagnóstico IA</span>
-              <h3 id="verdict-text" class="verdict-text-large"></h3>
-            </div>
-            <div class="confidence-box">
-              <span class="label">Confiança Calibrada</span>
-              <div id="verdict-confidence" class="value"></div>
-              <div class="confidence-track">
-                <div id="confidence-bar" class="confidence-fill"></div>
-              </div>
-            </div>
+          <!-- Top: Radar Chart (60% height goal via CSS) -->
+          <div class="analysis-chart-premium">
+            <canvas id="xaiChart"></canvas>
           </div>
 
-          <!-- Analysis Grid -->
-          <div class="analysis-grid">
-            <div class="analysis-metrics">
-              <div class="metric-card">
-                <span class="label">Score BI-RADS</span>
-                <span class="value">Cat. 4C</span>
-              </div>
-              <div class="metric-card">
-                <span class="label">Importância SHAP</span>
-                <span class="value">0.91</span>
-              </div>
-            </div>
-            <div class="analysis-chart">
-              <div class="chart-label">Distribuição de Probabilidades (XAI)</div>
-              <canvas id="xaiChart"></canvas>
+          <!-- Base: Massive Verdict -->
+          <div class="verdict-container-premium">
+            <span class="verdict-label-premium">RESULTADO DA ANÁLISE</span>
+            <h3 id="verdict-text" class="verdict-massive"></h3>
+            <div id="verdict-confidence" class="confidence-value-premium"></div>
+            
+            <div class="confidence-track-premium">
+              <div id="confidence-bar" class="confidence-fill"></div>
             </div>
           </div>
           

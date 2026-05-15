@@ -100,55 +100,68 @@ export function initXaiChart(canvasId) {
       labels: ['BRCA1/2','CA-125','TP53','HER2','CEA','Ki-67','EGFR'],
       datasets: [
         {
-          label: 'SHAP',
-          data: [0.91,0.85,0.78,0.72,0.65,0.60,0.55],
+          label: 'Invariância Predictiva',
+          data: [0.91, 0.85, 0.78, 0.72, 0.65, 0.60, 0.55],
           borderColor: COLORS.magenta,
-          backgroundColor: 'rgba(230,57,138,0.15)',
+          backgroundColor: (ctx) => {
+            const chart = ctx.chart;
+            const {ctx: canvasCtx, chartArea} = chart;
+            if (!chartArea) return null;
+            const cx = (chartArea.left + chartArea.right) / 2;
+            const cy = (chartArea.top + chartArea.bottom) / 2;
+            const radius = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2;
+            const gradient = canvasCtx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+            gradient.addColorStop(0, 'rgba(230, 57, 138, 0.4)');
+            gradient.addColorStop(1, 'rgba(230, 57, 138, 0.05)');
+            return gradient;
+          },
+          borderWidth: 1.5,
           pointBackgroundColor: COLORS.magenta,
-          pointRadius: 5,
-          borderWidth: 2,
-        },
-        {
-          label: 'LIME',
-          data: [0.87,0.80,0.82,0.68,0.70,0.58,0.50],
-          borderColor: COLORS.cyan,
-          backgroundColor: 'rgba(0,207,255,0.08)',
-          pointBackgroundColor: COLORS.cyan,
-          pointRadius: 5,
-          borderWidth: 2,
-        },
+          pointBorderColor: '#0D0F2B',
+          pointBorderWidth: 1,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: {
-        padding: {
-          top: 10,
-          bottom: 10,
-          left: 20,
-          right: 20
-        }
-      },
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { boxWidth: 8, boxHeight: 8, borderRadius: 50, useBorderRadius: true, padding: 12, color: COLORS.tickText, font: { size: 10 } },
-        },
+        legend: { display: false },
         tooltip: {
           backgroundColor: 'rgba(13,15,43,0.92)',
-          borderColor: 'rgba(237,230,255,0.12)',
+          borderColor: 'rgba(230,57,138,0.2)',
           borderWidth: 1,
-          padding: 8,
+          padding: 10,
         },
       },
       scales: {
         r: {
-          min: 0, max: 1,
-          ticks: { stepSize: 0.25, display: false },
-          grid: { color: COLORS.gridLine },
-          angleLines: { color: 'rgba(237,230,255,0.06)' },
-          pointLabels: { color: COLORS.tickText, font: { size: 9, weight: '600' }, padding: 5 },
+          min: 0,
+          max: 1,
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(230,57,138,0.05)',
+            lineWidth: 1,
+          },
+          angleLines: {
+            color: 'rgba(230,57,138,0.08)',
+            lineWidth: 1,
+          },
+          ticks: {
+            display: false,
+            stepSize: 0.2,
+          },
+          pointLabels: {
+            color: 'rgba(237,230,255,0.4)',
+            font: {
+              size: 10,
+              weight: '500',
+              family: "'Inter', sans-serif"
+            },
+            padding: 15,
+          },
         },
       },
     },
