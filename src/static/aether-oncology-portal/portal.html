@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Aether Portal — Terminal de diagnóstico oncológico com IA explicável de precisão." />
   <meta name="theme-color" content="#03060b" />
-  <title>Aether Portal | Terminal de Diagnóstico</title>
+  <title>Aether Portal | Diagnóstico de Câncer de Mama</title>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,7 +36,7 @@
     <nav class="container-premium nav-inner">
       <a href="index.html" class="nav-logo">
         <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="24" height="24" />
-        <span class="nav-logo__text">AETHER <span class="text-gradient-future">PORTAL</span></span>
+        <span class="nav-logo__text">AETHER <span class="text-gradient-future">MAMA</span></span>
       </a>
       <a href="index.html" class="btn btn--ghost btn--sm">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -54,42 +54,42 @@
     <aside class="portal-sidebar animate-reveal">
       <div class="glass-card clinical-panel">
         <div class="panel-header">
-          <div class="section-label">Medical Intelligence</div>
+          <p class="section-subtitle">TERMINAL DE TRIAGEM ONCOLÓGICA (MAMA)</p>
           <h2 class="panel-title">Entrada Biofísica</h2>
         </div>
 
         <form id="clinical-form" class="clinical-form">
           <div class="input-grid">
             <div class="input-group">
-              <label for="radius_mean">Raio Médio (μm)</label>
+              <label for="radius_mean">Radius Mean</label>
               <div class="range-wrapper">
                 <input type="range" id="radius_mean" name="radius_mean" min="5" max="30" step="0.1" value="14.0" class="range-dense" />
                 <span class="value-display" id="radius_mean-val">14.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="texture_mean">Textura (G-scale)</label>
+              <label for="texture_mean">Texture Mean</label>
               <div class="range-wrapper">
                 <input type="range" id="texture_mean" name="texture_mean" min="9" max="40" step="0.1" value="19.0" class="range-dense" />
                 <span class="value-display" id="texture_mean-val">19.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="perimeter_mean">Perímetro (μm)</label>
+              <label for="perimeter_mean">Perimeter Mean</label>
               <div class="range-wrapper">
                 <input type="range" id="perimeter_mean" name="perimeter_mean" min="40" max="200" step="0.5" value="92.0" class="range-dense" />
                 <span class="value-display" id="perimeter_mean-val">92.0</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="area_mean">Área (μm²)</label>
+              <label for="area_mean">Area Mean</label>
               <div class="range-wrapper">
                 <input type="range" id="area_mean" name="area_mean" min="100" max="2600" step="5" value="650" class="range-dense" />
                 <span class="value-display" id="area_mean-val">650</span>
               </div>
             </div>
             <div class="input-group">
-              <label for="smoothness_mean">Suavidade</label>
+              <label for="smoothness_mean">Smoothness Mean</label>
               <div class="range-wrapper">
                 <input type="range" id="smoothness_mean" name="smoothness_mean" min="0.05" max="0.25" step="0.001" value="0.1" class="range-dense" />
                 <span class="value-display" id="smoothness_mean-val">0.100</span>
@@ -97,7 +97,7 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn--primary btn--sm w-full" id="btn-submit" style="margin-top: 0.5rem;">
+          <button type="submit" class="btn btn--primary btn--sm w-full" id="btn-submit" style="margin-top: 0.5rem; border-radius: 12px; letter-spacing: 0.1em;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -107,7 +107,7 @@
         </form>
 
         <div class="api-health-check">
-          <div id="api-status-dot" class="status-indicator"></div>
+          <div id="api-status-dot" class="status-indicator status-indicator--online"></div>
           <span id="api-status-text" class="status-text">Motor Online</span>
         </div>
       </div>

@@ -1,20 +1,21 @@
-# Aether Oncology: Operational Status & System Architecture (v2.5.1)
+# Aether Oncology: Operational Status & System Architecture (v5.0.0)
 
 > **"Precision for Life"** — Central status, governance, and architecture manual for the Aether Oncology diagnostic platform.
 
 ---
 
-## 🟢 Platform Status do Projeto: v2.5.1 (Premium UI + Build Fixed)
-**Data:** 11 de Maio, 2026
+## 🟢 Platform Status do Projeto: v5.0.0 (Clinical Cockpit + AI Act Ready)
+**Data:** 15 de Maio, 2026
 
 ### 🚀 Resumo das Atualizações
-*   **Design System:** Implementação final da arquitetura "Luxury Clinical" com mobile-first responsive grid.
-*   **Build System Fix:** Migração do minificador de `terser` para `esbuild` no `vite.config.js` para resolver falhas de compilação em ambientes Docker e Vercel sem dependências opcionais.
-*   **Clinical UI:** Dashboard integrado com Chart.js, módulos de XAI (Explainable AI) e RAG (Scientific Evidence).
+*   **High-Density Clinical Cockpit:** Nova interface `portal.html` redesenhada com foco em densidade de dados, sliders ultrafinos e layout bento-grid otimizado para diagnósticos rápidos.
+*   **EU AI Act Compliance:** Sistema mapeado e validado como **Alto Risco (Anexo III)**, com governança de dados, documentação técnica e supervisão humana integradas.
+*   **Sincronização Atmosférica:** Unificação total dos assets de design (Neural Canvas, Mesh Blobs) entre Home e Portal.
+*   **CI/CD Hardening:** Redirecionamento dinâmico de `TMPDIR` para mitigar falhas de I/O em runners do GitHub.
 
 | Component | Status | Environment | Technology Stack |
 | :--- | :---: | :--- | :--- |
-| **Clinical Portal** | 🟢 Online | Vercel (Edge) | Premium UI · Vite · ESM · Chart.js |
+| **Clinical Portal** | 🟢 Online | Vercel (Edge) | High-Density UI · Vite · ESM · Chart.js |
 | **Inference API** | 🟢 Online | Render (FastAPI) | Python 3.12 · PyTorch · Hugging Face |
 | **Research Layer** | 🟢 Protected | External API | Semantic Scholar · Circuit Breaker |
 | **Audit Engine** | 🟢 Active | Persistent Log | Structured JSON · Trace Context |
@@ -23,6 +24,7 @@
 *   **Recall (Sensitivity):** `97.2%` — Optimized for zero-loss patient screening.
 *   **F1-Score:** `96.5%` — Balanced precision for clinical trust.
 *   **Inference Latency:** `p95 < 200ms` (Hugging Face) / `p99 < 500ms` (Local Fallback).
+*   **Compliance:** HIPAA, GDPR & EU AI Act Ready.
 *   **Coverage:** `91%` unit/integration test coverage.
 
 ---

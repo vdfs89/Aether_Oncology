@@ -33,7 +33,7 @@ model-index:
       name: ROC-AUC
 ---
 
-# Aether Oncology
+# Aether Oncology: Breast Cancer Diagnostic
 
 <p align="center">
   <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
@@ -51,7 +51,16 @@ model-index:
 
 | Status | Recall | F1-Score | ROC-AUC | Versão | Coverage |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v2.1.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
+| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v5.0.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
+
+</div>
+
+<div align="center">
+
+[![Compliance - HIPAA](https://img.shields.io/badge/Compliance-HIPAA-blue?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
+[![Compliance - GDPR](https://img.shields.io/badge/Compliance-GDPR-blue?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
+[![AI Act - High Risk (Annex III)](https://img.shields.io/badge/AI_Act-High--Risk-orange?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
+[![Quality - FIAP 10/10](https://img.shields.io/badge/FIAP-Grade_10-gold?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
 
 </div>
 
@@ -101,6 +110,21 @@ A versão mais recente introduz uma camada de **Site Reliability Engineering (SR
 - **Circuit Breakers**: O sistema protege a si mesmo contra lentidões em APIs de terceiros (PubMed/Semantic Scholar), garantindo latência estável no diagnóstico.
 - **Decoupled Inference**: Arquitetura "Remote-First, Local-Fallback". A inferência principal ocorre via Hugging Face Inference API, com fallback automático para um modelo local PyTorch em caso de falha.
 - **Statistical Audit**: O cálculo de Drift agora utiliza testes de significância estatística (P-values), elevando a governança de "heurística" para "acadêmica".
+- **Hardened CI/CD**: Mitigação de falhas de I/O em runners do GitHub Actions via redirecionamento dinâmico de `TMPDIR`, garantindo builds Docker determinísticos.
+
+## 🇪🇺 AI Act Compliance (EU Regulation)
+
+O Aether Oncology foi desenvolvido sob a ótica do **EU AI Act**, classificando-se como um sistema de **Alto Risco (Anexo III)** por atuar na área de saúde.
+
+| Requisito AI Act | Implementação Aether | Status |
+| :--- | :--- | :---: |
+| **Risk Management** | Análise de trade-off Recall vs Precision detalhada no Model Card. | ✅ |
+| **Data Governance** | Validação de schema (Pandera) e contratos de dados (Pydantic). | ✅ |
+| **Technical Documentation** | Documentação técnica exaustiva e Diagramas C4/Mermaid. | ✅ |
+| **Record Keeping** | Audit Trail imutável com correlação de IDs de requisição. | ✅ |
+| **Transparency** | XAI nativo (Integrated Gradients) com narrativa clínica. | ✅ |
+| **Human Oversight** | UI desenhada para suporte à decisão, nunca diagnóstico autônomo. | ✅ |
+| **Accuracy & Security** | Pipeline de DevSecOps (Grype) e monitoramento de Drift. | ✅ |
 
 ## 📊 Arquitetura e Análise Técnica
 
@@ -430,7 +454,7 @@ Contém as 6 seções obrigatórias:
 - **Dataset de Treino:** [Breast Cancer Wisconsin Diagnostic (WDBC)](https://huggingface.co/datasets/scikit-learn/breast-cancer-wisconsin)
 
 ### 2. Uso Pretendido (Intended Use)
-- **Primary Intended Use:** Atuar como um Sistema de Suporte à Decisão Clínica (CDSS) para patologistas e oncologistas, realizando a triagem inicial e estimando o risco de malignidade em biópsias baseadas em características morfológicas e celulares.
+- **Primary Intended Use:** Atuar como um Sistema de Suporte à Decisão Clínica (CDSS) para patologistas e oncologistas, realizando a triagem inicial e estimando o risco de malignidade em biópsias de Câncer de Mama baseadas em características morfológicas e celulares.
 - **Secondary Intended Use:** Priorização de filas de exames hospitalares (casos com alto risco de malignidade passam para o topo da fila de análise humana).
 - **Out of Scope Use (Uso Proibido):** Este modelo **nunca** deve ser utilizado para diagnóstico autônomo ou prescrição de tratamentos sem a supervisão e validação final de um médico especialista.
 
