@@ -161,11 +161,11 @@ p{color:var(--t2);line-height:1.75}
 .hero-sub{font-size:1.05rem;color:var(--t2);max-width:36rem;margin-bottom:1.75rem;line-height:1.65}
 
 /* Metrics row */
-.hero-metrics{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem;margin-bottom:1.75rem;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--glass-border);border-radius:var(--r-lg);padding:.6rem 1.125rem;width:fit-content}
-.metric-card{display:flex;flex-direction:column;gap:.15rem;padding:.4rem .75rem}
-.metric-card--divider{width:1px;height:2rem;background:var(--glass-border);padding:0}
-.metric-card__value{font-size:1.35rem;font-weight:800;letter-spacing:-.04em;background:linear-gradient(135deg,var(--magenta),var(--lavender));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
-.metric-card__label{font-size:.62rem;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.hero-metrics{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:1rem;margin-bottom:2rem;background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:.75rem 1.5rem;width:fit-content}
+.metric-card{display:flex;flex-direction:column;gap:.25rem;padding:.5rem 1rem;text-align:center}
+.metric-card--divider{width:1px;height:2.5rem;background:var(--glass-border);padding:0;flex-shrink:0}
+.metric-card__value{font-size:1.5rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#fff,var(--magenta));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.metric-card__label{font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
 
 .hero-ctas{display:flex;flex-wrap:wrap;gap:.875rem;margin-bottom:1.5rem}
 
@@ -619,6 +619,16 @@ p{color:var(--t2);line-height:1.75}
   100% { transform: translateY(500px); opacity: 0; }
 }
 
+.clinical-cockpit-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3rem;
+  align-items: center !important;
+  justify-content: center;
+  padding-block: 2rem;
+  width: 100%;
+}
+
 .results-layout {
   display: flex;
   flex-direction: column;
@@ -662,16 +672,17 @@ p{color:var(--t2);line-height:1.75}
 }
 
 .verdict-massive {
-  font-size: clamp(3.5rem, 8vw, 5rem);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.05em;
+  font-size: clamp(4rem, 10vw, 6.5rem);
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
   text-transform: uppercase;
-  margin-block: 0.25rem;
+  margin-block: 0.5rem;
   background: linear-gradient(135deg, #fff 0%, var(--lavender) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 30px rgba(255,255,255,0.1));
+  filter: drop-shadow(0 0 30px rgba(255,255,255,0.15));
+  text-align: center;
 }
 
 #inference-verdict.malignant .verdict-massive {
@@ -709,6 +720,49 @@ p{color:var(--t2);line-height:1.75}
   width: 0%;
   transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 0 15px var(--magenta);
+}
+
+.verdict-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 2rem;
+}
+
+.v-metric-card {
+  background: rgba(42,27,77,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.v-metric-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t3);
+}
+
+.v-metric-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--t1);
+  letter-spacing: -0.02em;
+}
+
+#v-biomarker-status {
+  color: var(--green);
+}
+
+#inference-verdict.malignant #v-biomarker-status {
+  color: var(--magenta);
 }
 
 @keyframes radarPulse {
@@ -787,7 +841,34 @@ p{color:var(--t2);line-height:1.75}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
 .w-full { width: 100%; }
 
-/* ── 13. UTILITIES ─────────────────────────────────────────────────────── */
+.radar-status-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--t3);
+  background: rgba(13,15,43,0.6);
+  padding: 0.4rem 0.8rem;
+  border-radius: 2rem;
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(8px);
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── 22. UTILITIES ─────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 .visible { display: block !important; }
 .flex-hidden { display: none !important; }

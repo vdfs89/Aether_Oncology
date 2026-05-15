@@ -182,6 +182,10 @@ function bindPortalForm() {
     loader.classList.remove('hidden');
     if (errorToast) errorToast.classList.add('hidden');
 
+    // Hide placeholder on first run
+    const placeholder = document.getElementById('results-placeholder');
+    if (placeholder) placeholder.classList.add('hidden');
+
     const radius    = parseFloat(document.getElementById('radius_mean').value);
     const texture   = parseFloat(document.getElementById('texture_mean').value);
     const perimeter = parseFloat(document.getElementById('perimeter_mean').value);
@@ -216,6 +220,8 @@ function bindPortalForm() {
         verdictText.textContent = 'Maligno';
         verdictConfidence.textContent = `Confiança: ${confValue.toFixed(2)}%`;
         if (confidenceBar) confidenceBar.style.width = `${confValue}%`;
+        const biomarkerStatus = document.getElementById('v-biomarker-status');
+        if (biomarkerStatus) biomarkerStatus.textContent = 'Positivo';
         triggerScientificRAG('malignant');
       } else {
         verdict.classList.add('benign');
@@ -223,10 +229,14 @@ function bindPortalForm() {
         verdictText.textContent = 'Benigno';
         verdictConfidence.textContent = `Confiança: ${confValue.toFixed(2)}%`;
         if (confidenceBar) confidenceBar.style.width = `${confValue}%`;
+        const biomarkerStatus = document.getElementById('v-biomarker-status');
+        if (biomarkerStatus) biomarkerStatus.textContent = 'Negativo';
         triggerScientificRAG('benign');
       }
     }).catch(() => {
       loader.classList.add('hidden');
+      const placeholder = document.getElementById('results-placeholder');
+      if (placeholder) placeholder.classList.remove('hidden'); 
       if (errorToast) {
         errorToast.classList.remove('hidden');
         setTimeout(() => errorToast.classList.add('hidden'), 6000);

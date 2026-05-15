@@ -263,6 +263,26 @@ async def read_portal() -> HTMLResponse:
         return HTMLResponse(content=f.read())
 
 
+@app.get("/privacy.html", response_class=HTMLResponse, include_in_schema=False)
+async def read_privacy() -> HTMLResponse:
+    """Serve a página privacy.html."""
+    privacy_path = os.path.join(
+        os.path.dirname(__file__), "static", "aether-oncology-portal", "privacy.html"
+    )
+    with open(privacy_path, encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+@app.get("/terms.html", response_class=HTMLResponse, include_in_schema=False)
+async def read_terms() -> HTMLResponse:
+    """Serve a página terms.html."""
+    terms_path = os.path.join(
+        os.path.dirname(__file__), "static", "aether-oncology-portal", "terms.html"
+    )
+    with open(terms_path, encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 # ---------------------------------------------------------------------------
 # Multimodality Readiness (v2.1)
 # ---------------------------------------------------------------------------

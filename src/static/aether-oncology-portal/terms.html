@@ -1,33 +1,88 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Termos de Uso | Aether Oncology</title>
-    <link rel="stylesheet" href="./css/portal.css">
-    <style>
-        body { padding-top: 120px; }
-        .legal-content { max-width: 800px; margin: auto; padding-bottom: 5rem; }
-        h2 { color: var(--accent-magenta); margin-top: 3rem; }
-        .back-link { display: inline-block; margin-bottom: 2rem; color: var(--text-secondary); text-decoration: none; transition: color 0.3s; }
-        .back-link:hover { color: white; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Termos de Uso — Aether Oncology" />
+  <meta name="theme-color" content="#03060b" />
+  <title>Termos de Uso | Aether Oncology</title>
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Design System -->
+  <link rel="stylesheet" href="./css/portal.css" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
+
+  <style>
+    body { padding-top: 120px; }
+    .legal-content { max-width: 800px; margin: auto; padding-bottom: 5rem; position: relative; z-index: 10; }
+    h2 { color: var(--magenta); margin-top: 3rem; font-family: 'Poppins', sans-serif; font-weight: 700; }
+    .back-link { display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 2rem; color: var(--t2); text-decoration: none; transition: all 0.3s; font-size: 0.9rem; }
+    .back-link:hover { color: white; transform: translateX(-4px); }
+    .legal-header { margin-bottom: 3rem; }
+    .legal-header h1 { font-size: 3rem; font-weight: 900; background: linear-gradient(135deg, #fff 0%, var(--t3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    p { line-height: 1.8; color: var(--t2); margin-bottom: 1.5rem; }
+  </style>
 </head>
-<body>
-    <div class="scene-overlay"></div>
-    <div class="container-premium legal-content">
-        <a href="./index.html" class="back-link">← Voltar ao Portal</a>
-        <h1>Termos de Uso</h1>
-        <p>Ao utilizar a plataforma Aether Oncology, você concorda com os termos abaixo.</p>
 
-        <h2>1. Uso Profissional</h2>
-        <p>O portal Aether Oncology é destinado exclusivamente a profissionais da saúde e pesquisadores devidamente habilitados.</p>
+<body class="text-slate-100 antialiased">
 
-        <h2>2. Propriedade Intelectual</h2>
-        <p>Todo o código, modelos de IA e design do portal são de propriedade da Aether Oncology e protegidos por leis de direitos autorais internacionais.</p>
+  <!-- ═══ AMBIENT ENGINE ══════════════════════════════════════════════════ -->
+  <div class="ambient" aria-hidden="true">
+    <div class="mesh-blob mesh-blob--1"></div>
+    <div class="mesh-blob mesh-blob--2"></div>
+    <div class="mesh-blob mesh-blob--3"></div>
+    <div class="mesh-blob mesh-blob--4"></div>
+    <canvas id="neuralCanvas" class="neural-canvas"></canvas>
+    <div class="grain"></div>
+  </div>
 
-        <h2>3. Limitação de Responsabilidade</h2>
-        <p>A ferramenta fornece predições probabilísticas. A responsabilidade final pela conduta médica é integralmente do profissional de saúde solicitante.</p>
+  <!-- ═══ NAVBAR ═════════════════════════════════════════════════════════ -->
+  <header class="navbar" role="banner">
+    <nav class="container-premium nav-inner">
+      <a href="index.html" class="nav-logo">
+        <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="24" height="24" />
+        <span class="nav-logo__text">AETHER <span class="text-gradient-future">ONCOLOGY</span></span>
+      </a>
+      <a href="index.html" class="btn btn--ghost btn--sm">
+        Voltar ao Início
+      </a>
+    </nav>
+  </header>
+
+  <!-- ═══ LEGAL CONTENT ══════════════════════════════════════════════════ -->
+  <main class="container-premium legal-content">
+    <div class="legal-header">
+      <a href="./index.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Voltar ao Portal
+      </a>
+      <h1>Termos de Uso</h1>
+      <p>Ao utilizar a plataforma Aether Oncology, você concorda com os termos detalhados abaixo.</p>
     </div>
+
+    <section>
+      <h2>1. Uso Profissional</h2>
+      <p>O portal Aether Oncology é destinado exclusivamente a profissionais da saúde e pesquisadores devidamente habilitados. O uso indevido da ferramenta por leigos para autodiagnóstico é expressamente proibido.</p>
+
+      <h2>2. Propriedade Intelectual</h2>
+      <p>Todo o código, algoritmos de inferência, modelos de IA (pesos e arquiteturas) e design visual do portal são de propriedade intelectual exclusiva da Aether Oncology, protegidos por tratados internacionais de copyright.</p>
+
+      <h2>3. Limitação de Responsabilidade</h2>
+      <p>A plataforma fornece predições probabilísticas baseadas em dados históricos. A responsabilidade final pela conduta clínica, prescrição ou diagnóstico é integralmente do profissional de saúde solicitante. O Aether Oncology atua como uma camada de inteligência de suporte.</p>
+
+      <h2>4. Modificações dos Termos</h2>
+      <p>Reservamo-nos o direito de atualizar estes termos para refletir melhorias no sistema ou mudanças regulatórias na área de saúde digital.</p>
+    </section>
+  </main>
+
+  <script src="./js/starfield.js"></script>
 </body>
 </html>
