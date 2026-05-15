@@ -102,18 +102,19 @@ jobs:
           path: models/
 
 
-      - name: Free Disk Space
-        run: |
-          echo "Initial disk space:"
-          df -h
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          docker system prune -af
-          echo "Space after cleanup:"
-          df -h
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          temp-reserve-mb: 512
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
+      - name: Check disk space
+        run: df -h
 
       - name: Ensure Models Directory
         run: mkdir -p models
@@ -123,7 +124,7 @@ jobs:
           docker build -t aether-oncology:${{ github.sha }} .
 
       - name: Security Scan & Policy Gate (Grype)
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v6
         id: scan
         with:
           image: "aether-oncology:${{ github.sha }}"
@@ -131,9 +132,31 @@ jobs:
           severity-cutoff: critical
           output-format: sarif
 
+      - name: Inspect and Validate SARIF file
+        id: validate_sarif
+        run: |
+          SARIF_PATH="${{ steps.scan.outputs.sarif }}"
+          if [ -f "$SARIF_PATH" ]; then
+            echo "SARIF file found: $SARIF_PATH"
+            ls -lh "$SARIF_PATH"
+            if [ ! -s "$SARIF_PATH" ]; then
+              echo "::error::SARIF file is empty"
+              echo "valid=false" >> "$GITHUB_OUTPUT"
+            elif ! jq '.' "$SARIF_PATH" > /dev/null 2>&1; then
+              echo "::error::SARIF file contains invalid JSON"
+              echo "valid=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "SARIF file is valid JSON"
+              echo "valid=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "::error::SARIF file not found at $SARIF_PATH"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload SARIF vulnerability report
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && steps.validate_sarif.outputs.valid == 'true'
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
 
