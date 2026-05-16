@@ -193,7 +193,7 @@ jobs:
           fi
 
       - name: Deploy Canary (10%)
-        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        if: env.KUBECONFIG_AVAILABLE == 'true'
         run: |
           helm upgrade --install aether-oncology ./charts/aether-oncology \
             --namespace default --create-namespace --atomic --timeout 5m \
@@ -202,7 +202,7 @@ jobs:
             --set canary.weight=10
 
       - name: Post-Deploy Health Check
-        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        if: env.KUBECONFIG_AVAILABLE == 'true'
         run: |
           MAX_RETRIES=12
           COUNT=0
@@ -241,7 +241,7 @@ jobs:
           fi
 
       - name: Promote to 100%
-        if: ${{ env.KUBECONFIG_AVAILABLE == 'true' }}
+        if: env.KUBECONFIG_AVAILABLE == 'true'
         run: |
           helm upgrade --install aether-oncology ./charts/aether-oncology \
             --namespace default --atomic --timeout 5m \

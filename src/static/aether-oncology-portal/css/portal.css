@@ -161,9 +161,45 @@ p{color:var(--t2);line-height:1.75}
 .hero-sub{font-size:1.05rem;color:var(--t2);max-width:36rem;margin-bottom:1.75rem;line-height:1.65}
 
 /* Metrics row */
-.hero-metrics{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:1rem;margin-bottom:2rem;background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--glass-border);border-radius:var(--r-xl);padding:.75rem 1.5rem;width:fit-content}
-.metric-card{display:flex;flex-direction:column;gap:.25rem;padding:.5rem 1rem;text-align:center}
-.metric-card--divider{width:1px;height:2.5rem;background:var(--glass-border);padding:0;flex-shrink:0}
+.hero-metrics {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  background: var(--glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-xl);
+  padding: 1rem 2rem;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar for clean look */
+}
+.hero-metrics::-webkit-scrollbar { display: none; }
+
+.metric-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  flex-shrink: 0 !important; /* Prevent squashing */
+  min-width: 100px;
+}
+
+.metric-card--divider {
+  width: 1px !important;
+  height: 2rem !important;
+  background: var(--glass-border);
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  opacity: 0.5;
+}
 .metric-card__value{font-size:1.5rem;font-weight:900;letter-spacing:-.04em;background:linear-gradient(135deg,#fff,var(--magenta));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
 .metric-card__label{font-size:.68rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
 
@@ -300,8 +336,8 @@ p{color:var(--t2);line-height:1.75}
 .evidence-card__meta{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 .evidence-badge{font-size:.66rem;font-weight:700;letter-spacing:.06em;background:rgba(230,57,138,.1);color:var(--magenta);border-radius:2rem;padding:.2rem .65rem}
 .evidence-year{font-size:.72rem;color:var(--t3);font-weight:600}
-.evidence-card__h4{font-size:0.875rem;font-weight:700;color:var(--t1);line-height:1.3;letter-spacing:-0.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.evidence-card__p{font-size:0.75rem;color:var(--t2);line-height:1.5;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.evidence-card__h4{font-size:0.875rem;font-weight:700;color:var(--t1);line-height:1.3;letter-spacing:-0.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-clamp:2;overflow:hidden}
+.evidence-card__p{font-size:0.75rem;color:var(--t2);line-height:1.5;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;line-clamp:3;overflow:hidden}
 .evidence-card__score{display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--t3);margin-top:auto}
 .evidence-bar{flex:1;height:4px;background:rgba(237,230,255,.07);border-radius:2px;overflow:hidden}
 .evidence-bar div{height:100%;background:linear-gradient(90deg,var(--magenta),var(--cyan));border-radius:2px}
@@ -444,6 +480,7 @@ p{color:var(--t2);line-height:1.75}
   letter-spacing: -0.01em;
   background: linear-gradient(to right, var(--t1), var(--t3));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   text-transform: uppercase;
 }
@@ -680,6 +717,7 @@ p{color:var(--t2);line-height:1.75}
   margin-block: 0.5rem;
   background: linear-gradient(135deg, #fff 0%, var(--lavender) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 30px rgba(255,255,255,0.15));
   text-align: center;
@@ -688,12 +726,14 @@ p{color:var(--t2);line-height:1.75}
 #inference-verdict.malignant .verdict-massive {
   background: linear-gradient(135deg, var(--magenta) 0%, var(--pink) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   filter: drop-shadow(0 0 40px rgba(230, 57, 138, 0.4));
 }
 
 #inference-verdict.benign .verdict-massive {
   background: linear-gradient(135deg, var(--green) 0%, var(--cyan) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   filter: drop-shadow(0 0 40px rgba(0, 255, 153, 0.3));
 }
 
