@@ -777,12 +777,13 @@ p{color:var(--t2);line-height:1.75}
 }
 
 .verdict-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 600px;
-  margin-top: 2rem;
+  max-width: 800px;
+  margin: 1.5rem auto;
 }
 
 .v-metric-card {

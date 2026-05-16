@@ -38,9 +38,9 @@ model-index:
 <p align="center">
   <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
 </p>
-| ![Aether Portal XAI Radar](docs/clinical_portal_xai_radar.png) |
-| :---: |
-| *Visualização de Explicabilidade (XAI) via Radar Chart no Portal Clínico.* |
+| ![Aether Portal Benigno](docs/screenshots/aether_oncology_portal_beligno.png) | ![Aether Portal Maligno](docs/screenshots/aether_oncology_portal_maligno.png) | ![Aether Portal XAI Radar](docs/screenshots/clinical_portal_xai_radar.png) |
+| :---: | :---: | :---: |
+| *Diagnóstico Benigno (98.00% Confiança)* | *Diagnóstico Maligno (92.76% Confiança)* | *Visualização de Explicabilidade (XAI) via Radar Chart no Portal Clínico.* |
 
 > **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
 
