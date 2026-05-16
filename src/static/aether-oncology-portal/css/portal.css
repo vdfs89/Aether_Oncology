@@ -682,9 +682,20 @@ p{color:var(--t2);line-height:1.75}
   width: 100%;
   height: 380px; /* Approximately 60% of card height */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+.chart-label-premium {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--t3);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  opacity: 0.8;
 }
 
 .analysis-chart-premium canvas {
