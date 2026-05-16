@@ -20,7 +20,7 @@ function boot() {
     initScrollReveal();
     initCounters();
     initSmoothScroll();
-    initCharts();
+    try { initCharts(); } catch (e) { console.warn('🧪 Charts Engine bypassed:', e); }
     bindPortalForm();
     console.log('✅ Terminal Ready.');
   } catch (err) {
