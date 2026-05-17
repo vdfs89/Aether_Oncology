@@ -67,3 +67,4 @@ src/static/aether-oncology-portal/dist/
 
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 .overclock-app/
+.cache/
