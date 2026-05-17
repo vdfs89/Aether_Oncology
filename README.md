@@ -38,7 +38,7 @@ model-index:
 <p align="center">
   <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
 </p>
-| ![Aether Portal Benigno](docs/screenshots/aether_oncology_portal_beligno.png) | ![Aether Portal Maligno](docs/screenshots/aether_oncology_portal_maligno.png) | ![Aether Portal XAI Radar](docs/screenshots/clinical_portal_xai_radar.png) |
+| ![Aether Portal Benigno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_benigno.png) | ![Aether Portal Maligno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_maligno.png) | ![Aether Portal XAI Radar](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/clinical_portal_xai_radar.png) |
 | :---: | :---: | :---: |
 | *Diagnóstico Benigno (98.00% Confiança)* | *Diagnóstico Maligno (92.76% Confiança)* | *Visualização de Explicabilidade (XAI) via Radar Chart no Portal Clínico.* |
 
