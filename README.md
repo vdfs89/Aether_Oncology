@@ -1,6 +1,7 @@
 ---
 language:
 - pt
+- en
 license: mit
 tags:
 - tabular-classification
@@ -33,51 +34,55 @@ model-index:
       name: ROC-AUC
 ---
 
-# Aether Oncology: Breast Cancer Diagnostic
+<p align="center">
+  <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Aether Oncology — Precision for Life" style="max-width:100%; height:auto;" />
+</p>
+
+<h1 align="center">Aether Oncology</h1>
+<h3 align="center"><em>Precision for Life</em> — Triagem Oncológica Inteligente com IA Explicável</h3>
+
+<br/>
 
 <p align="center">
-  <img src="https://github.com/vdfs89/Aether_Oncology/raw/main/src/static/aether-oncology-portal/images/Banner.png" alt="Banner" style="max-width:100%; height:auto;" />
+  <a href="https://api.vitorsilva.engineer/"><img src="https://img.shields.io/badge/🔬_Portal_Clínico-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://api.vitorsilva.engineer/docs"><img src="https://img.shields.io/badge/📋_API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white" alt="API Docs" /></a>
+  <a href="https://huggingface.co/datasets/scikit-learn/breast-cancer-wisconsin"><img src="https://img.shields.io/badge/🧬_Dataset-WDBC-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black" alt="Dataset" /></a>
 </p>
-| ![Aether Portal Benigno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_benigno.png) | ![Aether Portal Maligno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_maligno.png) | ![Aether Portal XAI Radar](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/clinical_portal_xai_radar.png) |
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Deploy-Production-success?style=flat-square" alt="Deploy" />
+  <img src="https://img.shields.io/badge/Recall-97.2%25-00C853?style=flat-square&logo=target&logoColor=white" alt="Recall" />
+  <img src="https://img.shields.io/badge/F1--Score-96.5%25-2196F3?style=flat-square" alt="F1" />
+  <img src="https://img.shields.io/badge/ROC--AUC-99.1%25-7C4DFF?style=flat-square" alt="AUC" />
+  <img src="https://img.shields.io/badge/Version-v5.0.0-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Coverage-91%25-green?style=flat-square" alt="Coverage" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Compliance-HIPAA-0D47A1?style=flat-square" alt="HIPAA" />
+  <img src="https://img.shields.io/badge/Compliance-LGPD-0D47A1?style=flat-square" alt="LGPD" />
+  <img src="https://img.shields.io/badge/EU_AI_Act-High--Risk_(Annex_III)-FF6F00?style=flat-square" alt="AI Act" />
+  <img src="https://img.shields.io/badge/Green_AI-MRM3_Tracked-2E7D32?style=flat-square&logo=leaf&logoColor=white" alt="Green AI" />
+  <img src="https://img.shields.io/badge/FIAP-Grade_10%2F10-FFD700?style=flat-square" alt="FIAP Grade" />
+</p>
+
+<br/>
+
+| ![Diagnóstico Benigno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_benigno.png) | ![Diagnóstico Maligno](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_maligno.png) | ![XAI Radar Chart](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/clinical_portal_xai_radar.png) |
 | :---: | :---: | :---: |
-| *Diagnóstico Benigno (98.00% Confiança)* | *Diagnóstico Maligno (92.76% Confiança)* | *Visualização de Explicabilidade (XAI) via Radar Chart no Portal Clínico.* |
-
-> **"Precision for Life"** — Inteligência Artificial a serviço da triagem oncológica segura.
-
-<div align="center">
-
-[![App](https://img.shields.io/badge/Aether_Portal-Live_Demo-0052FF?style=for-the-badge&logo=render&logoColor=white)](https://api.vitorsilva.engineer/)
-[![Swagger](https://img.shields.io/badge/API_Docs-FastAPI-05998B?style=for-the-badge&logo=fastapi&logoColor=white)](https://api.vitorsilva.engineer/docs)
-
-| Status | Recall | F1-Score | ROC-AUC | Versão | Coverage |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| ![Deploy](https://img.shields.io/badge/Deploy-Production-success) | **97.2%** | **96.5%** | **99.1%** | `v5.0.0` | ![Coverage](https://img.shields.io/badge/coverage-91%25-green) |
-
-</div>
-
-<div align="center">
-
-[![Compliance - HIPAA](https://img.shields.io/badge/Compliance-HIPAA-blue?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
-[![Compliance - GDPR](https://img.shields.io/badge/Compliance-GDPR-blue?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
-[![AI Act - High Risk (Annex III)](https://img.shields.io/badge/AI_Act-High--Risk-orange?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
-[![Quality - FIAP 10/10](https://img.shields.io/badge/FIAP-Grade_10-gold?style=flat-square)](https://github.com/vdfs89/Aether_Oncology)
-
-</div>
+| *Benigno — 98.00% Confiança* | *Maligno — 92.76% Confiança* | *Explicabilidade (XAI) via Radar Chart* |
 
 ---
 
-**Autor:** Vitor Diogo Fonseca da Silva
-**Tech Challenge 01 — FIAP Pós-Tech · Engenharia de Machine Learning**
+## 📖 Motivação: A Lição do IBM Watson for Oncology
 
----
+> *"Um sistema de IA que age como caixa-preta, sem transparência e sem governança, não serve à medicina. Serve ao marketing."*
 
-## 📖 Motivação: O que o IBM Watson nos ensinou
+Em 2017, o IBM Watson for Oncology foi descontinuado em hospitais ao redor do mundo após gerar recomendações terapêuticas consideradas **inseguras** por oncologistas. O diagnóstico do fracasso foi inequívoco: ausência de explicabilidade, opacidade nos dados de treinamento e zero supervisão humana no loop decisório.
 
-Em 2017, o IBM Watson for Oncology foi descontinuado em vários hospitais após gerar recomendações consideradas "inseguras" por oncologistas. O diagnóstico do fracasso foi claro: um sistema de IA que age como caixa-preta, sem transparência, sem contexto clínico e sem governança — não serve à medicina. Serve ao marketing.
+O **Aether Oncology** nasce como resposta arquitetural a esse erro paradigmático.
 
-O Aether Oncology nasce como resposta direta a esse erro.
-
-Em vez de recomendar tratamentos de forma autônoma, o sistema propõe um paradigma diferente: **triagem de segurança assistida**. O modelo aponta risco; o médico decide. A IA como ferramenta — não como oráculo. A versão 2.0 introduz o **MLOps Ativo**, garantindo que o modelo nunca opere em regime de "Data Decay" sem alerta imediato.
+Em vez de recomendar tratamentos de forma autônoma, o sistema implementa um paradigma fundamentalmente diferente: **triagem de segurança assistida por IA**. O modelo quantifica o risco; o médico decide. A inteligência artificial opera como instrumento de precisão — nunca como oráculo. A versão 2.0 introduz o conceito de **MLOps Ativo**, garantindo que o modelo jamais opere em regime de *Data Decay* sem alerta imediato ao corpo clínico.
 
 ---
 
@@ -85,50 +90,54 @@ Em vez de recomendar tratamentos de forma autônoma, o sistema propõe um paradi
 
 ### Recall acima de tudo
 
-Em oncologia, um Falso Negativo não é um erro estatístico — é uma vida que perde a janela de tratamento precoce. Toda a arquitetura deste projeto foi construída com uma obsessão única: **maximizar o Recall (Sensibilidade)**, aceitando conscientemente uma taxa maior de Falsos Positivos como trade-off ético justificável.
+Em oncologia, um Falso Negativo não é um erro estatístico — é uma vida que perde a janela de tratamento precoce. Toda a arquitetura deste projeto foi construída sob uma diretriz inegociável: **maximizar o Recall (Sensibilidade a 97.2%)**, aceitando conscientemente uma taxa maior de Falsos Positivos como trade-off ético clinicamente justificável.
 
-### MLOps como contrato, não como feature
+### MLOps como contrato de confiabilidade
 
-IA na saúde não pode viver em notebooks. Este projeto trata MLOps como infraestrutura crítica:
+IA na saúde não pode viver em notebooks. Este projeto trata MLOps como **infraestrutura crítica de nível hospitalar**:
 
-- **Contratos de dados** via Pydantic e Pandera — nenhum dado entra no modelo sem validação explícita
-- **Rastreabilidade total** via MLflow — cada experimento, parâmetro e métrica é auditável
-- **Auditoria Médica (Audit Trail)** — log imutável de todas as predições com correlação de **Request ID**
-- **Monitoramento de Drift** — detecção proativa via **KS-Test** (Kolmogorov-Smirnov) integrado à UI
-- **Resiliência de Serviço** — Circuit Breakers para dependências externas de pesquisa clínica
+| Pilar | Implementação | Garantia |
+| :--- | :--- | :--- |
+| **Data Contracts** | Pydantic + Pandera | Nenhum dado entra no modelo sem validação de schema explícita |
+| **Rastreabilidade** | MLflow Tracking | Cada experimento, hiperparâmetro e métrica é auditável |
+| **Audit Trail** | Log `.jsonl` imutável | Todas as predições correlacionadas via `X-Request-ID` |
+| **Drift Detection** | KS-Test (Kolmogorov-Smirnov) | Alertas estatísticos proativos com P-values reais |
+| **Resiliência** | Circuit Breakers | Proteção contra falhas em cascata de serviços externos |
 
 ---
 
 ## 🛡️ SRE Hardening & SecOps (v2.2)
 
-A versão mais recente introduz uma camada de **Site Reliability Engineering (SRE) e SecOps** de nível empresarial:
+Camada de **Site Reliability Engineering** e **Security Operations** de nível empresarial:
 
-- **Observabilidade Total**: Implementação de `X-Request-ID` em toda a stack, permitindo rastreabilidade de ponta a ponta (Audit Trail → Backend Logs).
-- **Segurança HIPAA-Grade**: Hardening de CORS (restrito a domínios de produção) e sanitização rigorosa de payloads.
-- **DevSecOps Pipeline**: Integração com o scanner **Grype** no CI/CD para detecção proativa de vulnerabilidades em containers, garantindo conformidade contínua.
-- **Build Otimizado (Esbuild)**: Transição de Terser para Esbuild no pipeline de deploy, resolvendo conflitos de dependência e acelerando o empacotamento estático.
-- **Circuit Breakers**: O sistema protege a si mesmo contra lentidões em APIs de terceiros (PubMed/Semantic Scholar), garantindo latência estável no diagnóstico.
-- **Decoupled Inference**: Arquitetura "Remote-First, Local-Fallback". A inferência principal ocorre via Hugging Face Inference API, com fallback automático para um modelo local PyTorch em caso de falha.
-- **Statistical Audit**: O cálculo de Drift agora utiliza testes de significância estatística (P-values), elevando a governança de "heurística" para "acadêmica".
-- **Hardened CI/CD**: Mitigação de falhas de I/O em runners do GitHub Actions via redirecionamento dinâmico de `TMPDIR`, garantindo builds Docker determinísticos.
+- **Observabilidade End-to-End** — `X-Request-ID` propagado em toda a stack (Audit Trail → Backend Logs)
+- **Segurança HIPAA-Grade** — CORS restrito a domínios de produção + sanitização rigorosa de payloads
+- **DevSecOps Pipeline** — Scanner **Grype** no CI/CD para detecção proativa de CVEs em containers
+- **Build Otimizado** — Migração de Terser para **Esbuild**, eliminando conflitos de dependência
+- **Circuit Breakers** — Latência estável mesmo sob degradação de APIs externas (PubMed/Semantic Scholar)
+- **Decoupled Inference** — Arquitetura *Remote-First, Local-Fallback*: inferência primária via HF Inference API com fallback automático para modelo local PyTorch
+- **Statistical Audit** — Cálculo de Drift via testes de significância estatística (P-values), elevando governança de heurística para rigor acadêmico
+- **Hardened CI/CD** — Mitigação de falhas de I/O em runners via redirecionamento dinâmico de `TMPDIR`
+
+---
 
 ## 🇪🇺 AI Act Compliance (EU Regulation)
 
-O Aether Oncology foi desenvolvido sob a ótica do **EU AI Act**, classificando-se como um sistema de **Alto Risco (Anexo III)** por atuar na área de saúde.
+Sistema classificado como **Alto Risco (Anexo III)** por atuar em diagnóstico de saúde:
 
 | Requisito AI Act | Implementação Aether | Status |
 | :--- | :--- | :---: |
-| **Risk Management** | Análise de trade-off Recall vs Precision detalhada no Model Card. | ✅ |
-| **Data Governance** | Validação de schema (Pandera) e contratos de dados (Pydantic). | ✅ |
-| **Technical Documentation** | Documentação técnica exaustiva e Diagramas C4/Mermaid. | ✅ |
-| **Record Keeping** | Audit Trail imutável com correlação de IDs de requisição. | ✅ |
-| **Transparency** | XAI nativo (Integrated Gradients) com narrativa clínica. | ✅ |
-| **Human Oversight** | UI desenhada para suporte à decisão, nunca diagnóstico autônomo. | ✅ |
-| **Accuracy & Security** | Pipeline de DevSecOps (Grype) e monitoramento de Drift. | ✅ |
+| **Risk Management** | Análise de trade-off Recall vs Precision documentada no Model Card | ✅ |
+| **Data Governance** | Validação de schema (Pandera) e contratos de dados (Pydantic) | ✅ |
+| **Technical Documentation** | Documentação técnica exaustiva com Diagramas C4/Mermaid | ✅ |
+| **Record Keeping** | Audit Trail imutável com correlação de `X-Request-ID` | ✅ |
+| **Transparency** | XAI nativo (Integrated Gradients) com narrativa clínica | ✅ |
+| **Human Oversight** | UI projetada para suporte à decisão — nunca diagnóstico autônomo | ✅ |
+| **Accuracy & Security** | Pipeline DevSecOps (Grype) + monitoramento de Drift estatístico | ✅ |
 
-## 📊 Arquitetura e Análise Técnica
+---
 
-### Diagrama de Arquitetura da Aplicação
+## 📐 Arquitetura do Sistema
 
 ```mermaid
 graph TD
@@ -167,18 +176,16 @@ graph TD
     API -->|Monitor| Client
 ```
 
-### Análise Técnica Completa (Executive Summary)
+### Executive Summary — Pilares Técnicos
 
-Esta análise valida como o projeto atende (e supera) os requisitos de excelência da Fase 01.
-
-| Pilar | Implementação | Diferencial Clínico/Técnico |
+| Pilar | Implementação | Diferencial |
 | :--- | :--- | :--- |
 | **🧠 Engine de IA** | PyTorch MLP + Platt Scaling | Probabilidades calibradas para decisão médica segura |
 | **🛡️ Governança** | Audit Trail + Trace ID | Rastreabilidade total entre predição e logs de sistema |
 | **📈 MLOps Ativo** | Monitoramento KS-Drift | Alertas estatísticos proativos com P-values reais |
 | **🔒 Segurança** | Strict CORS + API Key | Hardening contra CSRF e acessos não autorizados |
 | **🚀 Resiliência** | Circuit Breakers | Proteção contra falhas em cascata de serviços externos |
-| **📖 Ética** | Clinical XAI Narrative | Tradução de métricas SHAP para linguagem médica natural |
+| **📖 Ética** | Clinical XAI Narrative | Tradução de atribuições para linguagem médica natural |
 
 ---
 
@@ -188,40 +195,44 @@ Esta análise valida como o projeto atende (e supera) os requisitos de excelênc
 ├── .github/workflows/
 │   ├── unified-mlops-pipeline.yml # Pipeline unificado (Lint + Test + Train + CD)
 │   ├── ml-ct-pipeline.yml       # Retreino contínuo (Continuous Training)
-│   └── keep_alive.yml           # Pings Render (Liveness)
+│   └── keep_alive.yml           # Liveness Pings (Anti Cold-Start)
 ├── src/
 │   ├── main.py                  # API FastAPI (/predict + /health)
 │   ├── train.py                 # Pipeline de treino com Early Stopping e MLflow
 │   ├── optimize.py              # Busca de hiperparâmetros via Optuna
 │   ├── models/
-│   │   └── mlp.py               # Arquitetura TumorMLP — única fonte de verdade
+│   │   └── mlp.py               # Arquitetura TumorMLP — Single Source of Truth
 │   └── services/
-│       ├── predictor.py         # PredictorService (Singleton)
+│       ├── predictor.py         # PredictorService (Singleton Pattern)
 │       └── research.py          # Integração com Semantic Scholar API
 ├── data/
 │   └── raw/                     # Dataset WDBC (Wisconsin Diagnostic Breast Cancer)
-├── models/                      # Artefatos gerados: pesos .pth e pipeline .joblib
+├── models/                      # Artefatos de produção: pesos .pth e pipeline .joblib
 ├── notebooks/
-│   └── eda_aether_oncology.ipynb  # EDA + baseline + treino MLP
+│   └── eda_aether_oncology.ipynb  # EDA + Baseline + Treino MLP
 ├── tests/
 │   ├── test_schema.py           # Validação de schema com Pandera
 │   └── test_api.py              # Testes de integração da API
 ├── docs/
-│   └── MODEL_CARD.md            # Documentação ética e limites do modelo
-├── PROJECT_STATUS.md            # Fonte Única de Verdade (Status, Infra & Roadmap)
-├── Dockerfile                   # Imagem de produção
-├── .dockerignore                # Exclui mlruns/, notebooks/, cache
-├── .gitignore                   # Exclui artefatos, dados e cache
-├── Makefile                     # Automação completa
-├── pyproject.toml               # Source of truth: dependências
+│   └── MODEL_CARD.md            # Documentação ética e limites operacionais
+├── PROJECT_STATUS.md            # Single Source of Truth (Status & Roadmap)
+├── Dockerfile                   # Imagem de produção (non-root, healthcheck)
+├── Makefile                     # Automação completa do ciclo de vida
+├── pyproject.toml               # Dependências e configuração do projeto
 └── README.md
 ```
 
 ---
 
-## 🚀 Executando o Projeto
+## 🚀 Quick Start
 
-### Passo a passo completo
+### Pipeline completo (um comando)
+
+```bash
+make setup-and-test   # install → train → test → lint
+```
+
+### Passo a passo
 
 ```bash
 # 1. Instalar dependências
@@ -237,24 +248,18 @@ df['target'] = 1 - data.target  # 1=Maligno, 0=Benigno
 df.to_csv('data/raw/data.csv', index=False)
 "
 
-# 3. Otimizar hiperparâmetros (Opcional - gera melhores arquiteturas)
+# 3. Otimizar hiperparâmetros (opcional)
 python -m src.optimize
 
-# 4. Treinar o modelo final (registra métricas e calibração no MLflow)
+# 4. Treinar o modelo final (MLflow tracking automático)
 make train
 
-# 4. Rodar os testes com cobertura
+# 5. Rodar os testes com cobertura
 make test
 
-# 5. Subir a API de inferência
+# 6. Subir a API de inferência
 make run
 # → http://localhost:8000/docs
-```
-
-### Pipeline completo para o avaliador (um comando)
-
-```bash
-make setup-and-test   # install → train → test → lint
 ```
 
 ---
@@ -263,32 +268,33 @@ make setup-and-test   # install → train → test → lint
 
 ### 🧠 Arquitetura Neural: TumorMLP
 
-Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train.py` quanto pelo `predictor.py`. Essa decisão elimina o risco de *mismatch* entre os pesos salvos e o modelo carregado na API.
+Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train.py` quanto pelo `predictor.py`. Essa decisão arquitetural elimina o risco de *mismatch* entre os pesos serializados e o grafo computacional carregado na API.
 
-- **Topologia:** `Linear(30→64) → BatchNorm → ReLU → Dropout → Linear(64→32) → BatchNorm → ReLU → Dropout → Linear(32→1)`
-- **BCEWithLogitsLoss** — numericamente estável (evita overflow no sigmoid)
-- **Early Stopping** — monitora `val_loss` com paciência configurável
-- **`state_dict`** — serialização segura em produção (não executa pickle arbitrário)
+```
+Topologia: Linear(30→64) → BatchNorm → ReLU → Dropout
+         → Linear(64→32) → BatchNorm → ReLU → Dropout
+         → Linear(32→1)
+```
 
-### ⚙️ Decisões de Engenharia
+| Decisão de Engenharia | Justificativa Técnica |
+| :--- | :--- |
+| `BCEWithLogitsLoss` | Estabilidade numérica — evita overflow no sigmoid |
+| **Early Stopping** | Monitora `val_loss` com paciência configurável contra overfitting |
+| **`state_dict`** serialization | Segurança em produção — não executa pickle arbitrário |
+| **Singleton** `PredictorService` | Modelo carregado uma vez no startup — latência < 200ms por predição |
+| `StandardScaler` no `Pipeline` | Previne data leakage — escala do treino reproduzida na inferência |
+| Validação Pandera | Medições fora dos limites biológicos rejeitadas antes do modelo |
+| MLflow como backbone | Cada treino gera run rastreável com params, métricas e artefatos |
 
-| Decisão | Justificativa |
-|---|---|
-| `MLP` importada em `predictor.py` | Garante que treino e inferência usam **exatamente** a mesma arquitetura |
-| `StandardScaler` dentro do `Pipeline` | Evita data leakage — a escala do treino é reproduzida na inferência |
-| `Singleton` no `PredictorService` | Modelo carregado uma vez no startup — latência < 200 ms por predição |
-| Validação via Pandera | Medições fora dos limites biológicos são rejeitadas antes do modelo |
-| MLflow como backbone de governança | Cada treino gera run rastreável com params, métricas e artefatos |
+### 📡 Endpoints da API
 
-### 📊 Endpoints da API
-
-| Método | Rota | Descrição | Autenticação |
-|---|---|---|---|
-| `GET` | `/health` | Liveness probe — status básico | Público |
-| `GET` | `/health/inference` | Health check da camada remota (Hugging Face) | Público |
-| `POST` | `/predict` | Classifica amostra e gera Audit Log | API Key |
-| `GET` | `/analytics` | Report de Data Drift (Média Móvel) | API Key |
-| `GET` | `/audit` | Extração do Audit Trail completo | API Key |
+| Método | Rota | Descrição | Auth |
+| :---: | :--- | :--- | :---: |
+| `GET` | `/health` | Liveness probe — status básico | 🔓 |
+| `GET` | `/health/inference` | Health check da camada remota (Hugging Face) | 🔓 |
+| `POST` | `/predict` | Classifica amostra e gera Audit Log | 🔐 |
+| `GET` | `/analytics` | Report de Data Drift (Média Móvel) | 🔐 |
+| `GET` | `/audit` | Extração do Audit Trail completo | 🔐 |
 
 **Response de exemplo:**
 ```json
@@ -306,15 +312,14 @@ Definida **uma única vez** em `src/models/mlp.py` e importada tanto pelo `train
 
 ---
 
-## 🔐 
+## 🔐 Autenticação
 
+Para simular um ambiente produtivo de dados sensíveis (saúde), a API está protegida por **API Key**:
 
-Para simular um ambiente produtivo de dados sensíveis (saúde), a API está protegida por uma **API Key**.
-
-- **Header obrigatório:** `access_token`
-- **Chave de acesso:** `aether-oncology-eval-2026`
-
-### Exemplo de teste via Terminal (cURL)
+| Parâmetro | Valor |
+| :--- | :--- |
+| **Header** | `access_token` |
+| **Chave** | `aether-oncology-eval-2026` |
 
 ```bash
 curl -X POST https://api.vitorsilva.engineer/predict \
@@ -336,76 +341,60 @@ curl -X POST https://api.vitorsilva.engineer/predict \
   }'
 ```
 
-**Resposta esperada:**
-```json
-{
-  "prediction": 1,
-  "label": "Malignant",
-  "probability": 0.9942,
-  "confidence": "High",
-  "status": "sucesso",
-  "warning": null
-}
-```
-
-> ⚠️ Requisições sem o header `access_token` correto recebem `403 Forbidden`.  
-> A rota `GET /health` permanece **pública** (sem autenticação).
+> ⚠️ Requisições sem o header `access_token` correto recebem `403 Forbidden`.
+> A rota `GET /health` permanece **pública**.
 
 ---
 
 ## 🌐 Deploy em Produção
 
 | Serviço | URL | Descrição |
-|---|---|---|
-| **Portal Clínico (HTML)** | [api.vitorsilva.engineer](https://api.vitorsilva.engineer/) | Interface nativa rápida com gráficos de explicabilidade (XAI) |
-| **API Docs** | [api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo (Testes de Backend) |
-| **Health Check** | [api.vitorsilva.engineer/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
-| **Predict API** | `POST` [https://api.vitorsilva.engineer/predict](https://api.vitorsilva.engineer/predict) | Endpoint de inferência (requer API Key) |
+| :--- | :--- | :--- |
+| **Portal Clínico** | [api.vitorsilva.engineer](https://api.vitorsilva.engineer/) | Interface com gráficos de explicabilidade (XAI) |
+| **API Docs** | [/docs](https://api.vitorsilva.engineer/docs) | Swagger UI interativo |
+| **Health Check** | [/health](https://api.vitorsilva.engineer/health) | Liveness probe público |
+| **Predict API** | `POST /predict` | Endpoint de inferência (requer API Key) |
+
+> **Cold Start:** A API roda no Render (Free Tier). A primeira requisição após inatividade pode levar ~30-40s. Mitigação ativa via GitHub Action (`keep_alive.yml`) com pings a cada 10 minutos.
 
 ---
 
-## 🖥️ Portal Clínico & "Luxury Clinical" UX (v2.2)
+## 🖥️ Portal Clínico — *Luxury Clinical* UX
 
-Acessível na raiz da API (`https://api.vitorsilva.engineer/` e `/portal.html`), o front-end foi completamente reescrito para refletir uma estética **"Luxury Clinical"**, unindo alta tecnologia com uma paleta baseada em constelações e biotecnologia:
+Interface acessível em `https://api.vitorsilva.engineer/`, projetada sob a estética **Luxury Clinical**:
 
-- **Starfield & Nebula Background**: Fundo dinâmico com estrelas e nebulosas, criando profundidade e sofisticação visual aliada ao **Glassmorphism** nos painéis.
-- **Lotus Pulsante**: Animação contínua (breathing effect) na navbar, transmitindo vida, resiliência e estabilidade ao sistema.
-- **Cinematic Inference Loader**: Simulação de latência arquitetural (2.5s) durante a predição para reforçar a complexidade visual do cálculo ("Processando tensores neurais...").
-- **Layout em painel duplo (Clinical UI)**: Input focado nas 5 features primárias com auto-preenchimento inteligente para as outras 25.
-- **Responsive Resilience (Mobile-First)**: Arquitetura fluida usando CSS Grid e unidades relativas, garantindo perfeição em qualquer dispositivo.
-- **Acessibilidade (A11Y)**: Integração de ARIA labels e HTML5 semântico para leitores de tela e navegação por teclado.
-- **Explainable AI (XAI)**: Integração nativa com *Chart.js* gerando Radar Charts em tempo real. A visualização traduz a contribuição exata de cada feature morfológica na rede neural (vermelho para maligno, verde para benigno).
-- **Tratamento de Exceções Nativo**: Erros 403 (Autenticação) e 503 (Cold Start) são gerenciados no front-end com modais elegantes e instrutivos.
+- **Starfield & Nebula Background** — Fundo dinâmico com profundidade e sofisticação aliada ao Glassmorphism
+- **Lotus Pulsante** — Animação contínua (*breathing effect*) na navbar, transmitindo resiliência e estabilidade
+- **Cinematic Inference Loader** — Simulação de latência arquitetural (2.5s) para reforçar a complexidade do cálculo
+- **Clinical UI** — Painel duplo com input focado nas 5 features primárias e auto-preenchimento inteligente
+- **Mobile-First** — CSS Grid e unidades relativas para perfeição em qualquer dispositivo
+- **Acessibilidade (A11Y)** — ARIA labels e HTML5 semântico para leitores de tela
+- **Explainable AI (XAI)** — Radar Charts em tempo real traduzindo a contribuição de cada feature morfológica
+- **Error Handling** — Modais elegantes para erros 403 (Auth) e 503 (Cold Start)
 
 ---
 
 ## 🐳 Docker
 
 ```bash
-# Build da imagem
-make docker-build
-
-# Subir o container
-make docker-run
-# Portal clínico em  http://localhost:8000
-# API Docs em        http://localhost:8000/docs
+make docker-build   # Build da imagem
+make docker-run     # Container na porta 8000
 ```
 
-A imagem usa `python:3.11-slim`, usuário não-root (`appuser`) e `HEALTHCHECK` nativo contra `/health`.
+> Imagem `python:3.11-slim`, usuário non-root (`appuser`), `HEALTHCHECK` nativo.
 
 ---
 
 ## 📊 MLflow — Rastreamento de Experimentos
 
 ```bash
-# Visualizar todos os experimentos e métricas
-make mlflow-ui
-# → http://localhost:5000
+make mlflow-ui   # → http://localhost:5000
 ```
 
-Experimentos registrados:
-- **`Aether_Oncology_Diagnostic`** — runs do pipeline de treino (`make train`)
-- **`Baseline_Models`** — run da Regressão Logística (notebook EDA)
+| Experimento | Origem |
+| :--- | :--- |
+| `Aether_Oncology_Diagnostic` | Pipeline de treino (`make train`) |
+| `Baseline_Models` | Regressão Logística (notebook EDA) |
 
 ---
 
@@ -415,83 +404,84 @@ Experimentos registrados:
 make test   # pytest + cobertura
 ```
 
-| Arquivo | O que valida |
-|---|---|
-| `tests/test_schema.py` | Schema Pandera: 30 colunas WDBC, sem NaN, classes presentes, rejeita inválidos |
-| `tests/test_api.py` | Health check, predição maligna/benigna, payload inválido (422) |
-| `tests/test_api.py` | **Segurança**: chave errada → 403, sem header → 403 (validação da API Key) |
+| Arquivo | Cobertura |
+| :--- | :--- |
+| `test_schema.py` | Schema Pandera: 30 colunas WDBC, sem NaN, classes presentes, rejeita inválidos |
+| `test_api.py` | Health check, predição maligna/benigna, payload inválido (422) |
+| `test_api.py` | **Segurança**: chave errada → 403, sem header → 403 |
 
-> Testes de predição usam `pytest.mark.xfail` automático enquanto os artefatos de treino não existem — o CI não bloqueia antes do primeiro `make train`.
+> Testes de predição usam `pytest.mark.xfail` automático enquanto artefatos de treino não existem.
 
 ---
 
 ## 📓 Notebook EDA
 
-```
-notebooks/eda_aether_oncology.ipynb
-```
-
-Contém as 6 seções obrigatórias:
-
 | Seção | Conteúdo |
-|---|---|
+| :--- | :--- |
 | 1. Introdução | Contexto clínico, justificativa do Recall |
 | 2. Setup | Carga do dataset (mesma lógica do `train.py`) |
-| 3. EDA | Distribuição de classes, heatmap de correlação, boxplots, pairplot |
-| 4. Baseline | `Pipeline([scaler, LogisticRegression])` com MLflow tracking |
+| 3. EDA | Distribuição de classes, heatmap, boxplots, pairplot |
+| 4. Baseline | `Pipeline([scaler, LogisticRegression])` com MLflow |
 | 5. MLP PyTorch | Loop de treino, Early Stopping, curvas de convergência |
-| 6. Tabela Comparativa | Recall / F1 / AUC-ROC: Baseline vs Aether MLP |
+| 6. Comparativa | Recall / F1 / AUC-ROC: Baseline vs Aether MLP |
 
 ---
 
-## 🧬 Model Card: Aether Oncology - Core Engine v2.0
+## 🧬 Model Card: Core Engine v2.0
 
 ### 1. Detalhes do Modelo
-- **Desenvolvedor:** Vitor Diogo Fonseca da Silva (Tech Challenge 01 — FIAP Pós-Tech Engenharia de Machine Learning)
-- **Tipo de Modelo:** Multilayer Perceptron (MLP) Neural Network
-- **Frameworks:** PyTorch e Scikit-Learn (Pipeline)
-- **Licença:** MIT
-- **Dataset de Treino:** [Breast Cancer Wisconsin Diagnostic (WDBC)](https://huggingface.co/datasets/scikit-learn/breast-cancer-wisconsin)
 
-### 2. Uso Pretendido (Intended Use)
-- **Primary Intended Use:** Atuar como um Sistema de Suporte à Decisão Clínica (CDSS) para patologistas e oncologistas, realizando a triagem inicial e estimando o risco de malignidade em biópsias de Câncer de Mama baseadas em características morfológicas e celulares.
-- **Secondary Intended Use:** Priorização de filas de exames hospitalares (casos com alto risco de malignidade passam para o topo da fila de análise humana).
-- **Out of Scope Use (Uso Proibido):** Este modelo **nunca** deve ser utilizado para diagnóstico autônomo ou prescrição de tratamentos sem a supervisão e validação final de um médico especialista.
+| Campo | Valor |
+| :--- | :--- |
+| **Desenvolvedor** | Vitor Diogo Fonseca da Silva |
+| **Programa** | Tech Challenge 01 — FIAP Pós-Tech ML Engineering |
+| **Tipo** | Multilayer Perceptron (MLP) Neural Network |
+| **Frameworks** | PyTorch + Scikit-Learn Pipeline |
+| **Licença** | MIT |
+| **Dataset** | [Breast Cancer Wisconsin Diagnostic (WDBC)](https://huggingface.co/datasets/scikit-learn/breast-cancer-wisconsin) |
 
-### 3. Dados de Treinamento e Pré-processamento
-O modelo foi treinado com o dataset WDBC, composto por 30 atributos numéricos contínuos extraídos de imagens digitalizadas de biópsias (FNA - Fine Needle Aspirate). 
-- **Contrato de Dados:** A padronização dos dados foi feita utilizando o `StandardScaler` do Scikit-Learn. Este fluxo foi serializado como um Pipeline (`.joblib`) no repositório de produção para garantir que a inferência da API receba exatamente a mesma escala matemática, prevenindo *data leakage*.
+### 2. Uso Pretendido
+
+- **Primary Use:** Sistema de Suporte à Decisão Clínica (CDSS) para triagem inicial e estimativa de risco de malignidade em biópsias de mama
+- **Secondary Use:** Priorização de filas hospitalares — casos de alto risco sobem no ranking de análise humana
+- **⛔ Uso Proibido:** Este modelo **nunca** deve ser utilizado para diagnóstico autônomo ou prescrição sem supervisão médica
+
+### 3. Dados e Pré-processamento
+
+Dataset WDBC: 30 atributos numéricos de biópsias FNA (Fine Needle Aspirate). Padronização via `StandardScaler` serializado como Pipeline `.joblib` — prevenção total de data leakage entre treino e inferência.
 
 ### 4. Métricas de Avaliação
-O modelo foi otimizado estrategicamente para o **Recall (Sensibilidade)** através de funções de perda pesadas. No contexto oncológico, um *Falso Negativo* (afirmar que não há câncer quando o paciente possui um tumor maligno) possui um custo humano inaceitável.
-- **Recall (Sensibilidade):** 0.97
-- **F1-Score:** 0.96
-- **ROC-AUC:** 0.99
-- **Acurácia Global:** ~97.3%
+
+| Métrica | Valor | Contexto |
+| :--- | :---: | :--- |
+| **Recall (Sensibilidade)** | **0.97** | Métrica primária — minimizar Falsos Negativos |
+| **F1-Score** | **0.96** | Harmonia entre Precision e Recall |
+| **ROC-AUC** | **0.99** | Capacidade discriminativa global |
+| **Acurácia** | **~97.3%** | Referência secundária |
 
 ### 5. Governança, Ética e Sustentabilidade
-- **Auditoria de Viés (Fairness):** O MVP atual utiliza exclusivamente características morfológicas, o que mitiga riscos diretos de viés demográfico (como idade ou etnia). No entanto, o roadmap arquitetural para a **v3.0** (integração multimodal completa) prevê a implementação do framework **Fairlearn**. Ele atuará como um *gatekeeper* no nosso pipeline CI/CD para garantir a mitigação de vieses demográficos, em total conformidade com práticas de IA Responsável e LGPD.
-- **Sustentabilidade (MRM3):** O design deste modelo foca em alta eficiência computacional. Adotamos o framework MRM3 (Machine Readable ML Model Metadata) para a governança em produção, rastreando métricas de impacto ambiental como **consumo de energia** e **pegada de carbono** durante a inferência.
-- **Medicina Baseada em Evidências (RAG):** Implementação de um módulo de RAG (Retrieval-Augmented Generation) atrelado à classificação, extraindo literatura em tempo real de bases como PubMed e Cochrane Library para embasar o score preditivo.
+
+- **Fairness:** Features exclusivamente morfológicas mitigam viés demográfico. Roadmap v3.0 prevê **Fairlearn** como gatekeeper no CI/CD
+- **Green AI (MRM3):** Framework MRM3 rastreando consumo de energia e pegada de carbono durante inferência
+- **Medicina Baseada em Evidências (RAG):** Módulo RAG integrado a PubMed e Cochrane Library para embasar o score preditivo com literatura científica em tempo real
 
 ### 6. Limitações e Monitoramento
-- **Fronteira Operacional:** O modelo assume que as amostras de entrada advêm de microscópios e equipamentos de biópsia calibrados nos mesmos padrões do dataset de treinamento.
-- **Data Drift:** Caso ocorra a atualização de equipamentos ou métodos de coleta hospitalar, o protocolo Day-2 de MLOps do Aether Oncology exige uma reavaliação de estabilidade por meio de métricas estatísticas para acionar o retreino automático.
+
+- **Fronteira Operacional:** Amostras assumem microscópios e equipamentos calibrados nos padrões do dataset de treinamento
+- **Data Drift:** Protocolo Day-2 de MLOps com reavaliação estatística automática e retreino contínuo
 
 ---
 
 ## 🧬 Arquitetura Multimodal e Genômica (v2.0)
 
-O **Aether Oncology v2.0** entrega excelência na triagem baseada em características morfológicas de núcleos celulares (via biópsia FNA) integrada com **Medicina de Precisão**.
-
-O sistema agora cruza os dados da biópsia com evidências científicas em tempo real. A infraestrutura está preparada para integração com **Prontuários Eletrônicos (EHR)** e **Painéis Genômicos**, permitindo correlacionar mutações *driver* (ex: KRAS G12C e EGFR L858R) com os achados morfológicos, elevando de forma exponencial a capacidade preditiva do sistema e garantindo um *Recall* à prova de falhas.
+O sistema cruza dados de biópsia com evidências científicas em tempo real. Infraestrutura preparada para integração com **Prontuários Eletrônicos (EHR)** e **Painéis Genômicos**, permitindo correlacionar mutações *driver* (ex: KRAS G12C, EGFR L858R) com achados morfológicos.
 
 ---
 
 ## 🛠️ Referência de Comandos
 
 | Comando | Descrição |
-|---|---|
+| :--- | :--- |
 | `make install` | Instala dependências via pip |
 | `make train` | Treino completo com MLflow |
 | `make test` | Testes com cobertura |
@@ -506,42 +496,33 @@ O sistema agora cruza os dados da biópsia com evidências científicas em tempo
 
 ---
 
-## 🌐 Deploy & Disponibilidade
-
-A API está hospedada no **Render** (Tier Free). Devido à arquitetura da plataforma, a primeira requisição após um período de inatividade pode levar ~30-40 segundos para responder (**Cold Start**).
-
-- **Mitigação Ativa**: GitHub Action configurada em `.github/workflows/keep_alive.yml` para pingar o servidor a cada 10 minutos.
-- **UX**: O portal clínico detecta o status `503` e orienta o usuário a aguardar o "despertar" do servidor.
-
----
-
 ## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologias |
-|---|---|
-| Core ML | Python 3.11 · PyTorch · Scikit-Learn |
-| API | FastAPI · Pydantic · Uvicorn · aiofiles |
-| Frontend | HTML5 · CSS3 · JavaScript (Vanilla) |
-| Segurança | API Key Header · CORS Middleware |
-| MLOps | MLflow · Pandera |
-| Visualização | Seaborn · Matplotlib |
-| Qualidade | Pytest · Ruff |
-| Infra | Docker · Makefile · uv · GitHub Actions |
+| :--- | :--- |
+| **Core ML** | Python 3.11 · PyTorch · Scikit-Learn |
+| **API** | FastAPI · Pydantic · Uvicorn · aiofiles |
+| **Frontend** | HTML5 · CSS3 · JavaScript (Vanilla) |
+| **Segurança** | API Key Header · CORS Middleware · Grype Scanner |
+| **MLOps** | MLflow · Pandera · Optuna |
+| **Visualização** | Chart.js · Seaborn · Matplotlib |
+| **Qualidade** | Pytest · Ruff · Coverage |
+| **Infra** | Docker · Makefile · uv · GitHub Actions |
 
 ---
 
-<div align="center">
-## 📚 Bibliografia Técnica e Créditos
+## 📚 Bibliografia Técnica
 
-Este projeto fundamenta-se em pesquisas clássicas de biometria oncológica e técnicas modernas de IA Explicável:
-
-1.  **Street, W. N., Wolberg, W. H., & Mangasarian, O. L. (1993).** *Nuclear feature extraction for breast tumor diagnosis*. IS&T/SPIE 1993 International Symposium on Electronic Imaging: Science and Technology.
-2.  **Wolberg, W. H., Street, W. N., & Mangasarian, O. L. (1995).** *Image analysis in cancer diagnosis*. University of Wisconsin-Madison, Computer Sciences Technical Report #1280.
-3.  **UCI Machine Learning Repository.** *Breast Cancer Wisconsin (Diagnostic) Data Set*. [Link Oficial](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)).
-4.  **Sundararajan, M., Taly, A., & Yan, Q. (2017).** *Axiomatic attribution for deep networks*. Proceedings of the 34th International Conference on Machine Learning (ICML). (Base para a implementação de Integrated Gradients).
+| # | Referência |
+| :---: | :--- |
+| 1 | Street, W. N., Wolberg, W. H., & Mangasarian, O. L. (1993). *Nuclear feature extraction for breast tumor diagnosis*. IS&T/SPIE International Symposium on Electronic Imaging. |
+| 2 | Wolberg, W. H., Street, W. N., & Mangasarian, O. L. (1995). *Image analysis in cancer diagnosis*. UW-Madison CS Technical Report #1280. |
+| 3 | UCI ML Repository. *Breast Cancer Wisconsin (Diagnostic) Data Set*. [Link](https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+(Diagnostic)). |
+| 4 | Sundararajan, M., Taly, A., & Yan, Q. (2017). *Axiomatic attribution for deep networks*. ICML 2017. (Integrated Gradients) |
 
 ---
-*Desenvolvido com ❤️ por Vitor Diogo Fonseca da Silva — FIAP Pós-Tech 2026.*
-Ciência da Computação | Pós-Tech FIAP — Engenharia de Machine Learning
 
-</div>
+<p align="center">
+  <strong>Desenvolvido com ❤️ por Vitor Diogo Fonseca da Silva</strong><br/>
+  Ciência da Computação · Pós-Tech FIAP — Engenharia de Machine Learning · 2026
+</p>
