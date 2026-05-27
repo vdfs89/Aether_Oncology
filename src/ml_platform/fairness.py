@@ -55,6 +55,47 @@ class FairnessAuditor:
 
         return report
 
+    def audit_fpr_fnr(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+        sensitive_feature: np.ndarray,
+    ) -> Dict[str, Any]:
+        """
+        Calculates False Positive Rate (FPR) and False Negative Rate (FNR) per subgroup.
+        """
+        unique_groups = np.unique(sensitive_feature)
+        group_metrics = {}
+
+        for group in unique_groups:
+            mask = sensitive_feature == group
+            if np.sum(mask) == 0:
+                continue
+
+            y_t = y_true[mask]
+            y_p = y_pred[mask]
+            
+            # FPR = FP / (FP + TN) -> rate of false alarms
+            negatives = (y_t == 0)
+            if np.sum(negatives) > 0:
+                fpr = np.sum((y_p == 1) & negatives) / np.sum(negatives)
+            else:
+                fpr = 0.0
+                
+            # FNR = FN / (FN + TP) -> rate of missed detections
+            positives = (y_t == 1)
+            if np.sum(positives) > 0:
+                fnr = np.sum((y_p == 0) & positives) / np.sum(positives)
+            else:
+                fnr = 0.0
+
+            group_metrics[str(group)] = {"FPR": fpr, "FNR": fnr}
+
+        return {
+            "audit_type": "fpr_fnr_parity",
+            "group_metrics": group_metrics,
+        }
+
     def audit_by_feature_slice(
         self, df: pd.DataFrame, y_true_col: str, y_pred_col: str, slice_col: str
     ) -> Dict[str, Any]:

@@ -9,12 +9,12 @@ def test_log_prediction(tmp_path, monkeypatch):
     monkeypatch.setattr("src.services.audit.AUDIT_FILE", test_audit_file)
     monkeypatch.setattr("src.services.audit.LOG_DIR", tmp_path)
 
-    features = {"radius_mean": 15.0, "texture_mean": 20.0}
+    features = {"Age": 50, "Survival_Rate": 0.5}
     prediction = {
-        "prediction": 1,
-        "label": "Malignant",
+        "risk_level": "High",
         "probability": 0.95,
-        "top_feature": "area_mean",
+        "confidence": "95.0%",
+        "warning": "Test",
     }
 
     log_prediction(features, prediction)
@@ -24,7 +24,7 @@ def test_log_prediction(tmp_path, monkeypatch):
         line = f.readline()
         data = json.loads(line)
         assert data["input"] == features
-        assert data["output"]["label"] == "Malignant"
+        assert data["output"]["risk_level"] == "High"
 
 
 def test_calculate_drift_insufficient_data(tmp_path, monkeypatch):
@@ -42,7 +42,7 @@ def test_calculate_drift_collecting(tmp_path, monkeypatch):
 
     # Log only 2 predictions (less than 10)
     for _ in range(2):
-        log_prediction({"radius_mean": 14.0}, {"prediction": 0})
+        log_prediction({"Age": 50.0}, {"prediction": 0})
 
     result = calculate_drift()
     assert result["status"] == "collecting"
@@ -56,14 +56,8 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
 
     # Log 11 predictions close to training means to pass the threshold of 10
     features = {
-        "radius_mean": 14.1,
-        "texture_mean": 19.3,
-        "perimeter_mean": 92.0,
-        "area_mean": 655.0,
-        "smoothness_mean": 0.096,
-        "compactness_mean": 0.104,
-        "concavity_mean": 0.088,
-        "concave_points_mean": 0.048,
+        "Age": 50.0,
+        "Survival_Rate": 0.5,
     }
 
     # Mock DATA_PATH to a valid CSV for DriftDetector
@@ -78,7 +72,7 @@ def test_calculate_drift_stable(tmp_path, monkeypatch):
 
     result = calculate_drift()
     assert result["status"] == "stable"
-    assert "radius_mean" in result["metrics"]
+    assert "Age" in result["metrics"]
     assert result["total_audited"] == 11
 
 
@@ -91,17 +85,9 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
     import pandas as pd
 
     baseline_features = {
-        "radius_mean": 14.0,
-        "texture_mean": 19.0,
-        "perimeter_mean": 90.0,
-        "area_mean": 650.0,
-        "smoothness_mean": 0.1,
-        "compactness_mean": 0.1,
-        "concavity_mean": 0.1,
-        "concave_points_mean": 0.05,
-        "symmetry_mean": 0.2,
-        "fractal_dimension_mean": 0.06,
-        "radius_se": 0.4,
+        "Age": 50.0,
+        "Survival_Rate": 0.5,
+        "dummy1": 0.0, "dummy2": 0.0, "dummy3": 0.0, "dummy4": 0.0, "dummy5": 0.0, "dummy6": 0.0
     }
     test_data = tmp_path / "baseline_alert.csv"
     pd.DataFrame([baseline_features] * 20).to_csv(test_data, index=False)
@@ -109,21 +95,13 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
 
     # Log 11 predictions with significant drift (enough to trigger 33% threshold)
     features = {
-        "radius_mean": 30.0,
-        "texture_mean": 30.0,
-        "perimeter_mean": 150.0,
-        "area_mean": 1500.0,
-        "smoothness_mean": 0.2,
-        "compactness_mean": 0.3,
-        "concavity_mean": 0.4,
-        "concave_points_mean": 0.2,
-        "symmetry_mean": 0.3,
-        "fractal_dimension_mean": 0.1,
-        "radius_se": 2.0,
+        "Age": 90.0,
+        "Survival_Rate": 0.0,
+        "dummy1": 1.0, "dummy2": 1.0, "dummy3": 1.0, "dummy4": 1.0, "dummy5": 1.0, "dummy6": 1.0
     }
     for _ in range(11):
         log_prediction(features, {"prediction": 1})
 
     result = calculate_drift()
     assert result["status"] == "alert"
-    assert any("radius_mean" in alert for alert in result["alerts"])
+    assert any("Age" in alert for alert in result["alerts"])

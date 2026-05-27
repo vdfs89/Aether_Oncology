@@ -13,19 +13,11 @@ logger = logging.getLogger(__name__)
 _ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = _ROOT / "logs"
 AUDIT_FILE = LOG_DIR / "audit_trail.jsonl"
-DATA_PATH = _ROOT / "data" / "raw" / "data.csv"
+DATA_PATH = _ROOT / "data" / "raw" / "oral_cancer_top30.csv"
 
-# Médias de treino para detecção de Drift (WDBC Dataset)
-TRAINING_MEANS = {
-    "radius_mean": 14.127,
-    "texture_mean": 19.289,
-    "perimeter_mean": 91.969,
-    "area_mean": 654.889,
-    "smoothness_mean": 0.096,
-    "compactness_mean": 0.104,
-    "concavity_mean": 0.088,
-    "concave_points_mean": 0.048,
-}
+# Features numéricas para detecção de Drift (Oral Cancer Dataset)
+NUMERIC_FEATURES = ["Age", "Survival_Rate"]
+
 
 
 def log_prediction(features: dict, prediction_result: dict):
@@ -39,10 +31,10 @@ def log_prediction(features: dict, prediction_result: dict):
             "request_id": request_id_contextvar.get(),
             "input": features,
             "output": {
-                "prediction": prediction_result.get("prediction"),
-                "label": prediction_result.get("label"),
+                "risk_level": prediction_result.get("risk_level"),
                 "probability": prediction_result.get("probability"),
-                "top_feature": prediction_result.get("top_feature"),
+                "confidence": prediction_result.get("confidence"),
+                "warning": prediction_result.get("warning"),
             },
         }
 
@@ -79,10 +71,13 @@ def calculate_drift() -> dict:
         # Adapta report para a UI legível
         ui_metrics = {}
         for feature, m in report["metrics"].items():
-            if feature in TRAINING_MEANS:  # Mostra apenas features principais na UI
+            if feature in NUMERIC_FEATURES:  # Mostra apenas features principais na UI
+                # Check for NaN and replace with None or string if necessary, but json handles null for None
+                p_val = round(m["p_value"], 4) if pd.notna(m["p_value"]) else 1.0
+                ks = round(m["ks_stat"], 4) if pd.notna(m["ks_stat"]) else 0.0
                 ui_metrics[feature] = {
-                    "p_value": round(m["p_value"], 4),
-                    "ks_stat": round(m["ks_stat"], 4),
+                    "p_value": p_val,
+                    "ks_stat": ks,
                     "drift": m["drift"],
                 }
 

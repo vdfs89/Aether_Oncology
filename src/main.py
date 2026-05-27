@@ -1,18 +1,21 @@
 """
 main.py
 =======
-Camada web thin da Aether Oncology Tumor Classifier API v2.0.
+Camada web thin da Aether Oncology API v3.0.
 
 O FastAPI NÃO conhece PyTorch, tensores ou Scikit-Learn.
 Ele apenas:
-  1. Valida o JSON de entrada via Pydantic (todas as 30 features WDBC)
-  2. Delega para predictor.predict()
-  3. Devolve uma resposta estruturada — com alerta quando confidence == 'Low'
+  1. Valida o JSON de entrada via Pydantic (OralCancerRequest — 8 campos)
+  2. Delega inferência ao modelo local treinado no Oral Cancer dataset
+  3. Devolve PredictionResponse — com warning quando confidence == 'Low'
 
-RAG v2.0:
-  - Integrated Gradients (XAI) identifica a feature de maior impacto
-  - PubMed + Cochrane + Semantic Scholar fornecem evidência científica
-  - Caching persistente via diskcache
+Dataset: Oral Cancer Top 30 Countries (160k records, MIT License)
+Target:  high_risk — triagem binária (0=Early, 1=Moderate/Late)
+
+Arquitetura de inferência:
+  - Preprocessor : ColumnTransformer (StandardScaler + OHE) via joblib
+  - MLP           : PyTorch (input_dim dinâmico após OHE)
+  - Fallback      : 503 se artefatos não existirem (xfail em CI pré-treino)
 
 Iniciar o servidor:
     uvicorn src.main:app --reload
@@ -34,12 +37,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
+import joblib
+import torch
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from src.api.schemas import OralCancerRequest, PredictionResponse
 from src.core.logging import request_id_contextvar, setup_logging
+from src.models.mlp import MLP
 from src.ml_platform.orchestrator import MLPlatformOrchestrator
 from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
 from src.services.inference_client import inference_client
@@ -49,7 +56,7 @@ from src.services.predictor import FEATURE_NAMES, predictor
 # Platform Metadata (v2.2)
 # ---------------------------------------------------------------------------
 
-APP_VERSION = "2.2.0"
+APP_VERSION = "3.0.0"
 GIT_SHA = os.getenv("RENDER_GIT_COMMIT", os.getenv("GITHUB_SHA", "dev-local"))
 
 # ---------------------------------------------------------------------------
@@ -87,6 +94,77 @@ async def get_api_key(key: str = Security(_api_key_header)) -> str:
     return key
 
 
+# ---------------------------------------------------------------------------
+# Oral Cancer model globals (loaded at startup, shared across requests)
+# ---------------------------------------------------------------------------
+
+_oral_preprocessor = None  # sklearn ColumnTransformer
+_oral_model: MLP | None = None  # PyTorch MLP
+_oral_input_dim: int = 0
+
+
+def _load_oral_cancer_artifacts() -> bool:
+    """
+    Tenta carregar os artefatos treinados do pipeline Oral Cancer.
+    Retorna True se ambos (preprocessor + model) foram carregados com sucesso.
+    """
+    global _oral_preprocessor, _oral_model, _oral_input_dim
+
+    from pathlib import Path
+
+    base = Path(__file__).resolve().parents[1]
+    # Procura em root/models/ independente do CWD
+    candidates = [
+        base / "models",
+        Path.cwd() / "models",
+        Path("/app/models"),
+    ]
+
+    models_dir = next(
+        (p for p in candidates if (p / "preprocessor.joblib").exists()), None
+    )
+
+    if models_dir is None:
+        logging.warning(
+            "BOOT: Artefatos Oral Cancer não encontrados. "
+            "Execute `python -m src.train` para treinar o modelo."
+        )
+        return False
+
+    preprocessor_path = models_dir / "preprocessor.joblib"
+    weights_path = models_dir / "aether_mlp_v2.pth"
+
+    try:
+        _oral_preprocessor = joblib.load(preprocessor_path)
+        # Inferir input_dim via dummy transform (pd já importado no topo do módulo)
+        _dummy = pd.DataFrame([{
+            "Age": 50, "Survival_Rate": 0.7,
+            "Tobacco_Use": "No", "Alcohol_Use": "No",
+            "Country": "Brazil", "Gender": "Male",
+            "Socioeconomic_Status": "Middle", "Treatment_Type": "Unknown",
+        }])
+        _oral_input_dim = _oral_preprocessor.transform(_dummy).shape[1]
+
+        _oral_model = MLP(input_shape=_oral_input_dim, hidden_dims=[128, 64, 32])
+        if weights_path.exists():
+            _oral_model.load_state_dict(
+                torch.load(weights_path, weights_only=True, map_location="cpu")
+            )
+            _oral_model.eval()
+            logging.info(
+                "BOOT: Oral Cancer model carregado — input_dim=%d", _oral_input_dim
+            )
+        else:
+            logging.warning("BOOT: Pesos MLP não encontrados (%s).", weights_path)
+            _oral_model = None
+            return False
+
+        return True
+    except Exception as exc:
+        logging.error("BOOT: Falha ao carregar artefatos Oral Cancer: %s", exc)
+        return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -100,13 +178,21 @@ async def lifespan(app: FastAPI):
         f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})"
     )
 
-    # Pre-warm model and RAG engine
+    # 1. Oral Cancer model (v3.0 primary inference)
+    if _load_oral_cancer_artifacts():
+        logging.info(f"BOOT [{request_id}]: Oral Cancer MLP pronto para inferência.")
+    else:
+        logging.warning(
+            f"BOOT [{request_id}]: Oral Cancer model não disponível — "
+            "endpoint /predict retornará 503 até o treino ser executado."
+        )
+
+    # 2. Legacy WDBC predictor (monitor/* endpoints)
     try:
         predictor.load_model()
-        logging.info(f"BOOT [{request_id}]: TumorMLP weights loaded successfully.")
+        logging.info(f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/).")
     except Exception as e:
-        logging.critical(f"BOOT FAILURE: Model loading failed: {e}")
-        # In a real SRE env, we might want to exit(1) here to prevent bad rollouts
+        logging.warning(f"BOOT [{request_id}]: Legacy predictor não disponível: {e}")
 
     yield
 
@@ -284,7 +370,7 @@ async def read_terms() -> HTMLResponse:
 
 
 # ---------------------------------------------------------------------------
-# Multimodality Readiness (v2.1)
+# Multimodality Readiness (v2.1) — preserved for backward compatibility
 # ---------------------------------------------------------------------------
 
 
@@ -307,98 +393,9 @@ class EHREntry(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Schema de entrada — 30 features WDBC + Multimodal v2.1
+# v3.0: OralCancerRequest e PredictionResponse importados de src/api/schemas.py
 # ---------------------------------------------------------------------------
-
-
-class TumorFeatures(BaseModel):
-    """30 atributos morfológicos numéricos (WDBC dataset) + Multimodal v2.1."""
-
-    radius_mean: float = Field(..., gt=0, description="Raio médio do núcleo")
-    texture_mean: float = Field(..., gt=0, description="Textura média")
-    perimeter_mean: float = Field(..., gt=0, description="Perímetro médio")
-    area_mean: float = Field(..., gt=0, description="Área média")
-    smoothness_mean: float = Field(..., gt=0, description="Suavidade média")
-    compactness_mean: float = Field(..., gt=0, description="Compacidade média")
-    concavity_mean: float = Field(..., ge=0, description="Concavidade média")
-    concave_points_mean: float = Field(..., ge=0, description="Pontos côncavos médios")
-    symmetry_mean: float = Field(..., gt=0, description="Simetria média")
-    fractal_dimension_mean: float = Field(
-        ..., gt=0, description="Dimensão fractal média"
-    )
-    radius_se: float = Field(..., ge=0, description="Erro padrão do raio")
-    texture_se: float = Field(..., ge=0, description="Erro padrão da textura")
-    perimeter_se: float = Field(..., ge=0, description="Erro padrão do perímetro")
-    area_se: float = Field(..., ge=0, description="Erro padrão da área")
-    smoothness_se: float = Field(..., ge=0, description="Erro padrão da suavidade")
-    compactness_se: float = Field(..., ge=0, description="Erro padrão da compacidade")
-    concavity_se: float = Field(..., ge=0, description="Erro padrão da concavidade")
-    concave_points_se: float = Field(
-        ..., ge=0, description="Erro padrão dos pontos côncavos"
-    )
-    symmetry_se: float = Field(..., ge=0, description="Erro padrão da simetria")
-    fractal_dimension_se: float = Field(
-        ..., ge=0, description="Erro padrão da dimensão fractal"
-    )
-    radius_worst: float = Field(..., gt=0, description="Raio máximo (pior)")
-    texture_worst: float = Field(..., gt=0, description="Textura máxima (pior)")
-    perimeter_worst: float = Field(..., gt=0, description="Perímetro máximo (pior)")
-    area_worst: float = Field(..., gt=0, description="Área máxima (pior)")
-    smoothness_worst: float = Field(..., gt=0, description="Suavidade máxima (pior)")
-    compactness_worst: float = Field(..., gt=0, description="Compacidade máxima (pior)")
-    concavity_worst: float = Field(..., ge=0, description="Concavidade máxima (pior)")
-    concave_points_worst: float = Field(
-        ..., ge=0, description="Pontos côncavos máximos (pior)"
-    )
-    symmetry_worst: float = Field(..., gt=0, description="Simetria máxima (pior)")
-    fractal_dimension_worst: float = Field(
-        ..., gt=0, description="Dimensão fractal máxima (pior)"
-    )
-
-    # v2.1 Roadmap: Multimodal Fields (Optional for now)
-    genomics: GenomicMarkers | None = Field(
-        None, description="Dados genômicos do paciente"
-    )
-    ehr: EHREntry | None = Field(None, description="Sumário do prontuário eletrônico")
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "radius_mean": 17.99,
-                    "texture_mean": 10.38,
-                    "perimeter_mean": 122.8,
-                    "area_mean": 1001.0,
-                    "smoothness_mean": 0.1184,
-                    "compactness_mean": 0.2776,
-                    "concavity_mean": 0.3001,
-                    "concave_points_mean": 0.1471,
-                    "symmetry_mean": 0.2419,
-                    "fractal_dimension_mean": 0.07871,
-                    "radius_se": 1.095,
-                    "texture_se": 0.9053,
-                    "perimeter_se": 8.589,
-                    "area_se": 153.4,
-                    "smoothness_se": 0.006399,
-                    "compactness_se": 0.04904,
-                    "concavity_se": 0.05373,
-                    "concave_points_se": 0.01587,
-                    "symmetry_se": 0.03003,
-                    "fractal_dimension_se": 0.006193,
-                    "radius_worst": 25.38,
-                    "texture_worst": 17.33,
-                    "perimeter_worst": 184.6,
-                    "area_worst": 2019.0,
-                    "smoothness_worst": 0.1622,
-                    "compactness_worst": 0.6656,
-                    "concavity_worst": 0.7119,
-                    "concave_points_worst": 0.2654,
-                    "symmetry_worst": 0.4601,
-                    "fractal_dimension_worst": 0.1189,
-                }
-            ]
-        }
-    }
+# (OralCancerRequest, PredictionResponse) → já importados no topo do arquivo.
 
 
 # ---------------------------------------------------------------------------
@@ -419,23 +416,7 @@ class ResearchArticle(BaseModel):
     )
 
 
-class PredictResponse(BaseModel):
-    prediction: int = Field(..., description="1 = Maligno, 0 = Benigno")
-    label: str = Field(..., description="'Malignant' ou 'Benign'")
-    probability: float = Field(..., ge=0.0, le=1.0)
-    confidence: str = Field(..., description="'High' | 'Medium' | 'Low'")
-    status: str
-    top_feature: str | None = Field(
-        None, description="Feature de maior impacto (XAI — Integrated Gradients)"
-    )
-    articles: list[ResearchArticle] = Field(
-        default_factory=list,
-        description="Evidências científicas multi-fonte (PubMed, Cochrane, S2)",
-    )
-    warning: str | None = Field(
-        default=None,
-        description="Alerta de baixa confiança",
-    )
+# PredictResponse → v3.0 usa PredictionResponse importado de src/api/schemas.py
 
 
 # ---------------------------------------------------------------------------
@@ -507,48 +488,123 @@ async def platform_heartbeat():
 
 @app.post(
     "/predict",
-    response_model=PredictResponse,
+    response_model=PredictionResponse,
     status_code=status.HTTP_200_OK,
     tags=["Prediction"],
-    summary="Classificar amostra de biópsia tumoral",
+    summary="Triagem de risco de câncer oral (Oral Cancer v3.0)",
+    description=(
+        "Recebe dados clínicos do paciente e retorna o nível de risco de "
+        "diagnóstico avançado (Moderate/Late). Dataset: Oral Cancer Top 30 "
+        "Countries (160k registros, MIT License). "
+        "**confidence='Low'** ativa o campo `warning` — revisão clínica obrigatória."
+    ),
     dependencies=[Security(get_api_key)],
 )
 @limiter.limit("10/minute")
-async def make_prediction(request: Request, features: TumorFeatures) -> PredictResponse:
+async def make_prediction(
+    request: Request, features: OralCancerRequest
+) -> PredictionResponse:
     """
-    Recebe as 30 features WDBC e devolve classificação binária + RAG.
+    Pipeline de inferência v3.0 — Oral Cancer High Risk:
 
-    v2.0: top_feature via Integrated Gradients → busca PubMed + Cochrane.
+    1. Valida OralCancerRequest via Pydantic
+    2. Monta DataFrame com as 8 colunas esperadas pelo ColumnTransformer
+    3. Preprocessor.transform() → StandardScaler + OHE
+    4. MLP.forward() + sigmoid → probabilidade
+    5. Confidence tiering: margem absoluta em relação ao limiar 0.5
+    6. warning ativado quando confidence == 'Low' (safety loop clínico)
+    7. Auditoria assíncrona via asyncio.to_thread
     """
-    try:
-        data = features.model_dump()
-        data_list = [[data[f] for f in FEATURE_NAMES]]
-        result = await predictor.predict(data_list)
-
-        # 3. Persistência de Auditoria (Governança — Aula 7)
-        # FIX P1-1: log_prediction does synchronous file I/O. Calling it
-        # directly inside async def blocks the event loop. Offload to thread.
-        await asyncio.to_thread(log_prediction, features.model_dump(), result)
-
-    except FileNotFoundError as exc:
+    if _oral_preprocessor is None or _oral_model is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=str(exc),
-        ) from exc
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc),
-        ) from exc
-
-    warning = None
-    if result["confidence"] == "Low":
-        warning = (
-            "⚠️  BAIXA CONFIANÇA: Os dados diferem significativamente "
-            "do padrão de treino. Revisão manual dupla obrigatória."
+            detail=(
+                "Modelo Oral Cancer não carregado. "
+                "Execute `python -m src.train` para treinar os artefatos."
+            ),
         )
 
-    return PredictResponse(**result, warning=warning)
+    try:
+        input_df = pd.DataFrame(
+            [
+                {
+                    "Age": features.age,
+                    "Survival_Rate": features.survival_rate
+                    if features.survival_rate is not None
+                    else 0.5,
+                    "Tobacco_Use": features.tobacco_use,
+                    "Alcohol_Use": features.alcohol_use,
+                    "Country": features.country,
+                    "Gender": features.gender,
+                    "Socioeconomic_Status": features.socioeconomic_status,
+                    "Treatment_Type": features.treatment_type
+                    if features.treatment_type is not None
+                    else "Unknown",
+                }
+            ]
+        )
+
+        X = _oral_preprocessor.transform(input_df)
+
+        if np.isnan(X).any() or np.isinf(X).any():
+            raise ValueError(
+                "Valores NaN/Inf detectados após pré-processamento. "
+                "Verifique os dados de entrada."
+            )
+
+        X_tensor = torch.FloatTensor(X)
+        with torch.no_grad():
+            logit = _oral_model(X_tensor)
+            prob = float(torch.sigmoid(logit).item())
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro na inferência: {exc}",
+        ) from exc
+
+    # Nível de risco
+    risk_level = "High" if prob >= 0.5 else "Low"
+
+    # Confidence tiering — baseada na margem absoluta em relação ao limiar
+    margin = abs(prob - 0.5)
+    if margin >= 0.30:
+        confidence = "High"
+    elif margin >= 0.15:
+        confidence = "Medium"
+    else:
+        confidence = "Low"
+
+    # Safety loop: warning obrigatório quando confidence == 'Low'
+    warning: str | None = None
+    if confidence == "Low":
+        warning = (
+            "⚠️ BAIXA CONFIANÇA: Probabilidade próxima ao limiar de decisão ("
+            f"{prob:.1%}). Revisão clínica manual dupla obrigatória "
+            "antes de qualquer intervenção."
+        )
+
+    result_for_audit = {
+        "risk_level": risk_level,
+        "probability": round(prob, 4),
+        "confidence": confidence,
+        "prediction": 1 if risk_level == "High" else 0,
+        "label": risk_level,
+        "status": "success",
+    }
+
+    # Auditoria assíncrona — não bloqueia o event loop
+    await asyncio.to_thread(log_prediction, features.model_dump(), result_for_audit)
+
+    return PredictionResponse(
+        risk_level=risk_level,
+        probability=round(prob, 4),
+        confidence=confidence,
+        warning=warning,
+        model_version="3.0.0",
+    )
 
 
 # ---------------------------------------------------------------------------

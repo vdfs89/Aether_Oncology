@@ -146,28 +146,28 @@ Classified as a **High-Risk AI System (Annex III)** due to its use in medical di
 ```mermaid
 graph TD
     subgraph "Frontend (Vercel)"
-        UI[Clinical Portal\nVanilla JS + HTML5]
-        XAI[Explainable AI\nChart.js Radar]
+        UI["Clinical Portal<br/>Vanilla JS + HTML5"]
+        XAI["Explainable AI<br/>Chart.js Radar"]
     end
 
     subgraph "Backend (Render)"
-        Auth[Authentication\nAPI Key & CORS]
-        API[FastAPI\n/predict, /health, /health/inference]
+        Auth["Authentication<br/>API Key & CORS"]
+        API["FastAPI<br/>/predict, /health, /health/inference"]
         
         subgraph "Service Layer"
-            Service[PredictorService\nOrchestrator]
-            Client[HuggingFaceClient\nCircuit Breaker + Connection Pool]
+            Service["PredictorService<br/>Orchestrator"]
+            Client["HuggingFaceClient<br/>Circuit Breaker + Connection Pool"]
         end
         
         subgraph "Machine Learning Engine"
-            LocalProxy[Local Proxy Model\nPytorch fallback]
-            HF_API[Hugging Face Inference API\nPrimary Inference]
+            LocalProxy["Local Proxy Model<br/>Pytorch fallback"]
+            HF_API["Hugging Face Inference API<br/>Primary Inference"]
         end
     end
 
     subgraph "Governance & Observability"
-        AuditLog[(Audit Trail\n.jsonl)]
-        MLflow[(MLflow Registry)]
+        AuditLog[("Audit Trail<br/>.jsonl")]
+        MLflow[("MLflow Registry")]
     end
 
     UI -->|POST /predict| Auth

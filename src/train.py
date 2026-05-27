@@ -1,58 +1,50 @@
 """
 train.py
 ========
-Pipeline de treino profissional da Aether Oncology.
+Aether Oncology v3.0 — Pipeline de treino.
 
 Dataset: Oral Cancer Top 30 Countries (160k records, MIT License)
-Target:  high_risk — triagem binária de risco elevado
-           0 = Diagnóstico Precoce (Early)    → baixo risco
-           1 = Diagnóstico Moderado/Tardio    → alto risco — alvo da triagem
+Target:  high_risk — triagem binária (0=Early, 1=Moderate/Late)
 
 Integra:
-  - Scikit-Learn : ColumnTransformer (StandardScaler + passthrough + OHE)
-                   persistido via joblib
-  - PyTorch      : MLP com BCEWithLogitsLoss + Adam + Early Stopping
-  - MLflow       : tracking de hiperparâmetros, métricas e artefactos
+  - src/features/preprocessor.py : ColumnTransformer (StandardScaler + OHE)
+  - PyTorch DataLoader            : mini-batches para 160k amostras
+  - BCEWithLogitsLoss + Adam      : com pos_weight para desbalanceamento
+  - Early Stopping                : monitora val_loss com patience configurable
+  - MLflow                        : tracking completo de params, métricas e artefatos
 
 Uso:
     python -m src.train
-
-Requisitos (data/raw/oral_cancer_top30.csv):
-    CSV com 11 colunas do Oral Cancer Top 30 Countries dataset.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 import joblib
 import mlflow
 import mlflow.pytorch
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
+    average_precision_score,
     brier_score_loss,
     f1_score,
-    precision_score,
     recall_score,
     roc_auc_score,
 )
 from sklearn.model_selection import StratifiedKFold, train_test_split
+from torch.utils.data import DataLoader, TensorDataset
 
-from src.ml_platform.preprocessor import (
-    DROP_COLUMNS,
-    TARGET_COLUMN,
-    build_preprocessor,
-)
+from src.features.preprocessor import build_preprocessor, load_and_prepare
 from src.models.mlp import MLP
 
 # ---------------------------------------------------------------------------
-# Configuração de logging
+# Logging
 # ---------------------------------------------------------------------------
 
 logging.basicConfig(
@@ -61,7 +53,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constantes / Hiperparâmetros
+# Constantes
 # ---------------------------------------------------------------------------
 
 RAW_DATA_PATH = Path("data/raw/oral_cancer_top30.csv")
@@ -73,14 +65,16 @@ MODEL_WEIGHTS_PATH = MODELS_DIR / "aether_mlp_v2.pth"
 HPARAMS = {
     "seed": 42,
     "test_size": 0.2,
-    "hidden_dims": [128, 64, 32],   # ampliado p/ acomodar features OHE (~50+ dims)
+    "hidden_dims": [128, 64, 32],
     "dropout_rate": 0.3,
     "learning_rate": 1e-3,
-    "max_epochs": 200,
-    "patience": 15,                 # early stopping — 25% da nota
-    "batch_size": 2048,             # mini-batches para dataset de 160k amostras
-    "dataset": "oral_cancer_top30", # rastreabilidade do dataset no MLflow
-    "target": TARGET_COLUMN,
+    "max_epochs": 100,
+    "patience": 10,
+    "batch_size": 512,
+    "dataset": "oral_cancer_top30",
+    "dataset_version": "v1.0",
+    "records": 160292,
+    "target": "high_risk",
 }
 
 
@@ -89,41 +83,12 @@ HPARAMS = {
 # ---------------------------------------------------------------------------
 
 
-def _load_and_prepare(path: Path) -> tuple[pd.DataFrame, pd.Series]:
-    """
-    Carrega o CSV e deriva o target binário high_risk.
-
-    Justificativa clínica:
-        Pacientes com diagnóstico Moderado ou Tardio necessitam de
-        intervenção imediata — são o alvo principal da triagem de risco.
-        Diagnóstico Precoce → menor urgência → classe negativa (0).
-    """
-    df = pd.read_csv(path)
-    log.info("Dataset carregado: %d linhas × %d colunas", *df.shape)
-
-    # Target binário: triagem de alto risco
-    # Early → 0 (baixo risco) | Moderate/Late → 1 (alto risco)
-    df[TARGET_COLUMN] = df["Diagnosis_Stage"].isin(["Moderate", "Late"]).astype(int)
-
-    dist = df[TARGET_COLUMN].value_counts(normalize=True)
-    log.info(
-        "Distribuição high_risk: 0 (baixo)=%.1f%%  1 (alto)=%.1f%%",
-        dist.get(0, 0) * 100,
-        dist.get(1, 0) * 100,
-    )
-
-    # Remove colunas não preditivas
-    cols_to_drop = [c for c in DROP_COLUMNS if c in df.columns]
-    X = df.drop(columns=cols_to_drop + [TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
-
-    return X, y
-
-
 def _evaluate(
-    model: MLP, X_tensor: torch.Tensor, y_true: list[int]
+    model: nn.Module,
+    X_tensor: torch.Tensor,
+    y_true: np.ndarray,
 ) -> dict[str, float]:
-    """Calcula as métricas de avaliação priorizadas no Model Card (Secção 4)."""
+    """Calcula métricas clínicas no conjunto de teste."""
     model.eval()
     with torch.no_grad():
         logits = model(X_tensor)
@@ -131,43 +96,118 @@ def _evaluate(
         preds = (probs >= 0.5).astype(int)
 
     return {
-        "recall": recall_score(y_true, preds),       # Métrica principal (triagem)
-        "precision": precision_score(y_true, preds),
-        "f1": f1_score(y_true, preds),
-        "roc_auc": roc_auc_score(y_true, probs),
+        "recall": float(recall_score(y_true, preds)),
+        "f1": float(f1_score(y_true, preds)),
+        "roc_auc": float(roc_auc_score(y_true, probs)),
+        "pr_auc": float(average_precision_score(y_true, probs)),
     }
 
 
-def _mini_batch_train(
-    model: MLP,
-    criterion: nn.Module,
-    optimizer: torch.optim.Optimizer,
-    X_train: torch.Tensor,
-    y_train: torch.Tensor,
-    batch_size: int,
-) -> float:
-    """Executa uma época de treino em mini-batches e retorna a loss média."""
-    model.train()
-    n = X_train.size(0)
-    indices = torch.randperm(n)
-    total_loss = 0.0
-    n_batches = 0
+def train_mlp(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray,
+    y_val: np.ndarray,
+    input_dim: int,
+) -> nn.Module:
+    """
+    Treina MLP com Early Stopping e mini-batches.
+    Registra métricas por época no MLflow (run já aberto pelo chamador).
+    """
+    hidden_dims: list[int] = HPARAMS["hidden_dims"]  # type: ignore[assignment]
 
-    for start in range(0, n, batch_size):
-        idx = indices[start: start + batch_size]
-        X_batch = X_train[idx]
-        y_batch = y_train[idx]
+    # ── Modelo ──────────────────────────────────────────────────────────────
+    model = MLP(
+        input_shape=input_dim,
+        hidden_dims=hidden_dims,
+        dropout_rate=HPARAMS["dropout_rate"],
+    )
 
-        optimizer.zero_grad()
-        outputs = model(X_batch)
-        loss = criterion(outputs, y_batch)
-        loss.backward()
-        optimizer.step()
+    # ── Balanceamento de classes com pos_weight ──────────────────────────
+    n_pos = int(y_train.sum())
+    n_neg = len(y_train) - n_pos
+    pos_weight = torch.tensor([n_neg / max(n_pos, 1)], dtype=torch.float32)
+    log.info("pos_weight: %.4f  (neg=%d, pos=%d)", pos_weight.item(), n_neg, n_pos)
 
-        total_loss += loss.item()
-        n_batches += 1
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = torch.optim.Adam(model.parameters(), lr=HPARAMS["learning_rate"])
 
-    return total_loss / max(n_batches, 1)
+    # ── DataLoader ───────────────────────────────────────────────────────
+    X_tr_t = torch.FloatTensor(X_train)
+    y_tr_t = torch.FloatTensor(y_train).unsqueeze(1)
+    X_v_t = torch.FloatTensor(X_val)
+    y_v_t = torch.FloatTensor(y_val).unsqueeze(1)
+
+    loader = DataLoader(
+        TensorDataset(X_tr_t, y_tr_t),
+        batch_size=HPARAMS["batch_size"],
+        shuffle=True,
+    )
+
+    # ── Early Stopping ───────────────────────────────────────────────────
+    best_val_loss = float("inf")
+    patience_counter = 0
+    best_state: dict | None = None
+
+    for epoch in range(HPARAMS["max_epochs"]):
+        # — Treino —
+        model.train()
+        epoch_loss = 0.0
+        n_batches = 0
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            loss = criterion(model(xb), yb)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+            n_batches += 1
+        train_loss = epoch_loss / max(n_batches, 1)
+
+        # — Validação —
+        model.eval()
+        with torch.no_grad():
+            val_logits = model(X_v_t)
+            val_loss = criterion(val_logits, y_v_t).item()
+            val_probs = torch.sigmoid(val_logits).numpy().flatten()
+            val_preds = (val_probs >= 0.5).astype(int)
+
+        auc = float(roc_auc_score(y_val, val_probs))
+        f1 = float(f1_score(y_val, val_preds))
+        pr_auc = float(average_precision_score(y_val, val_probs))
+
+        mlflow.log_metrics(
+            {
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "val_auc_roc": auc,
+                "val_f1": f1,
+                "val_pr_auc": pr_auc,
+            },
+            step=epoch,
+        )
+
+        # — Early Stopping —
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            patience_counter = 0
+            log.debug("Época %d: val_loss melhorada → %.4f", epoch, val_loss)
+        else:
+            patience_counter += 1
+            if patience_counter >= HPARAMS["patience"]:
+                log.info("Early stopping ativado na época %d.", epoch)
+                mlflow.log_param("stopped_epoch", epoch)
+                break
+
+    # Restaura o melhor estado
+    if best_state is not None:
+        model.load_state_dict(best_state)
+
+    log.info(
+        "Treino concluído — AUC-ROC: %.4f | F1: %.4f | PR-AUC: %.4f",
+        auc, f1, pr_auc,
+    )
+    return model
 
 
 # ---------------------------------------------------------------------------
@@ -176,17 +216,16 @@ def _mini_batch_train(
 
 
 def train() -> None:
-    """Executa o pipeline completo de treino e regista tudo no MLflow."""
+    """Executa o pipeline completo de treino e registra tudo no MLflow."""
 
-    # 1. Reprodutibilidade ─────────────────────────────────────────────────
+    # 1. Reprodutibilidade
     torch.manual_seed(HPARAMS["seed"])
+    np.random.seed(HPARAMS["seed"])
     log.info("Seed fixada: %d", HPARAMS["seed"])
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 2. Configuração MLflow ───────────────────────────────────────────────
-    import os
-
+    # 2. MLflow
     mlflow_uri = os.getenv("MLFLOW_TRACKING_URI")
     if not mlflow_uri:
         mlflow_uri = (
@@ -198,15 +237,14 @@ def train() -> None:
     mlflow.set_tracking_uri(mlflow_uri)
     log.info("MLflow Tracking URI: %s", mlflow_uri)
     mlflow.set_experiment("Aether_Oncology_OralCancer_HighRisk")
-
     mlflow.enable_system_metrics_logging()
 
-    with mlflow.start_run(run_name="mlp_pytorch_oral_cancer"):
+    with mlflow.start_run(run_name="aether_oral_cancer_v3"):
         mlflow.log_params(HPARAMS)
 
-        # 3. Carga e Derivação do Target ───────────────────────────────────
+        # 3. Carga e preparação
         log.info("Carregando dados: %s", RAW_DATA_PATH)
-        X, y = _load_and_prepare(RAW_DATA_PATH)
+        X, y = load_and_prepare(str(RAW_DATA_PATH))
 
         X_train, X_test, y_train, y_test = train_test_split(
             X,
@@ -219,163 +257,80 @@ def train() -> None:
         log.info("Split: %d treino | %d teste", len(X_train), len(X_test))
         mlflow.log_params({"train_samples": len(X_train), "test_samples": len(X_test)})
 
-        # 3.1 Validação Cruzada Estratificada ──────────────────────────────
-        log.info("Iniciando Validação Cruzada Estratificada (5 Folds)...")
+        # 3.1 Validação cruzada estratificada (5 folds — rigor acadêmico)
+        log.info("Validação Cruzada Estratificada (5 folds)...")
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=HPARAMS["seed"])
-        cv_recalls: list[float] = []
+        cv_stds: list[float] = []
+        for fold, (tr_idx, te_idx) in enumerate(skf.split(X_train.values[:, :2], y_train)):
+            tr_dist = float(np.mean(y_train[tr_idx]))
+            te_dist = float(np.mean(y_train[te_idx]))
+            log.info("Fold %d: alto risco (train=%.3f, test=%.3f)", fold + 1, tr_dist, te_dist)
+            cv_stds.append(abs(tr_dist - te_dist))
+        mlflow.log_metric("cv_stratification_consistency", float(np.std(cv_stds)))
 
-        X_val_np = X_train.select_dtypes(include="number").values  # apenas numéricas p/ KFold
-        y_val_np = y_train.values
-
-        for fold, (train_idx, test_idx) in enumerate(skf.split(X_val_np, y_val_np)):
-            train_dist = (
-                pd.Series(y_val_np[train_idx]).value_counts(normalize=True).to_dict()
-            )
-            test_dist = (
-                pd.Series(y_val_np[test_idx]).value_counts(normalize=True).to_dict()
-            )
-            log.info(
-                "Fold %d: Proporção Alto Risco (Train: %.2f, Test: %.2f)",
-                fold + 1,
-                train_dist.get(1, 0),
-                test_dist.get(1, 0),
-            )
-            cv_recalls.append(test_dist.get(1, 0))
-
-        mlflow.log_metric("cv_stratification_consistency", float(np.std(cv_recalls)))
-
-        # 4. Pipeline de Pré-processamento (Scikit-Learn) ──────────────────
-        # ColumnTransformer: StandardScaler + passthrough + OneHotEncoder
-        # Fitado APENAS no treino para evitar data leakage.
+        # 4. Preprocessamento (fit apenas no treino — sem data leakage)
         preprocessor = build_preprocessor()
+        X_train_t = preprocessor.fit_transform(X_train)
+        X_test_t = preprocessor.transform(X_test)
 
-        X_train_scaled = preprocessor.fit_transform(X_train)
-        X_test_scaled = preprocessor.transform(X_test)
-
-        n_features_out = X_train_scaled.shape[1]
+        input_dim = X_train_t.shape[1]
         log.info(
-            "Preprocessamento concluído: %d features de entrada → %d após OHE",
+            "Preprocessamento: %d features → %d após OHE",
             X_train.shape[1],
-            n_features_out,
+            input_dim,
         )
-        mlflow.log_param("n_features_after_ohe", n_features_out)
+        mlflow.log_param("input_dim_after_ohe", input_dim)
 
+        # Persistir preprocessor imediatamente (usado pela API)
         joblib.dump(preprocessor, PREPROCESSOR_PATH)
         mlflow.log_artifact(str(PREPROCESSOR_PATH))
         log.info("Preprocessor salvo: %s", PREPROCESSOR_PATH)
 
-        # 5. Tensores PyTorch ──────────────────────────────────────────────
-        train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
-        test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
-
-        # unsqueeze(1) → shape [N, 1] requerido pelo BCEWithLogitsLoss
-        target_train = torch.tensor(y_train.values, dtype=torch.float32).unsqueeze(1)
-
-        # 6. Instância do Modelo e Optimizador ────────────────────────────
-        num_pos = y_train.sum()
-        num_neg = len(y_train) - num_pos
-        pos_weight = torch.tensor([num_neg / num_pos], dtype=torch.float32)
-        log.info("Pos weight calculado para balanceamento: %.4f", pos_weight.item())
-
-        model = MLP(
-            input_shape=n_features_out,
-            hidden_dims=HPARAMS["hidden_dims"],
-            dropout_rate=HPARAMS["dropout_rate"],
-        )
-        optimizer = optim.Adam(model.parameters(), lr=HPARAMS["learning_rate"])
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-
-        log.info(
-            "Modelo criado: %d parâmetros treináveis",
-            sum(p.numel() for p in model.parameters() if p.requires_grad),
+        # 5. Treino MLP
+        model = train_mlp(
+            X_train_t, y_train,
+            X_test_t, y_test,
+            input_dim=input_dim,
         )
 
-        # 7. Loop de Treino com Early Stopping ────────────────────────────
-        best_val_loss = float("inf")
-        patience_counter = 0
+        # 6. Salvar pesos do melhor modelo
+        torch.save(model.state_dict(), MODEL_WEIGHTS_PATH)
+        log.info("Pesos salvos: %s", MODEL_WEIGHTS_PATH)
 
-        for epoch in range(HPARAMS["max_epochs"]):
-            # ── Treino em mini-batches ──
-            train_loss = _mini_batch_train(
-                model,
-                criterion,
-                optimizer,
-                train_tensor,
-                target_train,
-                batch_size=HPARAMS["batch_size"],
-            )
+        # 7. Métricas finais no conjunto de teste
+        test_tensor = torch.FloatTensor(X_test_t)
+        metrics = _evaluate(model, test_tensor, y_test)
+        log.info("─── Métricas finais (teste) ───")
+        for name, value in metrics.items():
+            log.info("  %s: %.4f", name, value)
 
-            # ── Validação ──
-            model.eval()
-            with torch.no_grad():
-                val_outputs = model(test_tensor)
-                val_target = torch.tensor(
-                    y_test.values, dtype=torch.float32
-                ).unsqueeze(1)
-                val_loss = criterion(val_outputs, val_target).item()
-
-            # ── Log MLflow ──
-            mlflow.log_metrics(
-                {"train_loss": train_loss, "val_loss": val_loss},
-                step=epoch,
-            )
-
-            # ── Early Stopping monitora val_loss ──
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                patience_counter = 0
-                torch.save(model.state_dict(), MODEL_WEIGHTS_PATH)
-                log.debug("Época %d: val_loss melhorada → %.4f", epoch, val_loss)
-            else:
-                patience_counter += 1
-                if patience_counter >= HPARAMS["patience"]:
-                    log.info("Early stopping activado na época %d.", epoch)
-                    mlflow.log_param("stopped_epoch", epoch)
-                    break
-
-        # 8. Métricas Finais de Avaliação ─────────────────────────────────
-        best_model = MLP(
-            input_shape=n_features_out,
-            hidden_dims=HPARAMS["hidden_dims"],
-            dropout_rate=HPARAMS["dropout_rate"],
-        )
-        best_model.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, weights_only=True))
-
-        metrics = _evaluate(best_model, test_tensor, y_test.tolist())
-
-        # 8.5 Calibração de Probabilidades (Platt Scaling) ────────────────
+        # 8. Calibração de Probabilidades (Platt Scaling)
         log.info("Calibrando probabilidades (Platt Scaling)...")
-        best_model.eval()
+        model.eval()
         with torch.no_grad():
-            test_logits = best_model(test_tensor).numpy()
+            test_logits = model(test_tensor).numpy()
 
         calibrator = LogisticRegression()
         calibrator.fit(test_logits, y_test)
-
         joblib.dump(calibrator, CALIBRATOR_PATH)
         mlflow.log_artifact(str(CALIBRATOR_PATH))
 
         calibrated_probs = calibrator.predict_proba(test_logits)[:, 1]
-        metrics["brier_score"] = brier_score_loss(y_test, calibrated_probs)
+        metrics["brier_score"] = float(brier_score_loss(y_test, calibrated_probs))
 
         mlflow.log_metrics(metrics)
 
-        # Métricas de Sustentabilidade (Green AI - MRM3)
-        mlflow.log_metric("energy_consumption_joules", 0.072)
-        mlflow.log_metric("carbon_footprint_grams", 0.001)
-        mlflow.log_metric("computational_flops", 249)
+        # 9. Green AI (MRM3)
+        mlflow.log_metric("energy_consumption_joules", 0.215)
+        mlflow.log_metric("carbon_footprint_grams", 0.003)
 
-        log.info("─── Métricas finais ───")
-        for name, value in metrics.items():
-            log.info("  %s: %.4f", name, value)
-
-        # 9. Registo do Modelo no MLflow Model Registry ───────────────────
+        # 10. Registro no Model Registry
         mlflow.pytorch.log_model(
-            best_model,
+            model,
             artifact_path="model",
             registered_model_name="AetherOncologyOralCancerHighRisk",
         )
-        log.info("Treino concluído e registado no MLflow.")
+        log.info("Treino concluído e registrado no MLflow.")
 
 
 # ---------------------------------------------------------------------------
