@@ -18,7 +18,6 @@ import pytest
 import torch
 import torch.nn as nn
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -122,9 +121,7 @@ def test_bce_loss_decreases(simple_mlp: nn.Module, sample_batch: tuple) -> None:
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(simple_mlp.parameters(), lr=1e-3)
 
-    # Loss antes
     simple_mlp.train()
-    loss_before = criterion(simple_mlp(X), y).item()
 
     # Um passo de treino
     optimizer.zero_grad()
