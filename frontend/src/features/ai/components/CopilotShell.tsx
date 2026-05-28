@@ -8,6 +8,7 @@ import { CopilotSidebar } from "./chat/CopilotSidebar"
 import { ConversationHistory } from "./history/ConversationHistory"
 import { SafetyRibbon } from "./status/SafetyRibbon"
 import { copilotTheme } from "../theme"
+import { ClinicalApprovalPanel } from "./approval/ClinicalApprovalPanel"
 
 interface CopilotShellProps {
   onPromptSubmit: (prompt: string) => void
@@ -62,6 +63,9 @@ export function CopilotShell({ onPromptSubmit }: CopilotShellProps) {
 
       {/* Intelligence Sidebar */}
       <CopilotSidebar />
+
+      {/* Clinical Approval Overlay */}
+      <ClinicalApprovalPanel />
 
     </div>
   )

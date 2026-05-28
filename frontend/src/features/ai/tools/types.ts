@@ -1,11 +1,16 @@
 /**
  * src/features/ai/tools/types.ts
- * 
- * Defines the contract for Clinical Tools in the Cognitive clinical runtime.
+ *
+ * Defines contracts for Clinical Tools, execution handles,
+ * result envelopes, and dependency metadata for the Tool Runtime Engine.
  */
 import { ExecutionContext } from "../orchestration/runtime/types"
 
-export interface ClinicalToolResult<T = any> {
+// ---------------------------------------------------------------------------
+// Tool Result Contract
+// ---------------------------------------------------------------------------
+
+export interface ClinicalToolResult<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -16,74 +21,69 @@ export interface ClinicalToolResult<T = any> {
   }
 }
 
-export interface ClinicalTool {
-  id: string
-  name: string
-  description: string
-  inputSchema: Record<string, any>
-  execute(args: any, context: ExecutionContext): Promise<ClinicalToolResult>
-}
+// ---------------------------------------------------------------------------
+// Execution Handle (tracking a single tool run)
+// ---------------------------------------------------------------------------
 
-/**
- * Execution-level options per tool call.
- * Extends what's available at the global runtime level.
- */
-export interface ToolExecutionOptions {
-  /** Max time in ms before the tool is considered failed. Overrides runtime default. */
-  timeoutMs?: number
-  /** Max retry attempts on failure. Overrides runtime default. */
-  maxRetries?: number
-  /** If true, a failure in this tool causes the entire graph/parallel batch to abort. */
-  critical?: boolean
-  /** Priority value (lower = higher priority). Used for scheduling in constrained execution. */
-  priority?: number
-  /** Maximum number of concurrent executions when running in parallel. 0 = unlimited. */
-  concurrency?: number
-}
+export type ToolExecutionStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "timeout"
+  | "cancelled"
 
-/**
- * Handle for tracking a single tool execution through its lifecycle.
- */
 export interface ToolExecutionHandle {
   executionId: string
   toolId: string
   status: ToolExecutionStatus
+  args: unknown
   startedAt: number
   completedAt?: number
+  durationMs?: number
+  result?: ClinicalToolResult
+  retryCount: number
   error?: string
-  critical?: boolean
-  priority?: number
-  attemptCount?: number
 }
 
-export type ToolExecutionStatus = "queued" | "running" | "completed" | "failed"
+// ---------------------------------------------------------------------------
+// Tool Definition
+// ---------------------------------------------------------------------------
 
-/**
- * A node in the execution DAG.
- */
-export interface GraphNode {
+export interface ToolPolicy {
+  timeoutMs: number
+  maxRetries: number
+  critical: boolean            // if true, failure aborts the entire execution graph
+}
+
+const DEFAULT_TOOL_POLICY: ToolPolicy = {
+  timeoutMs: 8000,
+  maxRetries: 3,
+  critical: false
+}
+
+export { DEFAULT_TOOL_POLICY }
+
+export interface ClinicalTool {
   id: string
-  toolId: string
-  args: any | ((resolvedData: Record<string, any>) => any)
-  /** List of node IDs that must finish before this node executes. */
-  dependencies: string[]
-  /** If true, failure in this node causes the entire graph to abort. */
-  critical?: boolean
-  /** Priority value (lower = higher priority). */
-  priority?: number
-  /** Override timeout for this specific node. */
-  timeoutMs?: number
+  name: string
+  description: string
+  inputSchema: Record<string, unknown>
+  policy?: ToolPolicy
+  execute(args: any, context: ExecutionContext): Promise<any>
+}
+
+// ---------------------------------------------------------------------------
+// Execution Graph — DAG of tool stages
+// ---------------------------------------------------------------------------
+
+export interface ExecutionStage {
+  /** Tools in this stage run in parallel */
+  tools: Array<{ toolId: string; args: unknown }>
 }
 
 /**
- * Aggregate summary of a tool execution session.
+ * An ExecutionPlan is an ordered list of stages.
+ * Each stage's tools run in parallel; stages run sequentially.
  */
-export interface ToolExecutionSummary {
-  totalExecutions: number
-  completed: number
-  failed: number
-  aborted: number
-  totalDurationMs: number
-  averageDurationMs: number
-  executions: ToolExecutionHandle[]
-}
+export type ExecutionPlan = ExecutionStage[]

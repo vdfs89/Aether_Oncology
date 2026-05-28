@@ -1,325 +1,317 @@
 /**
- * src/features/ai/tools/__tests__/runtime.test.ts
+ * __tests__/runtime.test.ts
  *
- * Unit tests for the ClinicalToolRuntime — covers single execution, parallel
- * execution (with concurrency & critical-tool abort), DAG execution, abort
- * signals, timeout, retry, and telemetry summary.
- *
- * All tests use isolated runtime instances; no global registry mutations.
+ * Unit tests for the ClinicalToolRuntime Engine.
+ * Covers: single execution, retries, timeouts, parallel execution,
+ *         execution plans (DAG), cancellation, and introspection.
  */
-import { describe, it } from "node:test"
-import assert from "node:assert"
 import { ClinicalToolRuntime } from "../runtime"
+import { ClinicalTool, ClinicalToolResult, ExecutionPlan } from "../types"
 import { ExecutionContext } from "../../orchestration/runtime/types"
-import { ClinicalToolResult, ClinicalTool } from "../types"
-import { toolRegistry } from "../registry"
 
-const mockContext: ExecutionContext = {
-  patientId: "test-patient",
-  sessionId: "test-session",
-  traceId: "test-trace",
-  startedAt: Date.now(),
-  citations: [],
-  toolsExecuted: [],
-  telemetry: { tokensCount: 0 },
-  metadata: {},
-}
+// ---------------------------------------------------------------------------
+// Mock EventBus (tools/runtime.ts imports clinicalEventBus)
+// ---------------------------------------------------------------------------
+jest.mock("../../orchestration/runtime/eventBus", () => ({
+  clinicalEventBus: {
+    publish: jest.fn(),
+    subscribe: jest.fn(),
+    unsubscribe: jest.fn()
+  }
+}))
 
-/* ───────────────────────────────────────────────
-   Helper: register a custom tool into the shared registry
-   (used for timeout testing). MUST be called before execute.
-   ─────────────────────────────────────────────── */
-function registerNeverEndingTool() {
-  ; (toolRegistry as Record<string, ClinicalTool>)["never-returns"] = {
-    id: "never-returns",
-    name: "Never Returns",
-    description: "Tool that never resolves (for timeout tests)",
-    inputSchema: {},
-    async execute(): Promise<ClinicalToolResult> {
-      return new Promise(() => {
-        /* never resolves */
-      })
-    },
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+function makeContext(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
+  return {
+    patientId: "patient-001",
+    sessionId: "session-001",
+    traceId: "trace-001",
+    startedAt: Date.now(),
+    citations: [],
+    toolsExecuted: [],
+    telemetry: { tokensCount: 0 },
+    metadata: {},
+    ...overrides
   }
 }
 
-function unregisterNeverEndingTool() {
-  delete (toolRegistry as Record<string, ClinicalTool>)["never-returns"]
+function makeTool(overrides: Partial<ClinicalTool> = {}): ClinicalTool {
+  return {
+    id: "test-tool",
+    name: "Test Tool",
+    description: "A test tool",
+    inputSchema: {},
+    execute: jest.fn().mockResolvedValue({ value: 42 }),
+    ...overrides
+  }
 }
 
-/* ───────────────────────────────────────────────
-   Single execution
-   ─────────────────────────────────────────────── */
-describe("ClinicalToolRuntime – execute", () => {
-  it("should successfully execute registered biomarker-analysis tool", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const result = await runtime.execute(
-      "biomarker-analysis",
-      { geneSymbols: ["BRCA1", "HER2"] },
-      mockContext,
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe("ClinicalToolRuntime", () => {
+  let runtime: ClinicalToolRuntime
+  const ctx = makeContext()
+
+  beforeEach(() => {
+    runtime = new ClinicalToolRuntime()
+    // Clear the registry before each test
+    const registry = require("../registry")
+    // Wipe existing keys
+    Object.keys(registry.toolRegistry).forEach(k => delete registry.toolRegistry[k])
+  })
+
+  // -----------------------------------------------------------------------
+  // Single execution
+  // -----------------------------------------------------------------------
+
+  it("should execute a registered tool and return a success result", async () => {
+    const tool = makeTool()
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
+
+    const result = await runtime.execute(tool.id, { input: "x" }, ctx)
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({ value: 42 })
+    expect(result.metadata.durationMs).toBeGreaterThanOrEqual(0)
+    expect(result.metadata.source).toBe("test-tool")
+  })
+
+  it("should return an error result for an unregistered tool", async () => {
+    const result = await runtime.execute("nonexistent-tool", {}, ctx)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain("not found")
+  })
+
+  // -----------------------------------------------------------------------
+  // Retries
+  // -----------------------------------------------------------------------
+
+  it("should retry a failing tool up to maxRetries times", async () => {
+    const executeFn = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("transient"))
+      .mockRejectedValueOnce(new Error("transient"))
+      .mockResolvedValueOnce({ recovered: true })
+
+    const tool = makeTool({
+      id: "retry-tool",
+      execute: executeFn,
+      policy: { timeoutMs: 5000, maxRetries: 3, critical: false }
+    })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
+
+    const result = await runtime.execute(tool.id, {}, ctx)
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({ recovered: true })
+    expect(executeFn).toHaveBeenCalledTimes(3) // 2 failures + 1 success
+  })
+
+  it("should fail after exhausting all retries", async () => {
+    const executeFn = jest.fn().mockRejectedValue(new Error("persistent failure"))
+    const tool = makeTool({
+      id: "always-fail",
+      execute: executeFn,
+      policy: { timeoutMs: 5000, maxRetries: 1, critical: false }
+    })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
+
+    const result = await runtime.execute(tool.id, {}, ctx)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe("persistent failure")
+    expect(executeFn).toHaveBeenCalledTimes(2) // initial + 1 retry
+  })
+
+  // -----------------------------------------------------------------------
+  // Timeout
+  // -----------------------------------------------------------------------
+
+  it("should timeout a tool that exceeds its timeoutMs", async () => {
+    const slowExecute = jest.fn(
+      () => new Promise(resolve => setTimeout(resolve, 10000))
     )
+    const tool = makeTool({
+      id: "slow-tool",
+      execute: slowExecute,
+      policy: { timeoutMs: 50, maxRetries: 0, critical: false }
+    })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
 
-    assert.strictEqual(result.success, true)
-    assert.ok(result.data)
-    assert.strictEqual(result.data.biomarkers.length, 2)
-    assert.strictEqual(result.metadata.source, "local-biomarker-rules-engine")
-    assert.ok(result.metadata.durationMs >= 0)
+    const result = await runtime.execute(tool.id, {}, ctx)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain("TOOL_TIMEOUT")
   })
 
-  it("should return failure for non-existent tools", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const result = await runtime.execute("unknown-tool", {}, mockContext)
+  // -----------------------------------------------------------------------
+  // Cancellation
+  // -----------------------------------------------------------------------
 
-    assert.strictEqual(result.success, false)
-    assert.ok(result.error?.includes("not found"))
-  })
-
-  it("should respect abort signal cancellation", async () => {
-    const runtime = new ClinicalToolRuntime()
+  it("should respect abort signal and return cancelled result", async () => {
     const controller = new AbortController()
-    controller.abort()
+    controller.abort() // pre-abort
 
-    const result = await runtime.execute(
-      "biomarker-analysis",
-      { geneSymbols: ["BRCA1"] },
-      mockContext,
-      controller.signal,
-    )
+    const tool = makeTool({ id: "cancel-tool" })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
 
-    assert.strictEqual(result.success, false)
-    assert.strictEqual(result.error, "Tool execution aborted.")
+    const result = await runtime.execute(tool.id, {}, ctx, controller.signal)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe("Aborted by user")
   })
 
-  it("should handle timeout constraints and return failure on timeout limit", async () => {
-    registerNeverEndingTool()
-    try {
-      const runtime = new ClinicalToolRuntime()
-      const result = await runtime.execute(
-        "never-returns",
-        {},
-        mockContext,
-        undefined,
-        { timeoutMs: 50, maxRetries: 0 },
-      )
+  // -----------------------------------------------------------------------
+  // Parallel execution
+  // -----------------------------------------------------------------------
 
-      assert.strictEqual(result.success, false)
-      assert.strictEqual(result.error, "TOOL_TIMEOUT")
-    } finally {
-      unregisterNeverEndingTool()
-    }
-  })
-
-  it("should respect options.priority and options.critical on the execution handle", async () => {
-    const runtime = new ClinicalToolRuntime()
-    await runtime.execute(
-      "biomarker-analysis",
-      { geneSymbols: ["BRCA1"] },
-      mockContext,
-      undefined,
-      { critical: true, priority: 1 },
-    )
-
-    const summary = runtime.getSummary()
-    assert.strictEqual(summary.totalExecutions, 1)
-    const handle = summary.executions[0]
-    assert.strictEqual(handle.critical, true)
-    assert.strictEqual(handle.priority, 1)
-  })
-})
-
-/* ───────────────────────────────────────────────
-   Parallel execution
-   ─────────────────────────────────────────────── */
-describe("ClinicalToolRuntime – executeParallel", () => {
-  it("should execute tool calls in parallel", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const results = await runtime.executeParallel(
-      [
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["BRCA1"] } },
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["TP53"] } },
-      ],
-      mockContext,
-    )
-
-    assert.strictEqual(results.length, 2)
-    assert.strictEqual(results[0].success, true)
-    assert.strictEqual(results[1].success, true)
-  })
-
-  it("should abort remaining calls when a critical tool fails", async () => {
-    const runtime = new ClinicalToolRuntime()
+  it("should execute multiple tools in parallel", async () => {
+    const toolA = makeTool({
+      id: "parallel-a",
+      execute: jest.fn().mockResolvedValue({ from: "A" })
+    })
+    const toolB = makeTool({
+      id: "parallel-b",
+      execute: jest.fn().mockResolvedValue({ from: "B" })
+    })
+    const registry = require("../registry")
+    registry.toolRegistry["parallel-a"] = toolA
+    registry.toolRegistry["parallel-b"] = toolB
 
     const results = await runtime.executeParallel(
       [
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["BRCA1"] } },
-        { toolId: "critical-failure-tool", args: {}, options: { critical: true } },
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["TP53"] } },
+        { toolId: "parallel-a", args: {} },
+        { toolId: "parallel-b", args: {} }
       ],
-      mockContext,
+      ctx
     )
 
-    assert.strictEqual(results[0].success, true)
-    assert.strictEqual(results[1].success, false)
+    expect(results).toHaveLength(2)
+    expect(results[0].success).toBe(true)
+    expect(results[0].data).toEqual({ from: "A" })
+    expect(results[1].success).toBe(true)
+    expect(results[1].data).toEqual({ from: "B" })
   })
 
-  it("should respect concurrency limit by chunking execution", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const calls = Array.from({ length: 5 }, (_, i) => ({
-      toolId: "biomarker-analysis" as const,
-      args: { geneSymbols: [`GENE_${i}`] },
-    }))
+  // -----------------------------------------------------------------------
+  // Execution Plan (DAG)
+  // -----------------------------------------------------------------------
 
-    await runtime.executeParallel(calls, mockContext, undefined, { concurrency: 2 })
-    const summary = runtime.getSummary()
-    const completed = summary.executions.filter(e => e.status === "completed")
-    assert.strictEqual(completed.length, 5)
+  it("should execute a multi-stage plan sequentially, with intra-stage parallelism", async () => {
+    const calls: string[] = []
+
+    const toolX = makeTool({
+      id: "stage1-x",
+      execute: jest.fn(async () => {
+        calls.push("X-start")
+        await new Promise(r => setTimeout(r, 20))
+        calls.push("X-end")
+        return { x: true }
+      })
+    })
+    const toolY = makeTool({
+      id: "stage1-y",
+      execute: jest.fn(async () => {
+        calls.push("Y-start")
+        await new Promise(r => setTimeout(r, 10))
+        calls.push("Y-end")
+        return { y: true }
+      })
+    })
+    const toolZ = makeTool({
+      id: "stage2-z",
+      execute: jest.fn(async () => {
+        calls.push("Z-start")
+        calls.push("Z-end")
+        return { z: true }
+      })
+    })
+
+    const registry = require("../registry")
+    registry.toolRegistry["stage1-x"] = toolX
+    registry.toolRegistry["stage1-y"] = toolY
+    registry.toolRegistry["stage2-z"] = toolZ
+
+    const plan: ExecutionPlan = [
+      { tools: [{ toolId: "stage1-x", args: {} }, { toolId: "stage1-y", args: {} }] },
+      { tools: [{ toolId: "stage2-z", args: {} }] }
+    ]
+
+    const results = await runtime.executePlan(plan, ctx)
+
+    expect(results).toHaveLength(3)
+    // Stage 2 (Z) must start after Stage 1 (X, Y) both complete
+    const zStartIdx = calls.indexOf("Z-start")
+    const xEndIdx = calls.indexOf("X-end")
+    const yEndIdx = calls.indexOf("Y-end")
+    expect(zStartIdx).toBeGreaterThan(xEndIdx)
+    expect(zStartIdx).toBeGreaterThan(yEndIdx)
   })
 
-  it("should execute in priority order when concurrency is limited", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const results = await runtime.executeParallel(
-      [
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["LOW"] }, options: { priority: 100 } },
-        { toolId: "biomarker-analysis", args: { geneSymbols: ["HIGH"] }, options: { priority: 1 } },
-      ],
-      mockContext,
-      undefined,
-      { concurrency: 1 },
-    )
+  it("should abort remaining stages when a critical tool fails", async () => {
+    const toolCritical = makeTool({
+      id: "critical-fail",
+      execute: jest.fn().mockRejectedValue(new Error("critical error")),
+      policy: { timeoutMs: 5000, maxRetries: 0, critical: true }
+    })
+    const toolAfter = makeTool({
+      id: "should-not-run",
+      execute: jest.fn().mockResolvedValue({ ran: true })
+    })
 
-    assert.strictEqual(results[0].success, true)
-    assert.strictEqual(results[1].success, true)
-  })
-})
+    const registry = require("../registry")
+    registry.toolRegistry["critical-fail"] = toolCritical
+    registry.toolRegistry["should-not-run"] = toolAfter
 
-/* ───────────────────────────────────────────────
-   DAG (graph) execution
-   ─────────────────────────────────────────────── */
-describe("ClinicalToolRuntime – executeGraph", () => {
-  it("should execute a linear dependency chain", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const result = await runtime.executeGraph(
-      [
-        {
-          id: "step-a",
-          toolId: "biomarker-analysis",
-          args: { geneSymbols: ["BRCA1"] },
-          dependencies: [],
-        },
-        {
-          id: "step-b",
-          toolId: "biomarker-analysis",
-          args: { geneSymbols: ["TP53"] },
-          dependencies: ["step-a"],
-        },
-      ],
-      mockContext,
-    )
+    const plan: ExecutionPlan = [
+      { tools: [{ toolId: "critical-fail", args: {} }] },
+      { tools: [{ toolId: "should-not-run", args: {} }] }
+    ]
 
-    assert.strictEqual(result["step-a"].success, true)
-    assert.strictEqual(result["step-b"].success, true)
+    const results = await runtime.executePlan(plan, ctx)
+
+    expect(results).toHaveLength(1) // only stage 1 results
+    expect(results[0].success).toBe(false)
+    expect(toolAfter.execute).not.toHaveBeenCalled()
   })
 
-  it("should execute with dynamic args derived from dependencies", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const result = await runtime.executeGraph(
-      [
-        {
-          id: "src",
-          toolId: "biomarker-analysis",
-          args: { geneSymbols: ["BRCA1"] },
-          dependencies: [],
-        },
-        {
-          id: "derived",
-          toolId: "biomarker-analysis",
-          args: (depData: Record<string, any>) => {
-            const biomarkers = depData["src"]?.biomarkers ?? []
-            return {
-              geneSymbols:
-                biomarkers.length > 0
-                  ? biomarkers.map((b: any) => b.gene)
-                  : ["TP53"],
-            }
-          },
-          dependencies: ["src"],
-        },
-      ],
-      mockContext,
-    )
+  // -----------------------------------------------------------------------
+  // Introspection
+  // -----------------------------------------------------------------------
 
-    assert.strictEqual(result["src"].success, true)
-    assert.strictEqual(result["derived"].success, true)
+  it("should track all executions for introspection", async () => {
+    const tool = makeTool({ id: "tracked-tool" })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
+
+    await runtime.execute(tool.id, { a: 1 }, ctx)
+    await runtime.execute(tool.id, { a: 2 }, ctx)
+
+    const all = runtime.getAllExecutions()
+    expect(all).toHaveLength(2)
+    expect(all.every(e => e.status === "completed")).toBe(true)
   })
 
-  it("should abort graph when a critical node fails", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const result = await runtime.executeGraph(
-      [
-        {
-          id: "ok-node",
-          toolId: "biomarker-analysis",
-          args: { geneSymbols: ["BRCA1"] },
-          dependencies: [],
-        },
-        {
-          id: "critical-fail",
-          toolId: "non-existent-tool",
-          args: {},
-          dependencies: ["ok-node"],
-          critical: true,
-        },
-        {
-          id: "should-be-skipped",
-          toolId: "biomarker-analysis",
-          args: { geneSymbols: ["TP53"] },
-          dependencies: ["critical-fail"],
-        },
-      ],
-      mockContext,
-    )
+  it("should clear all executions", async () => {
+    const tool = makeTool({ id: "clear-tool" })
+    const registry = require("../registry")
+    registry.toolRegistry[tool.id] = tool
 
-    assert.strictEqual(result["ok-node"].success, true)
-    assert.strictEqual(result["critical-fail"].success, false)
-    if (result["should-be-skipped"]) {
-      assert.strictEqual(result["should-be-skipped"].success, false)
-    }
-  })
-})
+    await runtime.execute(tool.id, {}, ctx)
+    expect(runtime.getAllExecutions()).toHaveLength(1)
 
-/* ───────────────────────────────────────────────
-   Telemetry / Summary
-   ─────────────────────────────────────────────── */
-describe("ClinicalToolRuntime – getSummary", () => {
-  it("should report correct counts after several executions", async () => {
-    const runtime = new ClinicalToolRuntime()
-
-    // Run 2 successful + 1 failed
-    const r1 = await runtime.execute("biomarker-analysis", { geneSymbols: ["A"] }, mockContext)
-    const r2 = await runtime.execute("biomarker-analysis", { geneSymbols: ["B"] }, mockContext)
-    const r3 = await runtime.execute("unknown-tool", {}, mockContext)
-
-    assert.strictEqual(r1.success, true)
-    assert.strictEqual(r2.success, true)
-    assert.strictEqual(r3.success, false)
-
-    const summary = runtime.getSummary()
-
-    assert.strictEqual(summary.totalExecutions, 3, `Expected 3 total, got ${summary.totalExecutions}`)
-    assert.strictEqual(summary.completed, 2, `Expected 2 completed, got ${summary.completed}`)
-    assert.strictEqual(summary.failed, 1, `Expected 1 failed, got ${summary.failed}`)
-    // totalDurationMs is the sum of all execution durations; should be non-negative and typically >0
-    assert.ok(summary.totalDurationMs >= 0, `Duration should be >= 0, got ${summary.totalDurationMs}`)
-    assert.strictEqual(summary.executions.length, 3, `Expected 3 handles, got ${summary.executions.length}`)
-  })
-
-  it("should return empty summary for a fresh runtime", async () => {
-    const runtime = new ClinicalToolRuntime()
-    const summary = runtime.getSummary()
-
-    assert.strictEqual(summary.totalExecutions, 0)
-    assert.strictEqual(summary.completed, 0)
-    assert.strictEqual(summary.failed, 0)
-    assert.strictEqual(summary.averageDurationMs, 0)
+    runtime.clearExecutions()
+    expect(runtime.getAllExecutions()).toHaveLength(0)
   })
 })

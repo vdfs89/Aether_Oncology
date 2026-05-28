@@ -26,18 +26,23 @@ export interface BaseEventMetadata {
   runtimeState: ClinicalRuntimeState
 }
 
+export type ApprovalDecision =
+  | "APPROVED"
+  | "REJECTED"
+  | "ESCALATED"
+  | "MODIFIED"
+
 export type ClinicalRuntimeEvent =
   | { type: "MessageCreated"; payload: AIMessage; metadata: BaseEventMetadata }
   | { type: "RetrievalStarted"; payload: { query: string }; metadata: BaseEventMetadata }
   | { type: "CitationAttached"; payload: Citation; metadata: BaseEventMetadata }
   | { type: "ToolExecuted"; payload: { toolId: string; result: any }; metadata: BaseEventMetadata }
-  | { type: "ToolStarted"; payload: { toolId: string; executionId: string }; metadata: BaseEventMetadata }
-  | { type: "ToolCompleted"; payload: { toolId: string; executionId: string; result: any }; metadata: BaseEventMetadata }
-  | { type: "ToolFailed"; payload: { toolId: string; executionId: string; error: string }; metadata: BaseEventMetadata }
   | { type: "PredictionGenerated"; payload: PredictionResult; metadata: BaseEventMetadata }
   | { type: "StreamCompleted"; payload: { totalTokens: number }; metadata: BaseEventMetadata }
   | { type: "InferenceFailed"; payload: { error: string }; metadata: BaseEventMetadata }
   | { type: "StateTransition"; payload: { from: ClinicalRuntimeState; to: ClinicalRuntimeState }; metadata: BaseEventMetadata }
+  | { type: "ClinicalApprovalRequested"; payload: { approvalRequestId: string; plan: any; riskLevel: string; rationale: string[] }; metadata: BaseEventMetadata }
+  | { type: "ClinicalApprovalResolved"; payload: { approvalRequestId: string; decision: ApprovalDecision; approvedBy?: { physicianId: string; timestamp: number } }; metadata: BaseEventMetadata }
 
 export interface ExecutionContext {
   patientId: string

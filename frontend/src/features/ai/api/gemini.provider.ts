@@ -1,8 +1,8 @@
 import { OpenAICompatibleProvider } from "./openai-compatible.provider"
 
-export class GroqProvider extends OpenAICompatibleProvider {
-  id = "groq"
-  name = "Groq Llama-3 / DeepSeek Inference Engine"
+export class GeminiProvider extends OpenAICompatibleProvider {
+  id = "gemini"
+  name = "Gemini 1.5 Clinical Engine"
 
   constructor() {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -10,10 +10,10 @@ export class GroqProvider extends OpenAICompatibleProvider {
     this.capabilities = {
       streaming: true,
       tools: true,
-      multimodal: false,
+      multimodal: true,
       jsonMode: true,
       reasoning: true,
-      maxContextTokens: 128000
+      maxContextTokens: 2000000
     }
   }
 }

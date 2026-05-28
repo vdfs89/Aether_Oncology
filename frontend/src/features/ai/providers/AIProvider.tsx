@@ -64,14 +64,13 @@ function AIStateProvider({ children }: { children: React.ReactNode }) {
 
     // Translate tool execution results into message attachments
     const unsubTool = clinicalEventBus.subscribe("ToolExecuted", (payload) => {
-      const toolResult = payload.result
       const attachment: AIAttachment = {
         type: "evidence",
         data: {
           title: `Biomarker Run: ${payload.toolId.toUpperCase()}`,
-          source: toolResult.metadata.source || "biomarker-analysis-runtime",
-          biomarkers: toolResult.data?.biomarkers || [],
-          summary: toolResult.data?.recommendationSummary || ""
+          source: "biomarker-analysis-runtime",
+          biomarkers: payload.result.biomarkers,
+          summary: payload.result.recommendationSummary
         }
       }
       dispatch(actions.updateStreamingMessage("", undefined, [attachment]))
@@ -83,9 +82,6 @@ function AIStateProvider({ children }: { children: React.ReactNode }) {
       "RetrievalStarted",
       "CitationAttached",
       "ToolExecuted",
-      "ToolStarted",
-      "ToolCompleted",
-      "ToolFailed",
       "PredictionGenerated",
       "StreamCompleted",
       "InferenceFailed",

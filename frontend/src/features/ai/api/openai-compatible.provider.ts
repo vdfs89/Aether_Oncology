@@ -28,13 +28,22 @@ export class OpenAICompatibleProvider implements LLMProvider {
   }
 
   async *stream(input: StreamInput): AsyncGenerator<AIStreamEvent, void, unknown> {
+    const bodyPayload = { 
+      messages: input.messages,
+      context: {}, // TODO: pass context from ClinicalExecutionContext
+      task: {
+        intent: "conversational",
+        risk_level: "LOW"
+      }
+    }
+
     const response = await fetch(this.apiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(input.patientId ? { "X-Patient-Id": input.patientId } : {})
       },
-      body: JSON.stringify({ messages: input.messages }),
+      body: JSON.stringify(bodyPayload),
       signal: input.signal
     })
 

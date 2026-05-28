@@ -1,8 +1,12 @@
 /**
  * src/features/ai/hooks/useStreaming.ts
- * 
+ *
  * High-level hook to manage the lifecycle of a single AI inference request.
- * Now integrated with the EventBus, State Machine, and Tools Orchestration.
+ * Integrated with:
+ *   - ClinicalRuntimeStateMachine (deterministic state transitions)
+ *   - ClinicalEventBus (decoupled event propagation)
+ *   - ClinicalToolRuntime (DAG-based tool execution with retries/timeouts)
+ *   - LLMProvider abstraction (provider-agnostic streaming)
  */
 import { useRef, useCallback } from "react"
 import { useAI } from "./useAI"
@@ -11,169 +15,216 @@ import { nanoid } from "nanoid"
 import { ClinicalExecutionContext } from "../orchestration/runtime/executionContext"
 import { ClinicalRuntimeStateMachine } from "../orchestration/runtime/stateMachine"
 import { clinicalEventBus } from "../orchestration/runtime/eventBus"
-import { biomarkerAnalysisTool } from "../tools/registry"
+import { clinicalToolRuntime } from "../tools/runtime"
+import { ExecutionPlan, ExecutionStage } from "../tools/types"
+import { clinicalPlanner } from "../orchestration/planner"
+import { clinicalApprovalManager } from "../orchestration/runtime/approvalManager"
 
 export function useStreaming() {
-  const { 
-    _startAssistantStreaming, 
-    _updateStreamingChunk, 
+  const {
+    _startAssistantStreaming,
+    _updateStreamingChunk,
     _finishInference,
-    state 
+    state
   } = useAI()
-  
+
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const triggerInference = useCallback(async (assistantMessageId: string, prompt: string) => {
-    const session = state.activePatientId ? state.sessionsByPatient[state.activePatientId] : null
-    if (!session) return
-    if (session.inference.isStreaming) return
+  const triggerInference = useCallback(
+    async (assistantMessageId: string, prompt: string) => {
+      const session = state.activePatientId
+        ? state.sessionsByPatient[state.activePatientId]
+        : null
+      if (!session) return
+      if (session.inference.isStreaming) return
 
-    const patientId = state.activePatientId || "test-patient"
-    const sessionId = session.id
-    const traceId = nanoid() // Unique trace for this run
+      const patientId = state.activePatientId || "test-patient"
+      const sessionId = session.id
+      const traceId = nanoid()
 
-    // Setup cancellation token
-    abortControllerRef.current = new AbortController()
+      abortControllerRef.current = new AbortController()
+      const signal = abortControllerRef.current.signal
 
-    // 1. Setup execution context and state machine
-    const context = new ClinicalExecutionContext(patientId, sessionId, traceId)
-    const stateMachine = new ClinicalRuntimeStateMachine("IDLE", (from, to) => {
-      // Publish StateTransition to EventBus
-      clinicalEventBus.publish({
-        type: "StateTransition",
-        payload: { from, to },
-        metadata: context.createEventMetadata(to)
-      })
-    })
-
-    try {
-      // Publish the user's message start
-      clinicalEventBus.publish({
-        type: "MessageCreated",
-        payload: {
-          id: assistantMessageId,
-          role: "assistant",
-          content: "",
-          createdAt: Date.now(),
-          status: "thinking"
-        },
-        metadata: context.createEventMetadata("IDLE")
-      })
-
-      // Transition to HYDRATING (session/state hydration check)
-      stateMachine.transitionTo("HYDRATING")
-      await new Promise(resolve => setTimeout(resolve, 300)) // Simulation delay
-
-      // Transition to PLANNING
-      stateMachine.transitionTo("PLANNING")
-      
-      // Start streaming message in reducer (creates visual slot)
-      _startAssistantStreaming(assistantMessageId)
-
-      // 2. Decide if we need to execute a tool (e.g. biomarker-analysis)
-      const promptLower = prompt.toLowerCase()
-      const detectsGenes = ["brca1", "her2", "tp53", "erbb2", "biomarker"].some(word => promptLower.includes(word))
-
-      if (detectsGenes) {
-        // Transition to RETRIEVING (RAG / Data retrieval stage)
-        stateMachine.transitionTo("RETRIEVING")
+      // 1. Execution context & state machine
+      const context = new ClinicalExecutionContext(patientId, sessionId, traceId)
+      const stateMachine = new ClinicalRuntimeStateMachine("IDLE", (from, to) => {
         clinicalEventBus.publish({
-          type: "RetrievalStarted",
-          payload: { query: `Genomic alterations for ${prompt}` },
-          metadata: context.createEventMetadata("RETRIEVING")
+          type: "StateTransition",
+          payload: { from, to },
+          metadata: context.createEventMetadata(to)
         })
-        
-        await new Promise(resolve => setTimeout(resolve, 800)) // Retrieval latency simulation
-
-        // Transition to EXECUTING (tool execution stage)
-        stateMachine.transitionTo("EXECUTING")
-
-        // Parse query to see which genes the user wants
-        const queriedGenes: string[] = []
-        if (promptLower.includes("brca1")) queriedGenes.push("BRCA1")
-        if (promptLower.includes("her2") || promptLower.includes("erbb2")) queriedGenes.push("HER2")
-        if (promptLower.includes("tp53")) queriedGenes.push("TP53")
-        if (queriedGenes.length === 0) queriedGenes.push("BRCA1", "HER2", "TP53") // Default
-
-        // Execute biomarker-analysis tool
-        const toolResult = await biomarkerAnalysisTool.execute({ geneSymbols: queriedGenes }, context.getContext())
-        context.addToolExecution(biomarkerAnalysisTool.id, toolResult)
-        
-        await new Promise(resolve => setTimeout(resolve, 600)) // Execution latency simulation
-      }
-
-      // Transition to STREAMING
-      stateMachine.transitionTo("STREAMING")
-
-      // 3. Trigger LLM Stream Chat via Server-Sent Events (SSE)
-      // Concat user message temporarily for context
-      const messages = session.messages.concat([{ id: "temp", role: "user", content: prompt, createdAt: Date.now() }])
-      const provider = getLLMProvider()
-      const stream = provider.stream({
-        messages,
-        signal: abortControllerRef.current.signal,
-        patientId: patientId
       })
 
-      for await (const event of stream) {
-        if (abortControllerRef.current.signal.aborted) {
+      try {
+        // Announce message creation
+        clinicalEventBus.publish({
+          type: "MessageCreated",
+          payload: {
+            id: assistantMessageId,
+            role: "assistant",
+            content: "",
+            createdAt: Date.now(),
+            status: "thinking"
+          },
+          metadata: context.createEventMetadata("IDLE")
+        })
+
+        // HYDRATING → PLANNING
+        stateMachine.transitionTo("HYDRATING")
+        await new Promise(r => setTimeout(r, 250))
+        stateMachine.transitionTo("PLANNING")
+
+        _startAssistantStreaming(assistantMessageId)
+
+        // -----------------------------------------------------------------
+        // 2. Build an ExecutionPlan based on prompt analysis
+        // -----------------------------------------------------------------
+        const plannerResult = clinicalPlanner.plan(prompt, context.getContext())
+        
+        // Always emit the planning result for telemetry / UI visualization
+        clinicalEventBus.publish({
+          type: "StateTransition", // Mapping to generic for now, could be PlanBuilt
+          payload: { from: "PLANNING", to: "RETRIEVING" }, // Fast-forward representation
+          metadata: context.createEventMetadata("PLANNING") // Keep state in PLANNING during emission
+        })
+
+        if (plannerResult.requiresApproval) {
+          stateMachine.transitionTo("WAITING_APPROVAL")
+          
+          // Pause execution indefinitely until the physician decides
+          const decision = await clinicalApprovalManager.requestApproval(
+            plannerResult.executionPlan,
+            plannerResult.riskLevel,
+            plannerResult.reasoning,
+            context
+          )
+
+          if (decision === "REJECTED") {
+            stateMachine.transitionTo("INTERRUPTED")
+            _finishInference()
+            return
+          }
+        }
+
+        if (plannerResult.executionPlan.length > 0) {
+          // RETRIEVING phase
+          stateMachine.transitionTo("RETRIEVING")
+          clinicalEventBus.publish({
+            type: "RetrievalStarted",
+            payload: { query: `Intent: ${plannerResult.intent}. Reasoning: ${plannerResult.reasoning[0]}` },
+            metadata: context.createEventMetadata("RETRIEVING")
+          })
+          await new Promise(r => setTimeout(r, 600))
+
+          // EXECUTING phase — run through the Tool Runtime Engine
+          stateMachine.transitionTo("EXECUTING")
+
+          // Execute the full plan through the runtime engine
+          const results = await clinicalToolRuntime.executePlan(
+            plannerResult.executionPlan,
+            context.getContext(),
+            signal
+          )
+
+          // Record successful tool executions in the context
+          results.forEach((result, idx) => {
+            const flatTools = plannerResult.executionPlan.flatMap((s: ExecutionStage) => s.tools)
+            if (result.success && flatTools[idx]) {
+              context.addToolExecution(flatTools[idx].toolId, result.data)
+            }
+          })
+
+          // Publish aggregated ToolExecuted event
+          const biomarkerResult = results.find(r => r.success && (r.data as any)?.biomarkers)
+          if (biomarkerResult) {
+            clinicalEventBus.publish({
+              type: "ToolExecuted",
+              payload: {
+                toolId: "biomarker-analysis",
+                result: biomarkerResult.data
+              },
+              metadata: context.createEventMetadata("EXECUTING")
+            })
+          }
+        }
+
+        // -----------------------------------------------------------------
+        // 3. STREAMING phase — LLM token generation
+        // -----------------------------------------------------------------
+        stateMachine.transitionTo("STREAMING")
+
+        const messages = session.messages.concat([
+          { id: "temp", role: "user", content: prompt, createdAt: Date.now() }
+        ])
+        const provider = getLLMProvider()
+        const stream = provider.stream({
+          messages,
+          signal,
+          patientId
+        })
+
+        for await (const event of stream) {
+          if (signal.aborted) {
+            stateMachine.transitionTo("INTERRUPTED")
+            break
+          }
+
+          switch (event.type) {
+            case "token":
+              _updateStreamingChunk(event.chunk)
+              context.incrementTokens(1)
+              break
+            case "citation":
+              _updateStreamingChunk("", [event.citation])
+              context.addCitation(event.citation)
+              clinicalEventBus.publish({
+                type: "CitationAttached",
+                payload: event.citation,
+                metadata: context.createEventMetadata("STREAMING")
+              })
+              break
+            case "error":
+              console.error("Clinical Inference Error:", event.error)
+              stateMachine.transitionTo("FAILED")
+              clinicalEventBus.publish({
+                type: "InferenceFailed",
+                payload: { error: event.error.message },
+                metadata: context.createEventMetadata("FAILED")
+              })
+              break
+          }
+        }
+
+        // Complete
+        if (stateMachine.getState() === "STREAMING") {
+          context.complete()
+          stateMachine.transitionTo("COMPLETED")
+          clinicalEventBus.publish({
+            type: "StreamCompleted",
+            payload: {
+              totalTokens: context.getContext().telemetry.tokensCount
+            },
+            metadata: context.createEventMetadata("COMPLETED")
+          })
+          _finishInference()
+        }
+      } catch (e: any) {
+        if (e.name === "AbortError") {
           stateMachine.transitionTo("INTERRUPTED")
-          break
+        } else {
+          console.error("Stream Failed:", e)
+          stateMachine.transitionTo("FAILED")
+          clinicalEventBus.publish({
+            type: "InferenceFailed",
+            payload: { error: e.message || String(e) },
+            metadata: context.createEventMetadata("FAILED")
+          })
         }
-
-        switch (event.type) {
-          case "token":
-            _updateStreamingChunk(event.chunk)
-            context.incrementTokens(1)
-            break
-          case "citation":
-            _updateStreamingChunk("", [event.citation])
-            context.addCitation(event.citation)
-            clinicalEventBus.publish({
-              type: "CitationAttached",
-              payload: event.citation,
-              metadata: context.createEventMetadata("STREAMING")
-            })
-            break
-          case "error":
-            console.error("Clinical Inference Error:", event.error)
-            stateMachine.transitionTo("FAILED")
-            clinicalEventBus.publish({
-              type: "InferenceFailed",
-              payload: { error: event.error.message },
-              metadata: context.createEventMetadata("FAILED")
-            })
-            break
-        }
-      }
-
-      if (stateMachine.getState() === "STREAMING") {
-        context.complete()
-        stateMachine.transitionTo("COMPLETED")
-        clinicalEventBus.publish({
-          type: "StreamCompleted",
-          payload: { totalTokens: context.getContext().telemetry.tokensCount },
-          metadata: context.createEventMetadata("COMPLETED")
-        })
         _finishInference()
       }
-
-    } catch (e: any) {
-      if (e.name === "AbortError") {
-        stateMachine.transitionTo("INTERRUPTED")
-      } else {
-        console.error("Stream Failed:", e)
-        stateMachine.transitionTo("FAILED")
-        clinicalEventBus.publish({
-          type: "InferenceFailed",
-          payload: { error: e.message || String(e) },
-          metadata: context.createEventMetadata("FAILED")
-        })
-      }
-      _finishInference()
-    }
-
-  }, [state, _startAssistantStreaming, _updateStreamingChunk, _finishInference])
+    },
+    [state, _startAssistantStreaming, _updateStreamingChunk, _finishInference]
+  )
 
   const cancel = useCallback(() => {
     if (abortControllerRef.current) {

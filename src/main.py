@@ -25,6 +25,9 @@ import asyncio
 import json
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -213,6 +216,9 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+from src.api.routes.clinical_chat import router as clinical_chat_router
+app.include_router(clinical_chat_router, prefix="/api/v1/clinical")
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -298,6 +304,7 @@ app.add_middleware(
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:5173",
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
