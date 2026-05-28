@@ -13,7 +13,14 @@ pip-wheel-metadata/
 .venv/
 venv/
 env/
+
+# ─── Environment / Secrets (NUNCA versionar) ──────────────────────────────────
 .env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!.env.example
 
 # ─── Artefatos do modelo ──────────────────────────────────────────────────────
 # Permitimos o versionamento de artefatos pequenos (< 100KB) para garantir

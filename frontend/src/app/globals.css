@@ -15,25 +15,28 @@
 /* ── 1. TOKENS ─────────────────────────────────────────────────────────── */
 :root {
   /* Brand - New Tokens */
-  --bg-primary: #050816;
-  --bg-secondary: #0B1023;
+  --bg-primary: #030409;
+  --bg-secondary: #070913;
 
   --cyan: #00E5FF;
   --purple: #8B5CFF;
   --pink: #FF4FD8;
 
   --text-primary: #FFFFFF;
-  --text-secondary: #B8C1EC;
+  --text-secondary: #94A3B8;
 
   --success: #00FFA3;
+  --emerald: #00FFA3;
   --danger: #FF3CAC;
 
-  --glass: rgba(255,255,255,0.06);
-  --glass-border: rgba(255,255,255,0.12);
+  --glass: rgba(7, 9, 20, 0.7);
+  --glass-hover: rgba(11, 15, 34, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.07);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
   --shadow-neon:
-    0 0 12px rgba(0,229,255,0.35),
-    0 0 32px rgba(139,92,255,0.25);
+    0 0 15px rgba(0,229,255,0.25),
+    0 0 35px rgba(139,92,255,0.15);
 
   /* Legacy Maps (To preserve existing layout) */
   --bg:       var(--bg-primary);
@@ -44,8 +47,9 @@
   
   --t1: var(--text-primary);
   --t2: var(--text-secondary);
-  --t3: rgba(184,193,236,.6);
-  --blur: 24px;
+  --t3: rgba(148, 163, 184, 0.7);
+  --blur: 20px;
+
 
   /* Layout */
   --container-max: 82rem;
@@ -95,10 +99,17 @@ p{color:var(--t2);line-height:1.75}
 .ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
 
 .mesh-blob{position:absolute;border-radius:50%;filter:blur(100px)}
-.mesh-blob--1{width:65vw;height:65vw;background:radial-gradient(circle,var(--pink) 0%,transparent 65%);top:-20%;left:-20%;opacity:.35;animation:blobDrift 20s ease-in-out infinite alternate}
-.mesh-blob--2{width:55vw;height:55vw;background:radial-gradient(circle,var(--bg-card) 0%,transparent 65%);top:35%;right:-18%;opacity:.5;animation:blobDrift 26s ease-in-out infinite alternate-reverse}
-.mesh-blob--3{width:40vw;height:40vw;background:radial-gradient(circle,var(--cyan) 0%,transparent 65%);bottom:-10%;left:25%;opacity:.12;animation:blobDrift 32s ease-in-out infinite alternate}
-.mesh-blob--4{width:30vw;height:30vw;background:radial-gradient(circle,#EDE6FF 0%,transparent 65%);top:55%;left:40%;opacity:.06;animation:blobDrift 24s ease-in-out infinite}
+.mesh-blob--1{width:65vw;height:65vw;background:radial-gradient(circle,var(--pink) 0%,transparent 65%);top:-20%;left:-20%;opacity:.22;animation:blobDrift 20s ease-in-out infinite alternate}
+.mesh-blob--2{width:55vw;height:55vw;background:radial-gradient(circle,var(--bg-card) 0%,transparent 65%);top:35%;right:-18%;opacity:.45;animation:blobDrift 26s ease-in-out infinite alternate-reverse}
+.mesh-blob--3{width:40vw;height:40vw;background:radial-gradient(circle,var(--cyan) 0%,transparent 65%);bottom:-10%;left:25%;opacity:.09;animation:blobDrift 32s ease-in-out infinite alternate}
+.mesh-blob--4{width:30vw;height:30vw;background:radial-gradient(circle,#EDE6FF 0%,transparent 65%);top:55%;left:40%;opacity:.05;animation:blobDrift 24s ease-in-out infinite}
+/* Mobile — reduce blob GPU cost significantly */
+@media(max-width:767px){
+  .mesh-blob--1{width:90vw;height:90vw;opacity:.14;filter:blur(80px)}
+  .mesh-blob--2{display:none}
+  .mesh-blob--3{width:60vw;height:60vw;opacity:.06;filter:blur(70px)}
+  .mesh-blob--4{display:none}
+}
 
 .neural-canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.35}
 
@@ -153,7 +164,7 @@ p{color:var(--t2);line-height:1.75}
 .btn--lg{font-size:1rem;padding:.9rem 2rem;border-radius:var(--r-lg)}
 
 /* ── 8. GLASS CARD ─────────────────────────────────────────────────────── */
-.glass-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:var(--gutter-md);overflow:hidden;transition:background var(--t-mid) ease}
+.glass-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2.5rem;padding:var(--gutter-md);overflow:hidden;box-shadow: 0 30px 60px rgba(0,0,0,0.5), var(--glass-highlight);transition:background var(--t-mid) ease}
 
 /* ── 9. SECTION UTILITIES ──────────────────────────────────────────────── */
 .section{padding-block:var(--section-py)}
@@ -179,7 +190,7 @@ p{color:var(--t2);line-height:1.75}
 .hero-h1{font-size:clamp(3.5rem,8.5vw,7rem);font-weight:900;line-height:.92;letter-spacing:-.04em;color:var(--t1);margin-bottom:1rem;max-width:14ch}
 .hero-h1__accent{font-style:normal;background:linear-gradient(135deg,var(--magenta) 0%,var(--pink) 50%,var(--lavender) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
-.hero-sub{font-size:1.05rem;color:var(--t2);max-width:36rem;margin-bottom:1.75rem;line-height:1.65}
+.hero-sub{font-size:clamp(1rem,2vw,1.125rem);color:var(--t2);max-width:36rem;margin-bottom:1.75rem;line-height:1.72}
 
 /* Metrics row */
 .hero-metrics {
@@ -288,7 +299,7 @@ p{color:var(--t2);line-height:1.75}
   .bento-card--wide{grid-column:span 2}
 }
 
-.bento-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:1.5rem;padding:1.125rem;display:flex;flex-direction:column;gap:0.6rem;transition:transform var(--t-mid) var(--ease-out),background var(--t-mid) ease,box-shadow var(--t-mid) ease,border-color var(--t-mid) ease;overflow:hidden;position:relative}
+.bento-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:1.5rem;padding:1.125rem;display:flex;flex-direction:column;gap:0.6rem;box-shadow: 0 15px 30px rgba(0,0,0,0.4), var(--glass-highlight);transition:transform var(--t-mid) var(--ease-out),background var(--t-mid) ease,box-shadow var(--t-mid) ease,border-color var(--t-mid) ease;overflow:hidden;position:relative}
 .bento-card:hover{transform:translateY(-5px);background:var(--glass-hover);border-color:rgba(230,57,138,.2)}
 .bento-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 40%);pointer-events:none}
 .bento-card::after{content:'';position:absolute;inset:-50%;background:radial-gradient(circle at center,rgba(230,57,138,.08) 0%,transparent 70%);opacity:0;transition:opacity var(--t-mid) ease;pointer-events:none;z-index:1}
@@ -350,7 +361,7 @@ p{color:var(--t2);line-height:1.75}
 /* ── 14. EVIDENCE ──────────────────────────────────────────────────────── */
 .evidence-grid{display:grid;grid-template-columns:1fr;gap:1.125rem;margin-bottom:1.25rem}
 @media(min-width:768px){.evidence-grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:1200px){.evidence-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1200px){.evidence-grid{grid-template-columns:repeat(3,1fr)}}
 
 .evidence-card{background:var(--glass);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);border-radius:2rem;padding:1.25rem;display:flex;flex-direction:column;gap:0.5rem;transition:transform var(--t-mid) var(--ease-out),box-shadow var(--t-mid) ease;overflow:hidden}
 .evidence-card::before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.1) 0%,transparent 35%);pointer-events:none}
@@ -368,7 +379,8 @@ p{color:var(--t2);line-height:1.75}
 .score-val{font-weight:700;color:var(--magenta)}
 
 .rag-live{display:flex;align-items:center;gap:.75rem;font-size:.84rem;color:var(--t2);border-radius:var(--r-md);padding:.85rem 1.25rem}
-.rag-live__dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);flex-shrink:0;animation:pulse 2s ease-in-out infinite}
+/* .rag-live__dot animation is controlled by framer-motion in RAGStatus.tsx — no CSS animation */
+.rag-live__dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);flex-shrink:0}
 
 /* ── 15. SRE DOCK ──────────────────────────────────────────────────────── */
 .sre-dock{padding:var(--gutter-md)}

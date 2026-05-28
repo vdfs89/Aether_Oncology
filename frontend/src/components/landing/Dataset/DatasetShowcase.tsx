@@ -1,3 +1,5 @@
+import { RAGStatus } from "./RAGStatus"
+
 export function DatasetShowcase() {
   return (
     <section id="evidence" className="section" aria-label="Evidência Científica">
@@ -54,10 +56,7 @@ export function DatasetShowcase() {
 
         </div>
 
-        <div className="rag-live glass-card mt-12" aria-live="polite">
-          <div className="rag-live__dot" aria-hidden="true"></div>
-          RAG Engine ativo · 2.847 documentos indexados · atualizado há 3 minutos
-        </div>
+        <RAGStatus />
       </div>
     </section>
   )

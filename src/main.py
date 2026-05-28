@@ -30,15 +30,15 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 
+import joblib
 import numpy as np
 import pandas as pd
+import torch
 from fastapi import FastAPI, HTTPException, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
-import joblib
-import torch
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -46,11 +46,11 @@ from slowapi.util import get_remote_address
 
 from src.api.schemas import OralCancerRequest, PredictionResponse
 from src.core.logging import request_id_contextvar, setup_logging
-from src.models.mlp import MLP
 from src.ml_platform.orchestrator import MLPlatformOrchestrator
+from src.models.mlp import MLP
 from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
 from src.services.inference_client import inference_client
-from src.services.predictor import FEATURE_NAMES, predictor
+from src.services.predictor import predictor
 
 # ---------------------------------------------------------------------------
 # Platform Metadata (v2.2)

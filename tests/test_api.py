@@ -18,13 +18,11 @@ Nota sobre autenticação:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
-import torch
 import torch.nn as nn
 from fastapi.testclient import TestClient
 

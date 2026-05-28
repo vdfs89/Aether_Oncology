@@ -1,3 +1,37 @@
+"use client"
+
+import dynamic from "next/dynamic"
+
+// Dynamic imports with ssr:false — prevents Recharts width(-1) warning during
+// static generation. Charts hydrate client-side after initial page load.
+const ClinicalChart = dynamic(
+  () => import("./ClinicalChart").then((m) => ({ default: m.ClinicalChart })),
+  {
+    ssr: false,
+    loading: () => (
+      <div 
+        className="w-full h-64 bg-[var(--bg-card)] rounded-xl border border-[var(--glass-border)] animate-pulse"
+        aria-label="Carregando gráfico clínico..."
+        role="img"
+      />
+    ),
+  }
+)
+
+const XAIRadar = dynamic(
+  () => import("./XAIRadar").then((m) => ({ default: m.XAIRadar })),
+  {
+    ssr: false,
+    loading: () => (
+      <div 
+        className="w-full aspect-square max-h-[300px] bg-[var(--bg-card)] rounded-full border border-[var(--glass-border)] animate-pulse"
+        aria-label="Carregando radar XAI..."
+        role="img"
+      />
+    ),
+  }
+)
+
 export function AIInsights() {
   return (
     <>
@@ -17,11 +51,8 @@ export function AIInsights() {
                   <li>Rastreabilidade auditável completa</li>
                 </ul>
               </div>
-              <div className="glass-section__chart" role="img" aria-label="Gráfico de biomarcadores">
-                {/* O gráfico Chart.js ou Recharts será injetado aqui na Fase 1.3 */}
-                <div className="w-full h-64 bg-[var(--bg-card)] rounded flex items-center justify-center border border-[var(--glass-border)]">
-                  <span className="text-[var(--t2)] text-sm font-mono">Clinical Chart Area</span>
-                </div>
+              <div className="glass-section__chart" role="img" aria-label="Gráfico de trajetória de biomarcadores e risco">
+                <ClinicalChart />
               </div>
             </div>
           </div>
@@ -32,11 +63,8 @@ export function AIInsights() {
       <section id="xai" className="section" aria-label="IA Explicável">
         <div className="container-premium">
           <div className="xai-layout">
-            <div className="xai-layout__chart" role="img" aria-label="Radar de atributos XAI">
-              {/* O gráfico radar Chart.js será injetado aqui */}
-              <div className="w-full aspect-square max-h-[300px] bg-[var(--bg-card)] rounded-full flex items-center justify-center border border-[var(--glass-border)]">
-                <span className="text-[var(--t2)] text-sm font-mono">XAI Radar Area</span>
-              </div>
+            <div className="xai-layout__chart">
+              <XAIRadar />
             </div>
             <div className="xai-layout__text">
               <div className="eyebrow">Transparência Radical</div>

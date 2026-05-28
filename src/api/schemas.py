@@ -13,7 +13,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Request schema — Oral Cancer Top 30 Countries
 # ---------------------------------------------------------------------------
