@@ -21,3 +21,19 @@ class ErrorEvent(BaseEventMetadata):
 
 class CompleteEvent(BaseEventMetadata):
     type: str = "complete"
+
+class JudgementStartedEvent(BaseEventMetadata):
+    type: str = "judgement_started"
+
+class JudgementCompletedEvent(BaseEventMetadata):
+    type: str = "judgement_completed"
+    judgement: Dict[str, Any]
+
+class HallucinationDetectedEvent(BaseEventMetadata):
+    type: str = "hallucination_detected"
+    details: str
+
+class EscalationTriggeredEvent(BaseEventMetadata):
+    type: str = "escalation_triggered"
+    level: str
+    reason: str

@@ -2,11 +2,15 @@
 
 import * as React from "react"
 import { copilotTheme } from "../../theme"
+import { ClinicalSafetyHUD } from "../safety/ClinicalSafetyHUD"
 
 export function CopilotSidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-80 border-l border-[#1A2235] bg-[#0A0D14] h-full p-6 overflow-y-auto space-y-8">
       
+      {/* Safety HUD */}
+      <ClinicalSafetyHUD />
+
       {/* Patient Context Block */}
       <div>
         <h3 className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest mb-3">

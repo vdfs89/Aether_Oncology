@@ -3,15 +3,17 @@ import uuid
 import logging
 from typing import AsyncGenerator, Dict, Any
 
-from src.streaming.protocol import TokenEvent, StatusEvent, CompleteEvent, ErrorEvent
+from src.streaming.protocol import TokenEvent, StatusEvent, CompleteEvent, ErrorEvent, JudgementStartedEvent, JudgementCompletedEvent, EscalationTriggeredEvent
 from src.streaming.sse import format_sse
 from src.providers.router import ClinicalModelRouter, ClinicalTaskProfile
+from src.safety.clinical_judge import ClinicalJudge
 
 logger = logging.getLogger(__name__)
 
 class ClinicalInferenceRuntime:
     def __init__(self):
         self.router = ClinicalModelRouter()
+        self.judge = ClinicalJudge()
         
     async def stream_clinical_response(self, payload: Dict[str, Any]) -> AsyncGenerator[str, None]:
         trace_id = str(uuid.uuid4())
@@ -20,10 +22,6 @@ class ClinicalInferenceRuntime:
         context = payload.get("context", {})
         task_info = payload.get("task", {})
         
-        # In frontend openai-compatible.provider.ts we added task and context
-        # but wait, frontend protocol metadata needs sessionId and patientId. 
-        # Since frontend doesn't send them directly in the body, we fallback.
-        # Ideally, we should parse X-Patient-Id from headers. For now:
         patient_id = "default-patient"
         session_id = "default-session"
 
@@ -38,15 +36,68 @@ class ClinicalInferenceRuntime:
         try:
             provider = self.router.route(profile)
             yield format_sse(StatusEvent(
-                status="streaming", # The frontend schema enum expects "streaming" rather than "ROUTING"
+                status="generating_internally",
                 traceId=trace_id,
                 sessionId=session_id,
                 patientId=patient_id
             ))
             
+            # Collect full response internally
+            full_response = ""
             async for token in provider.stream_inference(messages, context):
+                full_response += token
+                
+            # Run Clinical Judge
+            yield format_sse(JudgementStartedEvent(
+                traceId=trace_id,
+                sessionId=session_id,
+                patientId=patient_id
+            ))
+            
+            # Original prompt is the last user message
+            user_msg = next((m["content"] for m in reversed(messages) if m.get("role") == "user"), "")
+            
+            judgement = await self.judge.evaluate(user_msg, full_response)
+            
+            yield format_sse(JudgementCompletedEvent(
+                judgement=judgement.model_dump(),
+                traceId=trace_id,
+                sessionId=session_id,
+                patientId=patient_id
+            ))
+            
+            if judgement.escalation_level != "NONE":
+                yield format_sse(EscalationTriggeredEvent(
+                    level=judgement.escalation_level,
+                    reason="Safety threshold breached",
+                    traceId=trace_id,
+                    sessionId=session_id,
+                    patientId=patient_id
+                ))
+            
+            # If a HARD_STOP is required, we don't stream the content
+            if judgement.escalation_level == "HARD_STOP":
+                yield format_sse(ErrorEvent(
+                    error={"code": "SAFETY_VIOLATION", "message": "Response blocked by Clinical Judge.", "severity": "critical"},
+                    traceId=trace_id,
+                    sessionId=session_id,
+                    patientId=patient_id
+                ))
+                return
+
+            # Proceed to stream final output
+            yield format_sse(StatusEvent(
+                status="streaming",
+                traceId=trace_id,
+                sessionId=session_id,
+                patientId=patient_id
+            ))
+            
+            # Yield in chunks
+            chunk_size = 20
+            for i in range(0, len(full_response), chunk_size):
                 yield format_sse(TokenEvent(
-                    chunk=token,
+                    chunk=full_response[i:i+chunk_size],
                     traceId=trace_id,
                     sessionId=session_id,
                     patientId=patient_id

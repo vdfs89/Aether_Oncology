@@ -4,6 +4,8 @@ export const InferenceStatusSchema = z.enum([
   "idle",
   "thinking",
   "retrieving",
+  "generating_internally",
+  "judging",
   "streaming",
   "complete",
   "cancelled",
@@ -82,6 +84,26 @@ export const ErrorEventSchema = BaseEventMetadataSchema.extend({
   error: ClinicalErrorSchema
 })
 
+export const JudgementStartedEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("judgement_started")
+})
+
+export const JudgementCompletedEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("judgement_completed"),
+  judgement: z.record(z.any())
+})
+
+export const HallucinationDetectedEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("hallucination_detected"),
+  details: z.string()
+})
+
+export const EscalationTriggeredEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("escalation_triggered"),
+  level: z.string(),
+  reason: z.string()
+})
+
 export const AIStreamEventSchema = z.discriminatedUnion("type", [
   StatusEventSchema,
   TokenEventSchema,
@@ -89,7 +111,11 @@ export const AIStreamEventSchema = z.discriminatedUnion("type", [
   AttachmentEventSchema,
   TraceEventSchema,
   CompleteEventSchema,
-  ErrorEventSchema
+  ErrorEventSchema,
+  JudgementStartedEventSchema,
+  JudgementCompletedEventSchema,
+  HallucinationDetectedEventSchema,
+  EscalationTriggeredEventSchema
 ])
 
 export type AIStreamEvent = z.infer<typeof AIStreamEventSchema>
