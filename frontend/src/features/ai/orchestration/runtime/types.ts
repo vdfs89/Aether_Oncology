@@ -62,11 +62,14 @@ export interface ExecutionPlanOverride {
  * The immutable, audit-safe execution plan that the runtime actually runs.
  * Always derived from: applyOverride(originalPlan, override)
  */
+import { ExecutionPlan } from "../../tools/types"
+
 export interface ResolvedExecutionPlan {
-  originalPlanStages: any[]   // snapshot of the original ExecutionPlan
-  resolvedStages: any[]       // what will actually execute
+  originalPlanStages: ExecutionPlan   // snapshot of the original ExecutionPlan
+  resolvedStages: ExecutionPlan       // what will actually execute
   override: ExecutionPlanOverride | null
   resolvedAt: number
+  sha256Hash?: string                 // Cryptographic audit verification
 }
 
 export interface RiskProfile {

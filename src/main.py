@@ -74,15 +74,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Segurança — API Key lida de variável de ambiente
 # ---------------------------------------------------------------------------
 
-_RAW_API_KEY = os.getenv("API_KEY", "aether-oncology-eval-2026")
-if _RAW_API_KEY == "aether-oncology-eval-2026":
-    import warnings
-
-    warnings.warn(
-        "Utilizando API_KEY padrão de avaliação. "
-        "Defina a variável de ambiente 'API_KEY' para produção.",
-        stacklevel=1,
-    )
+_RAW_API_KEY = os.getenv("API_KEY")
 
 _api_key_header = APIKeyHeader(name="access_token", auto_error=False)
 
@@ -180,6 +172,25 @@ async def lifespan(app: FastAPI):
     logging.info(
         f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})"
     )
+
+    # Explicit Secret Verification (Fail-fast Startup)
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise EnvironmentError("Missing required environment variable: API_KEY")
+    if api_key == "aether-oncology-eval-2026":
+        logging.warning("BOOT: Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção.")
+
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not openai_key:
+        raise EnvironmentError("Missing required environment variable: OPENAI_API_KEY")
+
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        raise EnvironmentError("Missing required environment variable: GROQ_API_KEY")
+
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise EnvironmentError("Missing required environment variable: GEMINI_API_KEY")
 
     # Explicit Dependency Verification
     if not os.path.exists(_BASELINE_PATH):

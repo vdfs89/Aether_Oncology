@@ -104,6 +104,27 @@ export const EscalationTriggeredEventSchema = BaseEventMetadataSchema.extend({
   reason: z.string()
 })
 
+export const RoutingDecisionEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("routing_decision"),
+  provider: z.string(),
+  model: z.string(),
+  rationale: z.string(),
+  estimated_latency_ms: z.number(),
+  estimated_cost: z.number(),
+  fallback_chain: z.array(z.string()).optional()
+})
+
+export const InferenceEnvelopeEventSchema = BaseEventMetadataSchema.extend({
+  type: z.literal("inference_envelope"),
+  provider: z.string(),
+  model: z.string(),
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  latency_ms: z.number(),
+  cost_estimate: z.number(),
+  raw_response_length: z.number()
+})
+
 export const AIStreamEventSchema = z.union([
   StatusEventSchema,
   TokenEventSchema,
@@ -115,7 +136,9 @@ export const AIStreamEventSchema = z.union([
   JudgementStartedEventSchema,
   JudgementCompletedEventSchema,
   HallucinationDetectedEventSchema,
-  EscalationTriggeredEventSchema
+  EscalationTriggeredEventSchema,
+  RoutingDecisionEventSchema,
+  InferenceEnvelopeEventSchema
 ])
 
 export type AIStreamEvent = z.infer<typeof AIStreamEventSchema>
