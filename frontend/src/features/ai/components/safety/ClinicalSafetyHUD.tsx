@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react"
+import { Cpu, AlertTriangle } from "lucide-react"
 import { clinicalEventBus } from "../../orchestration/runtime/eventBus"
 
 interface SafetyMetrics {
@@ -15,7 +16,7 @@ export const ClinicalSafetyHUD: React.FC = () => {
   const [isJudging, setIsJudging] = useState(false)
 
   useEffect(() => {
-    const unsubStarted = clinicalEventBus.subscribe("judgement_started", () => {
+    const unsubStarted = clinicalEventBus.subscribe("judgement_started" as any, () => {
       setIsJudging(true)
       setMetrics({
         safetyScore: 0,
@@ -27,9 +28,9 @@ export const ClinicalSafetyHUD: React.FC = () => {
       })
     })
 
-    const unsubCompleted = clinicalEventBus.subscribe("judgement_completed", (event) => {
+    const unsubCompleted = clinicalEventBus.subscribe("judgement_completed" as any, (event: any) => {
       setIsJudging(false)
-      const j = event.payload?.judgement || event.judgement
+      const j = (event as any)?.judgement
       if (j) {
         setMetrics({
           safetyScore: j.confidence ? Math.round(j.confidence * 100) : 0,

@@ -1,0 +1,262 @@
+{
+    "meta": {
+        "project": "Aether Oncology",
+        "version": "3.0.0",
+        "generated": "2026-05-28",
+        "backend": "FastAPI + PyTorch + Sklearn",
+        "frontend": "Next.js + TypeScript"
+    },
+    "nodes": {
+        "src/main.py": {
+            "type": "entrypoint",
+            "layer": "api",
+            "role": "FastAPI app, lifespan, /predict (OralCancer MLP), /feedback, /analytics, /monitor/*, SRE middleware, CORS, static files",
+            "dependencies": [
+                "src/api/schemas.py",
+                "src/models/mlp.py",
+                "src/services/audit.py",
+                "src/services/predictor.py",
+                "src/services/inference_client.py",
+                "src/ml_platform/orchestrator.py",
+                "src/core/logging.py",
+                "src/api/routes/clinical_chat.py"
+            ],
+            "exposes": [
+                "/predict",
+                "/feedback",
+                "/analytics",
+                "/audit",
+                "/monitor/drift",
+                "/monitor/fairness",
+                "/monitor/sustainability",
+                "/health/*",
+                "/version",
+                "/api/v1/clinical/chat"
+            ],
+            "security": "APIKeyHeader('access_token'), rate limiting (slowapi)"
+        },
+        "src/api/schemas.py": {
+            "type": "schema",
+            "layer": "api",
+            "role": "Pydantic models: OralCancerRequest (8 campos), PredictionResponse"
+        },
+        "src/api/routes/clinical_chat.py": {
+            "type": "router",
+            "layer": "api",
+            "role": "POST /api/v1/clinical/chat — SSE streaming endpoint",
+            "dependencies": [
+                "src/orchestration/clinical_runtime.py"
+            ]
+        },
+        "src/orchestration/clinical_runtime.py": {
+            "type": "orchestrator",
+            "layer": "core",
+            "role": "ClinicalInferenceRuntime — stream_clinical_response: route → infer → judge → chunk → SSE",
+            "dependencies": [
+                "src/providers/router.py",
+                "src/safety/clinical_judge.py",
+                "src/streaming/protocol.py",
+                "src/streaming/sse.py"
+            ],
+            "flow": "route → provider.stream_inference → judge.evaluate → (HARD_STOP|stream chunks) → CompleteEvent"
+        },
+        "src/providers/router.py": {
+            "type": "router",
+            "layer": "providers",
+            "role": "ClinicalModelRouter — roteamento Groq(low-latency) vs Gemini(multimodal/reasoning/high-risk)",
+            "dependencies": [
+                "src/providers/groq_provider.py",
+                "src/providers/gemini_provider.py"
+            ],
+            "logic": "multimodal/reasoning→Gemini, low_latency→Groq, intent_mapping, HIGH/CRITICAL→Gemini"
+        },
+        "src/providers/base.py": {
+            "type": "interface",
+            "layer": "providers",
+            "role": "BaseProvider ABC — stream_inference, capabilities flags"
+        },
+        "src/providers/groq_provider.py": {
+            "type": "provider",
+            "layer": "providers",
+            "role": "GroqProvider — llama3-8b-8192, ultra-low latency (~200ms)",
+            "dependencies": [
+                "src/providers/base.py"
+            ],
+            "env": "GROQ_API_KEY"
+        },
+        "src/providers/gemini_provider.py": {
+            "type": "provider",
+            "layer": "providers",
+            "role": "GeminiProvider — gemini-1.5-flash, multimodal+reasoning, 2M context",
+            "dependencies": [
+                "src/providers/base.py"
+            ],
+            "env": "GEMINI_API_KEY"
+        },
+        "src/providers/openai_provider.py": {
+            "type": "provider",
+            "layer": "providers",
+            "role": "OpenAIProvider — gpt-4o-mini, usado exclusivamente pelo JudgeProvider",
+            "dependencies": [
+                "src/providers/base.py"
+            ],
+            "env": "OPENAI_API_KEY"
+        },
+        "src/providers/judge_provider.py": {
+            "type": "provider",
+            "layer": "providers",
+            "role": "JudgeProvider — evalua respostas via OpenAI, retorna ClinicalJudgement estruturado (JSON mode)",
+            "dependencies": [
+                "src/providers/openai_provider.py",
+                "src/safety/types.py"
+            ]
+        },
+        "src/safety/clinical_judge.py": {
+            "type": "orchestrator",
+            "layer": "safety",
+            "role": "ClinicalJudge — orquestra HallucinationGuard → ConsensusEngine → EscalationPolicy",
+            "dependencies": [
+                "src/safety/hallucination_guard.py",
+                "src/safety/consensus_engine.py",
+                "src/safety/escalation_policy.py",
+                "src/safety/types.py"
+            ],
+            "flow": "guard.check_claims → consensus.evaluate_consensus → policy.evaluate"
+        },
+        "src/safety/hallucination_guard.py": {
+            "type": "guard",
+            "layer": "safety",
+            "role": "HallucinationGuard — delega verificação factual ao JudgeProvider (OpenAI)",
+            "dependencies": [
+                "src/providers/judge_provider.py",
+                "src/safety/types.py"
+            ]
+        },
+        "src/safety/consensus_engine.py": {
+            "type": "validator",
+            "layer": "safety",
+            "role": "ConsensusEngine — PLACEHOLDER, sempre retorna True",
+            "note": "Sem implementação real — risco de segurança"
+        },
+        "src/safety/escalation_policy.py": {
+            "type": "policy",
+            "layer": "safety",
+            "role": "EscalationPolicy — regras de escalação: HIGH hallucination/LOW evidence/contradictions→HARD_STOP",
+            "dependencies": [
+                "src/safety/types.py"
+            ]
+        },
+        "src/safety/types.py": {
+            "type": "schema",
+            "layer": "safety",
+            "role": "ClinicalJudgement Pydantic model — approved, confidence, hallucination_risk, evidence_strength, contradictions, missing_citations, requires_physician_review, escalation_level"
+        },
+        "src/streaming/protocol.py": {
+            "type": "schema",
+            "layer": "streaming",
+            "role": "SSE event types: TokenEvent, StatusEvent, ErrorEvent, CompleteEvent, JudgementStartedEvent, JudgementCompletedEvent, EscalationTriggeredEvent, HallucinationDetectedEvent"
+        },
+        "src/streaming/sse.py": {
+            "type": "utility",
+            "layer": "streaming",
+            "role": "format_sse(format_raw_sse) — Pydantic→SSE string",
+            "bug": "format_raw_sse usa json.dumps mas não importa json"
+        },
+        "src/models/mlp.py": {
+            "type": "model",
+            "layer": "ml",
+            "role": "PyTorch MLP — classificação binária oral cancer"
+        },
+        "src/services/audit.py": {
+            "type": "service",
+            "layer": "services",
+            "role": "log_prediction, calculate_drift, AUDIT_FILE"
+        },
+        "src/services/predictor.py": {
+            "type": "service",
+            "layer": "services",
+            "role": "Legacy WDBC predictor"
+        },
+        "src/services/inference_client.py": {
+            "type": "service",
+            "layer": "services",
+            "role": "HuggingFace remote inference client"
+        },
+        "src/ml_platform/orchestrator.py": {
+            "type": "orchestrator",
+            "layer": "ml_platform",
+            "role": "MLPlatformOrchestrator — drift detection, fairness, green AI"
+        },
+        "src/core/logging.py": {
+            "type": "utility",
+            "layer": "infra",
+            "role": "setup_logging, request_id_contextvar"
+        }
+    },
+    "layers": {
+        "api": [
+            "src/main.py",
+            "src/api/schemas.py",
+            "src/api/routes/clinical_chat.py"
+        ],
+        "core": [
+            "src/orchestration/clinical_runtime.py"
+        ],
+        "providers": [
+            "src/providers/base.py",
+            "src/providers/router.py",
+            "src/providers/groq_provider.py",
+            "src/providers/gemini_provider.py",
+            "src/providers/openai_provider.py",
+            "src/providers/judge_provider.py"
+        ],
+        "safety": [
+            "src/safety/clinical_judge.py",
+            "src/safety/hallucination_guard.py",
+            "src/safety/consensus_engine.py",
+            "src/safety/escalation_policy.py",
+            "src/safety/types.py"
+        ],
+        "streaming": [
+            "src/streaming/protocol.py",
+            "src/streaming/sse.py"
+        ],
+        "ml": [
+            "src/models/mlp.py",
+            "src/train.py",
+            "src/features/preprocessor.py"
+        ],
+        "services": [
+            "src/services/audit.py",
+            "src/services/predictor.py",
+            "src/services/inference_client.py",
+            "src/services/research.py"
+        ],
+        "ml_platform": [
+            "src/ml_platform/orchestrator.py",
+            "src/ml_platform/drift.py",
+            "src/ml_platform/fairness.py",
+            "src/ml_platform/green_ai.py"
+        ],
+        "infra": [
+            "src/core/logging.py"
+        ]
+    },
+    "data_flows": {
+        "prediction_sync": "main.py:/predict → preprocessor.transform → MLP.forward → PredictionResponse",
+        "clinical_copilot_sse": "clinical_chat.py:/chat → ClinicalInferenceRuntime → Router.route → Provider.stream → Judge.evaluate → SSE chunks",
+        "safety_pipeline": "HallucinationGuard→JudgeProvider(OpenAI)→ConsensusEngine(placeholder)→EscalationPolicy→ClinicalJudgement"
+    },
+    "env_vars": [
+        "API_KEY",
+        "GROQ_API_KEY",
+        "GEMINI_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENAI_JUDGE_MODEL"
+    ],
+    "known_issues": [
+        "src/streaming/sse.py: format_raw_sse usa json.dumps mas não importa json",
+        "src/safety/consensus_engine.py: Placeholder — sempre retorna True, sem verificação real",
+        "src/providers/router.py: Lazy init sem thread-safety"
+    ]
+}

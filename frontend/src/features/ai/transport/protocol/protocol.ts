@@ -20,10 +20,10 @@ export const CitationSchema = z.object({
   relevance: z.number().min(0).max(1)
 })
 
-export const AIAttachmentSchema = z.discriminatedUnion("type", [
+export const AIAttachmentSchema = z.union([
   z.object({
     type: z.literal("prediction"),
-    data: z.any() // Can be refined to PredictionResult schema later
+    data: z.any()
   }),
   z.object({
     type: z.literal("chart"),
@@ -90,7 +90,7 @@ export const JudgementStartedEventSchema = BaseEventMetadataSchema.extend({
 
 export const JudgementCompletedEventSchema = BaseEventMetadataSchema.extend({
   type: z.literal("judgement_completed"),
-  judgement: z.record(z.any())
+  judgement: z.record(z.string(), z.any())
 })
 
 export const HallucinationDetectedEventSchema = BaseEventMetadataSchema.extend({
@@ -104,7 +104,7 @@ export const EscalationTriggeredEventSchema = BaseEventMetadataSchema.extend({
   reason: z.string()
 })
 
-export const AIStreamEventSchema = z.discriminatedUnion("type", [
+export const AIStreamEventSchema = z.union([
   StatusEventSchema,
   TokenEventSchema,
   CitationEventSchema,

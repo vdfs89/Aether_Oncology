@@ -32,6 +32,50 @@ export type ApprovalDecision =
   | "ESCALATED"
   | "MODIFIED"
 
+// ---------------------------------------------------------------------------
+// Physician Override Contracts (Phase 5.5)
+// ---------------------------------------------------------------------------
+
+export interface StageReorder {
+  from: number
+  to: number
+}
+
+export interface ExecutionPlanOverride {
+  /** ID of the original PendingApproval this override applies to */
+  approvalRequestId: string
+  /** Tool IDs to exclude from execution */
+  removedTools: string[]
+  /** Optional stage reorder instructions */
+  reorderedStages?: StageReorder[]
+  /** Tool IDs to force-run regardless of dependencies */
+  forcedTools?: string[]
+  /** Physician annotation */
+  notes?: string
+  /** Physician identity (placeholder for real auth) */
+  physicianId: string
+  /** ISO timestamp of override decision */
+  timestamp: string
+}
+
+/**
+ * The immutable, audit-safe execution plan that the runtime actually runs.
+ * Always derived from: applyOverride(originalPlan, override)
+ */
+export interface ResolvedExecutionPlan {
+  originalPlanStages: any[]   // snapshot of the original ExecutionPlan
+  resolvedStages: any[]       // what will actually execute
+  override: ExecutionPlanOverride | null
+  resolvedAt: number
+}
+
+export interface RiskProfile {
+  hallucinationRisk: "LOW" | "MEDIUM" | "HIGH"
+  evidenceStrength: number    // 0–100
+  consensusScore: "VERIFIED" | "PARTIAL" | "FAILED"
+  fdaCompliance: "PASS" | "WARNING" | "FAIL"
+}
+
 export type ClinicalRuntimeEvent =
   | { type: "MessageCreated"; payload: AIMessage; metadata: BaseEventMetadata }
   | { type: "RetrievalStarted"; payload: { query: string }; metadata: BaseEventMetadata }
@@ -43,6 +87,10 @@ export type ClinicalRuntimeEvent =
   | { type: "StateTransition"; payload: { from: ClinicalRuntimeState; to: ClinicalRuntimeState }; metadata: BaseEventMetadata }
   | { type: "ClinicalApprovalRequested"; payload: { approvalRequestId: string; plan: any; riskLevel: string; rationale: string[] }; metadata: BaseEventMetadata }
   | { type: "ClinicalApprovalResolved"; payload: { approvalRequestId: string; decision: ApprovalDecision; approvedBy?: { physicianId: string; timestamp: number } }; metadata: BaseEventMetadata }
+  | { type: "ExecutionPlanOverridden"; payload: { approvalRequestId: string; override: ExecutionPlanOverride; resolvedPlan: ResolvedExecutionPlan }; metadata: BaseEventMetadata }
+  | { type: "RiskProfileChanged"; payload: { approvalRequestId: string; before: RiskProfile; after: RiskProfile }; metadata: BaseEventMetadata }
+  | { type: "OverrideRequested"; payload: { approvalRequestId: string; requestedChanges: Partial<ExecutionPlanOverride> }; metadata: BaseEventMetadata }
+  | { type: "OverrideRejected"; payload: { approvalRequestId: string; reason: string }; metadata: BaseEventMetadata }
 
 export interface ExecutionContext {
   patientId: string

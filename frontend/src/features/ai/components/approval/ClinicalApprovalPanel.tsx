@@ -5,6 +5,8 @@ import { clinicalEventBus } from "../../orchestration/runtime/eventBus"
 import { useAI } from "../../hooks/useAI"
 import { ApprovalRiskBadge } from "./ApprovalRiskBadge"
 import { ApprovalToolCard } from "./ApprovalToolCard"
+import { OverridePanel } from "../override/OverridePanel"
+import { ExecutionPlanOverride, ResolvedExecutionPlan, RiskProfile } from "../../orchestration/runtime/types"
 
 export function ClinicalApprovalPanel() {
   const { state } = useAI()
@@ -12,6 +14,12 @@ export function ClinicalApprovalPanel() {
 
   const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null)
   const [isApproving, setIsApproving] = useState(false)
+  // Physician override state
+  const [pendingOverride, setPendingOverride] = useState<{
+    override: ExecutionPlanOverride
+    resolvedPlan: ResolvedExecutionPlan
+    riskDiff: { before: RiskProfile; after: RiskProfile }
+  } | null>(null)
 
   // Listen to event bus for approval state changes
   useEffect(() => {
@@ -36,13 +44,10 @@ export function ClinicalApprovalPanel() {
 
   const handleApprove = () => {
     setIsApproving(true)
-    // Small delay for UI feedback
     setTimeout(() => {
       clinicalApprovalManager.resolveApproval(
-        pendingApproval.approvalRequestId,
+        pendingApproval!.approvalRequestId,
         "APPROVED",
-        // Pass a mock context since we don't have the full context here easily, 
-        // the approvalManager mainly uses it for metadata.
         { 
           createEventMetadata: () => ({ 
             traceId: "ui-trace", 
@@ -53,6 +58,29 @@ export function ClinicalApprovalPanel() {
           }) 
         } as any
       )
+      setPendingOverride(null)
+      setIsApproving(false)
+    }, 400)
+  }
+
+  const handleApproveWithOverride = () => {
+    if (!pendingOverride || !pendingApproval) return
+    setIsApproving(true)
+    setTimeout(() => {
+      clinicalApprovalManager.resolveWithOverride(
+        pendingApproval.approvalRequestId,
+        pendingOverride.override,
+        {
+          createEventMetadata: () => ({
+            traceId: "ui-trace",
+            sessionId: activeSessionId || "",
+            patientId: state.activePatientId || "",
+            timestamp: Date.now(),
+            runtimeState: "WAITING_APPROVAL"
+          })
+        } as any
+      )
+      setPendingOverride(null)
       setIsApproving(false)
     }, 400)
   }
@@ -124,7 +152,17 @@ export function ClinicalApprovalPanel() {
                 <ApprovalToolCard key={idx} stageIndex={idx} stage={stage} />
               ))}
             </div>
+          </section>          {/* Override Panel */}
+          <section>
+            <OverridePanel
+              approvalRequestId={pendingApproval.approvalRequestId}
+              plan={pendingApproval.plan}
+              onOverrideReady={(override, resolvedPlan, riskDiff) => {
+                setPendingOverride({ override, resolvedPlan, riskDiff })
+              }}
+            />
           </section>
+
         </div>
 
         {/* Footer Actions */}
@@ -136,6 +174,18 @@ export function ClinicalApprovalPanel() {
           >
             Reject Execution
           </button>
+
+          {/* Approve with Override — only shown if physician set mutations */}
+          {pendingOverride && (
+            <button
+              onClick={handleApproveWithOverride}
+              disabled={isApproving}
+              className="px-4 py-2 text-sm font-medium text-amber-300 bg-amber-600/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <Check className="w-4 h-4" />
+              Approve Modified Plan
+            </button>
+          )}
           
           <button
             onClick={handleApprove}
