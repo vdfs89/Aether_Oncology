@@ -394,3 +394,47 @@ def test_predict_real_model_low_risk() -> None:
         f"Esperado 'Low', obtido '{data['risk_level']}' "
         f"(prob={data['probability']:.3f})"
     )
+
+
+# ===========================================================================
+# 7. CLINICAL APPROVALS ENDPOINTS — Persistência de aprovações pendentes
+# ===========================================================================
+
+def test_approvals_lifecycle() -> None:
+    """Testa o ciclo de vida completo de uma aprovação pendente no banco SQLite."""
+    import time
+    now_ms = int(time.time() * 1000)
+    approval_data = {
+        "approvalRequestId": "test-req-123",
+        "plan": [{"tools": [{"toolId": "pubmed-search", "args": {}}]}],
+        "riskLevel": "MEDIUM",
+        "rationale": ["Necessita confirmação de evidência"],
+        "requestedAt": now_ms,
+        "expiresAt": now_ms + 100000,
+    }
+
+    # 1. Create approval request
+    create_res = client.post("/api/v1/clinical/approvals", json=approval_data)
+    assert create_res.status_code == 201
+    assert create_res.json()["status"] == "success"
+
+    # 2. Get approval by ID
+    get_res = client.get("/api/v1/clinical/approvals/test-req-123")
+    assert get_res.status_code == 200
+    assert get_res.json()["approvalRequestId"] == "test-req-123"
+    assert get_res.json()["riskLevel"] == "MEDIUM"
+
+    # 3. List all approvals (should contain our new approval)
+    list_res = client.get("/api/v1/clinical/approvals")
+    assert list_res.status_code == 200
+    active_ids = [appr["approvalRequestId"] for appr in list_res.json()]
+    assert "test-req-123" in active_ids
+
+    # 4. Delete approval
+    delete_res = client.delete("/api/v1/clinical/approvals/test-req-123")
+    assert delete_res.status_code == 200
+    assert delete_res.json()["status"] == "success"
+
+    # 5. Verify it is deleted
+    get_deleted = client.get("/api/v1/clinical/approvals/test-req-123")
+    assert get_deleted.status_code == 404

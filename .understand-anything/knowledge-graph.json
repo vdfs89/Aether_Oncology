@@ -135,8 +135,8 @@
         "src/safety/consensus_engine.py": {
             "type": "validator",
             "layer": "safety",
-            "role": "ConsensusEngine — PLACEHOLDER, sempre retorna True",
-            "note": "Sem implementação real — risco de segurança"
+            "role": "ConsensusEngine — tri-layer gate: hallucination_guard veto, confidence_gate (≥0.50), contradiction_gate (≤1), evidence_guard (LOW+>1 missing cites)",
+            "signature": "evaluate_consensus(judgement: ClinicalJudgement, _judge_response: str = '') -> bool"
         },
         "src/safety/escalation_policy.py": {
             "type": "policy",
@@ -245,7 +245,7 @@
     "data_flows": {
         "prediction_sync": "main.py:/predict → preprocessor.transform → MLP.forward → PredictionResponse",
         "clinical_copilot_sse": "clinical_chat.py:/chat → ClinicalInferenceRuntime → Router.route → Provider.stream → Judge.evaluate → SSE chunks",
-        "safety_pipeline": "HallucinationGuard→JudgeProvider(OpenAI)→ConsensusEngine(placeholder)→EscalationPolicy→ClinicalJudgement"
+        "safety_pipeline": "HallucinationGuard→JudgeProvider(OpenAI)→ConsensusEngine(tri-layer)→EscalationPolicy→ClinicalJudgement"
     },
     "env_vars": [
         "API_KEY",
@@ -255,8 +255,16 @@
         "OPENAI_JUDGE_MODEL"
     ],
     "known_issues": [
-        "src/streaming/sse.py: format_raw_sse usa json.dumps mas não importa json",
-        "src/safety/consensus_engine.py: Placeholder — sempre retorna True, sem verificação real",
-        "src/providers/router.py: Lazy init sem thread-safety"
+        "frontend/src/features/ai/orchestration/runtime/types.ts: originalPlanStages/resolvedStages tipados como any[]"
+    ],
+    "fixed": [
+        "src/streaming/sse.py: import json adicionado — format_raw_sse NameError corrigido (P0, 2026-05-28)",
+        "src/providers/openai_provider.py: health_check() implementado — TypeError abstract class corrigido (P0, 2026-05-28)",
+        "src/safety/consensus_engine.py: tri-layer real implementado (HIGH_hallucination veto, confidence_gate, contradiction_gate, evidence_guard) (P1, 2026-05-28)",
+        "src/safety/clinical_judge.py: call site atualizado — passa ClinicalJudgement ao ConsensusEngine (P1, 2026-05-28)",
+        "frontend/src/features/ai/orchestration/runtime/overrideEngine.ts: computePlanRiskProfile() — before derivado do plano real, não hardcoded (P1, 2026-05-28)",
+        "frontend/src/features/ai/orchestration/runtime/approvalManager.ts: timeout + physicianSession real (Phase 5.6 — P1, 2026-05-28)",
+        "src/providers/router.py: asyncio.Lock por provider + double-checked locking — race condition lazy init corrigida (P2, 2026-05-28)",
+        "src/orchestration/clinical_runtime.py: await self.router.route() propagado em primary e fallback path (P2, 2026-05-28)"
     ]
 }

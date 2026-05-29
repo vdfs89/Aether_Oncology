@@ -43,6 +43,16 @@ class OpenAIProvider(BaseProvider):
             logger.error(f"OpenAI inference error: {e}")
             raise e
 
+    async def health_check(self) -> bool:
+        """Verifica disponibilidade da API OpenAI via listagem de modelos."""
+        if not self.client:
+            return False
+        try:
+            await self.client.models.list()
+            return True
+        except Exception:
+            return False
+
     def _format_messages(self, messages: List[Dict[str, str]], context: Dict[str, Any]) -> List[Dict[str, str]]:
         # Simplified conversion. In a real scenario, map to OpenAI's roles.
         return [{"role": m.get("role", "user"), "content": m.get("content", "")} for m in messages]

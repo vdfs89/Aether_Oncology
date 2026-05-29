@@ -21,8 +21,8 @@ class ClinicalJudge:
         # 1. Check for hallucinations and basic evidence
         judgement = await self.guard.check_claims(original_prompt, generated_response)
         
-        # 2. Consensus check (simplified for now to pass if no major contradictions)
-        has_consensus = self.consensus.evaluate_consensus(generated_response, "")
+        # 2. Consensus check — passes ClinicalJudgement (not raw text) to real guard logic
+        has_consensus = self.consensus.evaluate_consensus(judgement)
         if not has_consensus:
             judgement.contradictions.append("Failed multi-model consensus.")
             judgement.confidence *= 0.5

@@ -75,3 +75,12 @@ src/static/aether-oncology-portal/dist/
 # ─── Misc ─────────────────────────────────────────────────────────────────────
 .overclock-app/
 .cache/
+
+# ─── AI Agents & Tools ────────────────────────────────────────────────────────
+.claude/
+.claude.json
+.cursor/
+.cursorrules
+.aider*
+.gemini/
+.understand-anything/

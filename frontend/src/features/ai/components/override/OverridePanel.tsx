@@ -18,6 +18,7 @@ import { applyOverride, computeRiskDiff, getToolsFromPlan } from "../../orchestr
 import { ToolToggle } from "./ToolToggle"
 import { ApprovalDelta } from "./ApprovalDelta"
 import { RiskDiffViewer } from "./RiskDiffViewer"
+import { physicianSession } from "../../orchestration/runtime/physicianSession"
 
 interface OverridePanelProps {
   approvalRequestId: string
@@ -44,7 +45,7 @@ export function OverridePanel({ approvalRequestId, plan, onOverrideReady }: Over
     const override: ExecutionPlanOverride = {
       approvalRequestId,
       removedTools: Array.from(removedTools),
-      physicianId: "mock-dr-override",
+      physicianId: physicianSession.physicianId,
       timestamp: new Date().toISOString(),
       notes: notes || undefined
     }
@@ -69,7 +70,7 @@ export function OverridePanel({ approvalRequestId, plan, onOverrideReady }: Over
     const override: ExecutionPlanOverride = {
       approvalRequestId,
       removedTools: Array.from(removedTools),
-      physicianId: "mock-dr-override",
+      physicianId: physicianSession.physicianId,
       timestamp: new Date().toISOString(),
       notes: notes || undefined
     }

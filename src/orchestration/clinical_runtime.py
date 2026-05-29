@@ -66,7 +66,7 @@ class ClinicalInferenceRuntime:
 
         try:
             # ── Step 1: Route ──────────────────────────────────────────────
-            provider, routing_decision = self.router.route(profile)
+            provider, routing_decision = await self.router.route(profile)
 
             yield format_sse(RoutingDecisionEvent(
                 **make_base_kwargs(),
@@ -98,7 +98,7 @@ class ClinicalInferenceRuntime:
                 logger.error(f"[Runtime] Provider {provider.provider_id} failed: {provider_err}")
                 # Attempt single fallback before raising
                 try:
-                    fallback_provider, fallback_decision = self.router.route(profile)
+                    fallback_provider, fallback_decision = await self.router.route(profile)
                     yield format_sse(RoutingDecisionEvent(
                         **make_base_kwargs(),
                         provider=fallback_decision.provider,

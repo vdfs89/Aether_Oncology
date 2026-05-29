@@ -181,21 +181,54 @@ async def lifespan(app: FastAPI):
         f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})"
     )
 
+    # Explicit Dependency Verification
+    if not os.path.exists(_BASELINE_PATH):
+        raise RuntimeError("Arquivo de dependência ausente: data.csv")
+
+    from pathlib import Path
+    base = Path(__file__).resolve().parents[1]
+    candidates = [
+        base / "models",
+        Path.cwd() / "models",
+        Path("/app/models"),
+    ]
+    models_dir = next(
+        (p for p in candidates if (p / "preprocessor.joblib").exists()), None
+    )
+    if not models_dir:
+        raise RuntimeError("Arquivo de dependência ausente: preprocessor.joblib")
+
+    preprocessor_path = models_dir / "preprocessor.joblib"
+    weights_path = models_dir / "aether_mlp_v2.pth"
+    calibrator_path = models_dir / "calibrator.joblib"
+
+    if not preprocessor_path.exists():
+        raise RuntimeError("Arquivo de dependência ausente: preprocessor.joblib")
+    if not weights_path.exists():
+        raise RuntimeError("Arquivo de dependência ausente: aether_mlp_v2.pth")
+    if not calibrator_path.exists():
+        raise RuntimeError("Arquivo de dependência ausente: calibrator.joblib")
+
     # 1. Oral Cancer model (v3.0 primary inference)
     if _load_oral_cancer_artifacts():
         logging.info(f"BOOT [{request_id}]: Oral Cancer MLP pronto para inferência.")
     else:
-        logging.warning(
-            f"BOOT [{request_id}]: Oral Cancer model não disponível — "
-            "endpoint /predict retornará 503 até o treino ser executado."
-        )
+        raise RuntimeError("Falha ao inicializar artefatos Oral Cancer MLP")
 
     # 2. Legacy WDBC predictor (monitor/* endpoints)
     try:
         predictor.load_model()
         logging.info(f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/).")
     except Exception as e:
-        logging.warning(f"BOOT [{request_id}]: Legacy predictor não disponível: {e}")
+        raise RuntimeError(f"Falha ao inicializar Legacy WDBC predictor: {e}") from e
+
+    # 3. Initialize MLPlatformOrchestrator with baseline dataset
+    global orchestrator
+    try:
+        orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
+        logging.info(f"BOOT [{request_id}]: MLPlatformOrchestrator carregado com baseline.")
+    except Exception as e:
+        raise RuntimeError(f"Falha ao inicializar MLPlatformOrchestrator: {e}") from e
 
     yield
 
@@ -688,19 +721,11 @@ def get_audit_trail():
 # Health Check Orchestrator (MLOps)
 # ---------------------------------------------------------------------------
 
-# Initialize Orchestrator with baseline dataset
+# Initialize Orchestrator with baseline dataset (instantiated in lifespan)
 _BASELINE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "data", "raw", "data.csv"
 )
 orchestrator = None
-
-try:
-    if os.path.exists(_BASELINE_PATH):
-        orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
-except Exception as e:
-    import logging
-
-    logging.error(f"Falha ao carregar baseline para monitoramento: {e}")
 
 
 @app.get("/monitor/drift", tags=["MLOps"], dependencies=[Security(get_api_key)])
