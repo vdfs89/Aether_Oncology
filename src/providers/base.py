@@ -7,6 +7,7 @@ class BaseProvider(ABC):
     Contrato base para todos os LLM providers do Clinical Runtime.
     Cada provider é um plugin intercambiável — o Runtime Clínico é o sistema principal.
     """
+
     # Identity
     provider_id: str
     model_name: str
@@ -26,9 +27,7 @@ class BaseProvider(ABC):
 
     @abstractmethod
     async def stream_inference(
-        self,
-        messages: List[Dict[str, Any]],
-        context: Dict[str, Any] = None
+        self, messages: List[Dict[str, Any]], context: Dict[str, Any] = None
     ) -> AsyncGenerator[str, None]:
         """Gera tokens assincronamente a partir de mensagens clínicas."""
         pass

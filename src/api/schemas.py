@@ -90,6 +90,52 @@ class OralCancerRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ClinicalMetadata(BaseModel):
+    """Metadados de governança decisória e detecção de drift/OOD."""
+
+    confidence_calibrated: bool = Field(
+        True, description="Indica se a probabilidade foi calibrada via Platt/Isotonic"
+    )
+    calibration_method: str = Field(
+        ..., description="Método selecionado ('platt' ou 'isotonic')"
+    )
+    risk_band: Literal["LOW", "MEDIUM", "HIGH"] = Field(
+        ..., description="Faixa de risco classificada"
+    )
+    drift_detected: bool = Field(
+        False, description="Flag indicadora de desvio de dados/conceito em produção"
+    )
+    ood_detected: bool = Field(
+        False,
+        description="Flag indicadora de paciente fora da distribuição (Out-of-Distribution)",
+    )
+
+
+class DataLineage(BaseModel):
+    """Rastreabilidade regulatória completa de dados e código (FDA SaMD / ANVISA)."""
+
+    model_version: str = Field(..., description="Versão do modelo clínico")
+    dataset_hash: str = Field(
+        ..., description="Hash SHA-256 do dataset imutável de treino"
+    )
+    schema_hash: str = Field(..., description="Hash SHA-256 do schema de validação")
+    feature_registry_hash: str = Field(
+        ..., description="Hash SHA-256 do feature_registry.json"
+    )
+
+
+class ClinicalExplanation(BaseModel):
+    """Camada de explicabilidade clínica em linguagem médica natural."""
+
+    top_risk_factors: list[str] = Field(..., description="Fatores agravantes de risco")
+    protective_factors: list[str] = Field(
+        ..., description="Fatores atenuantes de risco"
+    )
+    confidence_reasoning: str = Field(
+        ..., description="Raciocínio clínico da confiança inferida"
+    )
+
+
 class PredictionResponse(BaseModel):
     """
     Resposta estruturada da triagem de risco de câncer oral.
@@ -126,8 +172,20 @@ class PredictionResponse(BaseModel):
         ),
     )
     model_version: str = Field(
-        default="3.0.0",
+        default="3.1.0",
         description="Versão do modelo Aether Oncology",
+    )
+    clinical_metadata: ClinicalMetadata | None = Field(
+        default=None,
+        description="Metadados de calibração, drift e OOD",
+    )
+    lineage: DataLineage | None = Field(
+        default=None,
+        description="Rastreabilidade regulatória do modelo e dados",
+    )
+    clinical_explanation: ClinicalExplanation | None = Field(
+        default=None,
+        description="Explicações clínicas dos fatores de risco",
     )
 
     model_config = {

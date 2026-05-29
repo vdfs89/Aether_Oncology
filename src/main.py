@@ -23,6 +23,7 @@ Iniciar o servidor:
 """
 
 import asyncio
+import json
 import logging
 import os
 
@@ -105,14 +106,18 @@ async def get_api_key(key: str = Security(_api_key_header)) -> str:
 _oral_preprocessor = None  # sklearn ColumnTransformer
 _oral_model: MLP | None = None  # PyTorch MLP
 _oral_input_dim: int = 0
+_oral_calibrator = None  # sklearn Calibrator
+_oral_ood_detector = None  # ClinicalOODDetector
+_oral_lineage: dict | None = None  # data_lineage.json
 
 
 def _load_oral_cancer_artifacts() -> bool:
     """
     Tenta carregar os artefatos treinados do pipeline Oral Cancer.
-    Retorna True se ambos (preprocessor + model) foram carregados com sucesso.
+    Retorna True se todos os artefatos clínicos foram carregados com sucesso.
     """
     global _oral_preprocessor, _oral_model, _oral_input_dim
+    global _oral_calibrator, _oral_ood_detector, _oral_lineage
 
     from pathlib import Path
 
@@ -137,16 +142,36 @@ def _load_oral_cancer_artifacts() -> bool:
 
     preprocessor_path = models_dir / "preprocessor.joblib"
     weights_path = models_dir / "aether_mlp_v2.pth"
+    calibrator_path = models_dir / "calibrator.joblib"
+    ood_detector_path = models_dir / "ood_detector.joblib"
+    lineage_path = models_dir / "data_lineage.json"
 
     try:
         _oral_preprocessor = joblib.load(preprocessor_path)
-        # Inferir input_dim via dummy transform (pd já importado no topo do módulo)
-        _dummy = pd.DataFrame([{
-            "Age": 50, "Survival_Rate": 0.7,
-            "Tobacco_Use": "No", "Alcohol_Use": "No",
-            "Country": "Brazil", "Gender": "Male",
-            "Socioeconomic_Status": "Middle", "Treatment_Type": "Unknown",
-        }])
+        _oral_calibrator = joblib.load(calibrator_path)
+
+        from src.ml.pipelines.preprocessing.ood import ClinicalOODDetector
+
+        _oral_ood_detector = ClinicalOODDetector.load(str(ood_detector_path))
+
+        with open(lineage_path) as f:
+            _oral_lineage = json.load(f)
+
+        # Inferir input_dim via dummy transform
+        _dummy = pd.DataFrame(
+            [
+                {
+                    "Age": 50,
+                    "Survival_Rate": 0.7,
+                    "Tobacco_Use": "No",
+                    "Alcohol_Use": "No",
+                    "Country": "Brazil",
+                    "Gender": "Male",
+                    "Socioeconomic_Status": "Middle",
+                    "Treatment_Type": "Unknown",
+                }
+            ]
+        )
         _oral_input_dim = _oral_preprocessor.transform(_dummy).shape[1]
 
         _oral_model = MLP(input_shape=_oral_input_dim, hidden_dims=[128, 64, 32])
@@ -187,7 +212,9 @@ async def lifespan(app: FastAPI):
     if not api_key:
         raise EnvironmentError("Missing required environment variable: API_KEY")
     if api_key == "aether-oncology-eval-2026":
-        logging.warning("BOOT: Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção.")
+        logging.warning(
+            "BOOT: Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção."
+        )
 
     openai_key = os.getenv("OPENAI_API_KEY")
     if not openai_key:
@@ -204,7 +231,9 @@ async def lifespan(app: FastAPI):
     # Verify AUDIT_ENCRYPTION_KEY
     audit_key = os.getenv("AUDIT_ENCRYPTION_KEY")
     if not audit_key:
-        raise EnvironmentError("Missing required environment variable: AUDIT_ENCRYPTION_KEY")
+        raise EnvironmentError(
+            "Missing required environment variable: AUDIT_ENCRYPTION_KEY"
+        )
     try:
         get_fernet()
     except Exception as e:
@@ -215,6 +244,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError("Arquivo de dependência ausente: data.csv")
 
     from pathlib import Path
+
     base = Path(__file__).resolve().parents[1]
     candidates = [
         base / "models",
@@ -247,7 +277,9 @@ async def lifespan(app: FastAPI):
     # 2. Legacy WDBC predictor (monitor/* endpoints)
     try:
         predictor.load_model()
-        logging.info(f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/).")
+        logging.info(
+            f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/)."
+        )
     except Exception as e:
         raise RuntimeError(f"Falha ao inicializar Legacy WDBC predictor: {e}") from e
 
@@ -255,7 +287,9 @@ async def lifespan(app: FastAPI):
     global orchestrator
     try:
         orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
-        logging.info(f"BOOT [{request_id}]: MLPlatformOrchestrator carregado com baseline.")
+        logging.info(
+            f"BOOT [{request_id}]: MLPlatformOrchestrator carregado com baseline."
+        )
     except Exception as e:
         raise RuntimeError(f"Falha ao inicializar MLPlatformOrchestrator: {e}") from e
 

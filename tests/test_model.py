@@ -91,7 +91,9 @@ def test_mlp_output_dtype(simple_mlp: nn.Module, sample_batch: tuple) -> None:
     assert output.dtype == torch.float32
 
 
-def test_sigmoid_probability_in_range(simple_mlp: nn.Module, sample_batch: tuple) -> None:
+def test_sigmoid_probability_in_range(
+    simple_mlp: nn.Module, sample_batch: tuple
+) -> None:
     """Após sigmoid, todos os valores devem estar em [0.0, 1.0]."""
     X, _ = sample_batch
     with torch.no_grad():
@@ -107,7 +109,9 @@ def test_sigmoid_no_nan(simple_mlp: nn.Module, sample_batch: tuple) -> None:
     with torch.no_grad():
         logits = simple_mlp(extreme_X)
         probs = torch.sigmoid(logits)
-    assert not torch.isnan(probs).any(), "NaN detectado após sigmoid com logits extremos"
+    assert not torch.isnan(probs).any(), (
+        "NaN detectado após sigmoid com logits extremos"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -154,12 +158,12 @@ def test_pos_weight_shifts_loss(sample_batch: tuple) -> None:
     logits = torch.zeros_like(y)  # predição neutra
 
     loss_standard = nn.BCEWithLogitsLoss()(logits, y).item()
-    loss_weighted = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0]))(logits, y).item()
+    loss_weighted = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0]))(
+        logits, y
+    ).item()
 
     # Com pos_weight alto, a loss deve ser diferente (mais penalização para positivos)
-    assert loss_standard != loss_weighted, (
-        "pos_weight deveria alterar o valor da loss"
-    )
+    assert loss_standard != loss_weighted, "pos_weight deveria alterar o valor da loss"
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +171,9 @@ def test_pos_weight_shifts_loss(sample_batch: tuple) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_aether_mlp_forward_shape(aether_mlp: nn.Module, oral_cancer_batch: tuple) -> None:
+def test_aether_mlp_forward_shape(
+    aether_mlp: nn.Module, oral_cancer_batch: tuple
+) -> None:
     """MLP Aether deve produzir output (batch, 1) para input (batch, 70)."""
     X, _ = oral_cancer_batch
     with torch.no_grad():
@@ -181,7 +187,9 @@ def test_aether_mlp_eval_no_grad(aether_mlp: nn.Module) -> None:
     aether_mlp.eval()
     with torch.no_grad():
         output = aether_mlp(X)
-    assert not output.requires_grad, "Output em modo eval/no_grad não deve ter gradiente"
+    assert not output.requires_grad, (
+        "Output em modo eval/no_grad não deve ter gradiente"
+    )
 
 
 def test_aether_mlp_deterministic(aether_mlp: nn.Module) -> None:

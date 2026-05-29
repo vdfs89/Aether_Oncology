@@ -6,14 +6,18 @@ from src.safety.types import ClinicalJudgement
 
 logger = logging.getLogger(__name__)
 
+
 class JudgeProvider:
     """
     Encapsulates OpenAI to perform clinical evaluation, returning structured ClinicalJudgement.
     """
+
     def __init__(self):
         self.provider = OpenAIProvider()
 
-    async def evaluate_response(self, original_prompt: str, generated_response: str) -> ClinicalJudgement:
+    async def evaluate_response(
+        self, original_prompt: str, generated_response: str
+    ) -> ClinicalJudgement:
         if not self.provider.client:
             logger.warning("JudgeProvider bypassed due to missing API Key.")
             return ClinicalJudgement(
@@ -24,7 +28,7 @@ class JudgeProvider:
                 contradictions=[],
                 missing_citations=[],
                 requires_physician_review=False,
-                escalation_level="NONE"
+                escalation_level="NONE",
             )
 
         system_prompt = """
@@ -51,10 +55,10 @@ class JudgeProvider:
                 model=self.provider.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content}
+                    {"role": "user", "content": user_content},
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.0
+                temperature=0.0,
             )
 
             raw_json = response.choices[0].message.content
@@ -73,5 +77,5 @@ class JudgeProvider:
                 contradictions=["Evaluation Failed"],
                 missing_citations=[],
                 requires_physician_review=True,
-                escalation_level="HARD_STOP"
+                escalation_level="HARD_STOP",
             )

@@ -84,3 +84,6 @@ src/static/aether-oncology-portal/dist/
 .aider*
 .gemini/
 .understand-anything/
+
+# ─── Data Snapshots ──────────────────────────────────────────────────────────
+data/snapshots/

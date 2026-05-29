@@ -76,14 +76,14 @@ class FairnessAuditor:
             y_p = y_pred[mask]
 
             # FPR = FP / (FP + TN) -> rate of false alarms
-            negatives = (y_t == 0)
+            negatives = y_t == 0
             if np.sum(negatives) > 0:
                 fpr = np.sum((y_p == 1) & negatives) / np.sum(negatives)
             else:
                 fpr = 0.0
 
             # FNR = FN / (FN + TP) -> rate of missed detections
-            positives = (y_t == 1)
+            positives = y_t == 1
             if np.sum(positives) > 0:
                 fnr = np.sum((y_p == 0) & positives) / np.sum(positives)
             else:

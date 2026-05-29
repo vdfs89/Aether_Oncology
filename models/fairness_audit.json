@@ -1,0 +1,282 @@
+{
+  "is_fair": true,
+  "sensitive_metrics": {
+    "Gender": {
+      "group_metrics": {
+        "Female": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2137177437543869,
+          "sample_count": 7937
+        },
+        "Male": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21207644045352936,
+          "sample_count": 16107
+        }
+      },
+      "recall_disparity": 0.0,
+      "fpr_disparity": 0.0,
+      "fnr_disparity": 0.0,
+      "is_fair": true
+    },
+    "age_bucket": {
+      "group_metrics": {
+        "18-30": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21466125547885895,
+          "sample_count": 6703
+        },
+        "31-45": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21000584959983826,
+          "sample_count": 6910
+        },
+        "46-60": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2136799693107605,
+          "sample_count": 3458
+        },
+        "61+": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21271654963493347,
+          "sample_count": 6973
+        }
+      },
+      "recall_disparity": 0.0,
+      "fpr_disparity": 0.0,
+      "fnr_disparity": 0.0,
+      "is_fair": true
+    },
+    "Country": {
+      "group_metrics": {
+        "Bangladesh": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2171591967344284,
+          "sample_count": 794
+        },
+        "Brazil": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21274550259113312,
+          "sample_count": 818
+        },
+        "China": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20509286224842072,
+          "sample_count": 801
+        },
+        "Colombia": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20759981870651245,
+          "sample_count": 759
+        },
+        "DR Congo": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2102179378271103,
+          "sample_count": 826
+        },
+        "Egypt": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21573802828788757,
+          "sample_count": 761
+        },
+        "Ethiopia": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20947523415088654,
+          "sample_count": 795
+        },
+        "France": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21374058723449707,
+          "sample_count": 805
+        },
+        "Germany": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21087247133255005,
+          "sample_count": 802
+        },
+        "India": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20905520021915436,
+          "sample_count": 836
+        },
+        "Indonesia": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21958322823047638,
+          "sample_count": 826
+        },
+        "Iran": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21006019413471222,
+          "sample_count": 788
+        },
+        "Italy": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21704648435115814,
+          "sample_count": 815
+        },
+        "Japan": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2116362303495407,
+          "sample_count": 809
+        },
+        "Kenya": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20848779380321503,
+          "sample_count": 781
+        },
+        "Mexico": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2022211104631424,
+          "sample_count": 738
+        },
+        "Myanmar": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21554791927337646,
+          "sample_count": 784
+        },
+        "Nigeria": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21376965939998627,
+          "sample_count": 812
+        },
+        "Pakistan": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20447833836078644,
+          "sample_count": 802
+        },
+        "Philippines": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21204616129398346,
+          "sample_count": 816
+        },
+        "Russia": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2125554084777832,
+          "sample_count": 830
+        },
+        "South Africa": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2191023975610733,
+          "sample_count": 844
+        },
+        "South Korea": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.22151288390159607,
+          "sample_count": 818
+        },
+        "Spain": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.22318394482135773,
+          "sample_count": 798
+        },
+        "Tanzania": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21188664436340332,
+          "sample_count": 786
+        },
+        "Thailand": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.2089223712682724,
+          "sample_count": 823
+        },
+        "Turkey": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21002627909183502,
+          "sample_count": 797
+        },
+        "United Kingdom": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.21437519788742065,
+          "sample_count": 776
+        },
+        "United States": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.22474373877048492,
+          "sample_count": 799
+        },
+        "Vietnam": {
+          "recall": 1.0,
+          "FPR": 1.0,
+          "FNR": 0.0,
+          "brier_score": 0.20432347059249878,
+          "sample_count": 805
+        }
+      },
+      "recall_disparity": 0.0,
+      "fpr_disparity": 0.0,
+      "fnr_disparity": 0.0,
+      "is_fair": true
+    }
+  },
+  "audit_type": "clinical_fairness_audit"
+}

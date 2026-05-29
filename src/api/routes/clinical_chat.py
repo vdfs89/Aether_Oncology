@@ -10,10 +10,12 @@ from src.services.approval_store import approval_repository
 router = APIRouter(tags=["Clinical AI Copilot"])
 runtime = ClinicalInferenceRuntime()
 
+
 class ChatRequest(BaseModel):
     messages: List[Dict[str, Any]]
     context: Optional[Dict[str, Any]] = {}
     task: Optional[Dict[str, Any]] = {}
+
 
 class PendingApprovalModel(BaseModel):
     approvalRequestId: str
@@ -22,6 +24,7 @@ class PendingApprovalModel(BaseModel):
     rationale: List[str]
     requestedAt: int
     expiresAt: int
+
 
 @router.post("/chat", response_class=StreamingResponse)
 async def clinical_chat_endpoint(request: ChatRequest):
@@ -37,14 +40,16 @@ async def clinical_chat_endpoint(request: ChatRequest):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
+            "X-Accel-Buffering": "no",
+        },
     )
+
 
 @router.get("/approvals", response_model=List[PendingApprovalModel])
 async def list_approvals():
     """List all active, unexpired pending approvals."""
     return approval_repository.list_all()
+
 
 @router.get("/approvals/{approval_id}", response_model=PendingApprovalModel)
 async def get_approval(approval_id: str):
@@ -53,15 +58,17 @@ async def get_approval(approval_id: str):
     if not appr:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Approval request {approval_id} not found or expired"
+            detail=f"Approval request {approval_id} not found or expired",
         )
     return appr
+
 
 @router.post("/approvals", status_code=status.HTTP_201_CREATED)
 async def create_approval(approval: PendingApprovalModel):
     """Persist a new pending approval requested by the runtime."""
     approval_repository.save(approval.model_dump())
     return {"status": "success", "message": "Approval request persisted"}
+
 
 @router.delete("/approvals/{approval_id}")
 async def delete_approval(approval_id: str):

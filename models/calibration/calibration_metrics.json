@@ -1,0 +1,8 @@
+{
+  "best_calibration_method": "isotonic",
+  "brier_score": 0.21028977632522583,
+  "ece": 3.843413793882918e-08,
+  "mce": 4.940608977488381e-08,
+  "platt_brier": 0.21034531640824283,
+  "isotonic_brier": 0.21028977632522583
+}

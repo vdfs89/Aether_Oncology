@@ -75,8 +75,8 @@ def build_preprocessor() -> ColumnTransformer:
                 "cat",
                 OneHotEncoder(
                     handle_unknown="ignore",  # tolera países/tratamentos novos em prod
-                    sparse_output=False,      # retorna array denso para compatibilidade PyTorch
-                    drop=None,                # mantém todas as categorias para interpretabilidade
+                    sparse_output=False,  # retorna array denso para compatibilidade PyTorch
+                    drop=None,  # mantém todas as categorias para interpretabilidade
                 ),
                 CATEGORICAL_FEATURES,
             ),

@@ -114,8 +114,12 @@ def mock_oral_model(monkeypatch):
 
     # Modelo MLP real (mini) — garante sigmoid correto
     mini_model = nn.Sequential(nn.Linear(8, 1))
-    nn.init.constant_(mini_model[0].weight, 0.0)  # logit → 0 → prob = 0.5 (Low confidence)
-    nn.init.constant_(mini_model[0].bias, 2.0)  # logit → 2 → prob ≈ 0.88 (High confidence)
+    nn.init.constant_(
+        mini_model[0].weight, 0.0
+    )  # logit → 0 → prob = 0.5 (Low confidence)
+    nn.init.constant_(
+        mini_model[0].bias, 2.0
+    )  # logit → 2 → prob ≈ 0.88 (High confidence)
     mini_model.eval()
 
     monkeypatch.setattr(main_mod, "_oral_preprocessor", mock_preprocessor)
@@ -165,7 +169,6 @@ def test_version_endpoint_returns_version() -> None:
     data = response.json()
     assert "version" in data
     assert data["version"] == "3.1.0"
-
 
 
 def test_heartbeat_returns_200() -> None:
@@ -319,7 +322,9 @@ def test_predict_model_version_is_3(mock_oral_model) -> None:
     assert response.json()["model_version"] == "3.0.0"
 
 
-def test_predict_low_confidence_triggers_warning(mock_oral_model_low_confidence) -> None:
+def test_predict_low_confidence_triggers_warning(
+    mock_oral_model_low_confidence,
+) -> None:
     """
     Quando confidence == 'Low', o campo warning não deve ser None.
     Este é o Safety Loop clínico (EU AI Act Annex III).
@@ -332,7 +337,9 @@ def test_predict_low_confidence_triggers_warning(mock_oral_model_low_confidence)
         assert data["warning"] is not None, (
             "warning deve ser não-nulo quando confidence='Low'"
         )
-        assert "BAIXA CONFIANÇA" in data["warning"] or "revisão" in data["warning"].lower()
+        assert (
+            "BAIXA CONFIANÇA" in data["warning"] or "revisão" in data["warning"].lower()
+        )
     else:
         # Modelo mockado com bias=0.05 pode ainda não atingir Low neste contexto
         pytest.xfail(
@@ -401,9 +408,11 @@ def test_predict_real_model_low_risk() -> None:
 # 7. CLINICAL APPROVALS ENDPOINTS — Persistência de aprovações pendentes
 # ===========================================================================
 
+
 def test_approvals_lifecycle() -> None:
     """Testa o ciclo de vida completo de uma aprovação pendente no banco SQLite."""
     import time
+
     now_ms = int(time.time() * 1000)
     approval_data = {
         "approvalRequestId": "test-req-123",

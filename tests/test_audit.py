@@ -1,4 +1,3 @@
-
 from src.services.audit import calculate_drift, decrypt_entry, log_prediction
 
 
@@ -86,7 +85,12 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
     baseline_features = {
         "Age": 50.0,
         "Survival_Rate": 0.5,
-        "dummy1": 0.0, "dummy2": 0.0, "dummy3": 0.0, "dummy4": 0.0, "dummy5": 0.0, "dummy6": 0.0
+        "dummy1": 0.0,
+        "dummy2": 0.0,
+        "dummy3": 0.0,
+        "dummy4": 0.0,
+        "dummy5": 0.0,
+        "dummy6": 0.0,
     }
     test_data = tmp_path / "baseline_alert.csv"
     pd.DataFrame([baseline_features] * 20).to_csv(test_data, index=False)
@@ -96,7 +100,12 @@ def test_calculate_drift_alert(tmp_path, monkeypatch):
     features = {
         "Age": 90.0,
         "Survival_Rate": 0.0,
-        "dummy1": 1.0, "dummy2": 1.0, "dummy3": 1.0, "dummy4": 1.0, "dummy5": 1.0, "dummy6": 1.0
+        "dummy1": 1.0,
+        "dummy2": 1.0,
+        "dummy3": 1.0,
+        "dummy4": 1.0,
+        "dummy5": 1.0,
+        "dummy6": 1.0,
     }
     for _ in range(11):
         log_prediction(features, {"prediction": 1})

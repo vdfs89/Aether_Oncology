@@ -19,12 +19,15 @@ def load_env():
                     key, value = line.split("=", 1)
                     os.environ[key.strip()] = value.strip()
 
+
 def main():
     load_env()
 
     key = os.getenv("AUDIT_ENCRYPTION_KEY")
     if not key:
-        print("ERROR: AUDIT_ENCRYPTION_KEY environment variable not found in .env or system environment.")
+        print(
+            "ERROR: AUDIT_ENCRYPTION_KEY environment variable not found in .env or system environment."
+        )
         return
 
     try:
@@ -71,12 +74,14 @@ def main():
             try:
                 plaintext_data = json.loads(line.decode("utf-8"))
                 # Encrypt and wrap in envelope
-                encrypted_bytes = fernet.encrypt(json.dumps(plaintext_data).encode("utf-8"))
+                encrypted_bytes = fernet.encrypt(
+                    json.dumps(plaintext_data).encode("utf-8")
+                )
                 envelope = {
                     "key_version": "v1",
                     "algorithm": "fernet",
                     "encrypted": True,
-                    "payload": encrypted_bytes.decode("utf-8")
+                    "payload": encrypted_bytes.decode("utf-8"),
                 }
                 new_lines.append(json.dumps(envelope).encode("utf-8"))
                 migrated_count += 1
@@ -90,9 +95,14 @@ def main():
         with open(audit_file, "wb") as f:
             for line in new_lines:
                 f.write(line + b"\n")
-        print(f"SUCCESS: Migration completed. Migrated: {migrated_count}, Already encrypted: {already_encrypted_count}, Corrupted skipped: {corrupted_count}")
+        print(
+            f"SUCCESS: Migration completed. Migrated: {migrated_count}, Already encrypted: {already_encrypted_count}, Corrupted skipped: {corrupted_count}"
+        )
     else:
-        print(f"INFO: No migration needed. All {already_encrypted_count} entries were already encrypted.")
+        print(
+            f"INFO: No migration needed. All {already_encrypted_count} entries were already encrypted."
+        )
+
 
 if __name__ == "__main__":
     main()

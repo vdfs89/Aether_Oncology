@@ -28,7 +28,9 @@ def get_fernet() -> Fernet:
     if _fernet_instance is None:
         key = os.getenv("AUDIT_ENCRYPTION_KEY")
         if not key:
-            raise RuntimeError("Missing required environment variable: AUDIT_ENCRYPTION_KEY")
+            raise RuntimeError(
+                "Missing required environment variable: AUDIT_ENCRYPTION_KEY"
+            )
         try:
             _fernet_instance = Fernet(key.encode())
         except Exception as e:
@@ -46,7 +48,7 @@ def encrypt_entry(entry: dict) -> bytes:
         "key_version": "v1",
         "algorithm": "fernet",
         "encrypted": True,
-        "payload": encrypted_bytes.decode("utf-8")
+        "payload": encrypted_bytes.decode("utf-8"),
     }
     return json.dumps(envelope).encode("utf-8")
 
@@ -110,7 +112,10 @@ def calculate_drift() -> dict:
                 try:
                     decrypted_entries.append(decrypt_entry(line))
                 except Exception as dec_err:
-                    logger.error("Erro ao decriptar entrada do log de auditoria no drift: %s", dec_err)
+                    logger.error(
+                        "Erro ao decriptar entrada do log de auditoria no drift: %s",
+                        dec_err,
+                    )
                     continue
 
         if not decrypted_entries:

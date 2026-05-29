@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 DB_FILE = Path(__file__).resolve().parents[2] / "logs" / "pending_approvals.db"
 
+
 class SQLiteApprovalRepository:
     def __init__(self):
         self.db_path = DB_FILE
@@ -40,8 +41,8 @@ class SQLiteApprovalRepository:
                     approval["riskLevel"],
                     json.dumps(approval["rationale"]),
                     approval["requestedAt"],
-                    approval["expiresAt"]
-                )
+                    approval["expiresAt"],
+                ),
             )
             conn.commit()
 
@@ -51,7 +52,7 @@ class SQLiteApprovalRepository:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT approval_request_id, plan, risk_level, rationale, requested_at, expires_at FROM pending_approvals WHERE approval_request_id = ?",
-                (approval_request_id,)
+                (approval_request_id,),
             )
             row = cursor.fetchone()
             if not row:
@@ -62,19 +63,24 @@ class SQLiteApprovalRepository:
                 "riskLevel": row[2],
                 "rationale": json.loads(row[3]),
                 "requestedAt": row[4],
-                "expiresAt": row[5]
+                "expiresAt": row[5],
             }
 
     def delete(self, approval_request_id: str) -> None:
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute("DELETE FROM pending_approvals WHERE approval_request_id = ?", (approval_request_id,))
+            conn.execute(
+                "DELETE FROM pending_approvals WHERE approval_request_id = ?",
+                (approval_request_id,),
+            )
             conn.commit()
 
     def list_all(self) -> List[Dict[str, Any]]:
         self.cleanup_expired()
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT approval_request_id, plan, risk_level, rationale, requested_at, expires_at FROM pending_approvals")
+            cursor.execute(
+                "SELECT approval_request_id, plan, risk_level, rationale, requested_at, expires_at FROM pending_approvals"
+            )
             rows = cursor.fetchall()
             return [
                 {
@@ -83,7 +89,7 @@ class SQLiteApprovalRepository:
                     "riskLevel": row[2],
                     "rationale": json.loads(row[3]),
                     "requestedAt": row[4],
-                    "expiresAt": row[5]
+                    "expiresAt": row[5],
                 }
                 for row in rows
             ]
@@ -91,8 +97,11 @@ class SQLiteApprovalRepository:
     def cleanup_expired(self) -> None:
         now_ms = int(time.time() * 1000)
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute("DELETE FROM pending_approvals WHERE expires_at < ?", (now_ms,))
+            conn.execute(
+                "DELETE FROM pending_approvals WHERE expires_at < ?", (now_ms,)
+            )
             conn.commit()
+
 
 # Global repository instance
 approval_repository = SQLiteApprovalRepository()

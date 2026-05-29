@@ -6,6 +6,7 @@ class HallucinationGuard:
     """
     Specifically focuses on verifying factual claims against established oncology guidelines.
     """
+
     def __init__(self):
         self.judge = JudgeProvider()
 

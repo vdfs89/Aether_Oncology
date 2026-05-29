@@ -19,6 +19,7 @@ class GroqProvider(BaseProvider):
     Provider de baixa latência para inferência conversacional e UX em tempo real.
     Modelo: llama-3.3-70b-versatile — melhor balanceamento razão/velocidade no Groq.
     """
+
     provider_id = "groq"
     model_name = "llama-3.3-70b-versatile"
 
@@ -42,9 +43,7 @@ class GroqProvider(BaseProvider):
         self.client = AsyncGroq(api_key=api_key)
 
     async def stream_inference(
-        self,
-        messages: List[Dict[str, Any]],
-        context: Dict[str, Any] = None
+        self, messages: List[Dict[str, Any]], context: Dict[str, Any] = None
     ) -> AsyncGenerator[str, None]:
         system_prompt = CLINICAL_SYSTEM_PROMPT
         if context:
@@ -59,7 +58,7 @@ class GroqProvider(BaseProvider):
             messages=groq_messages,
             stream=True,
             temperature=0.0,
-            max_tokens=4096
+            max_tokens=4096,
         )
 
         async for chunk in stream:
@@ -74,7 +73,7 @@ class GroqProvider(BaseProvider):
                 model=self.model_name,
                 messages=[{"role": "user", "content": "ping"}],
                 max_tokens=1,
-                stream=False
+                stream=False,
             )
             return bool(response.choices)
         except Exception as e:

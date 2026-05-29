@@ -1,0 +1,73 @@
+{
+  "features": {
+    "Age": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Patient age in years",
+      "clinical_source": "Demographics"
+    },
+    "Survival_Rate": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Estimated 5-year survival probability",
+      "clinical_source": "SEER database"
+    },
+    "Tobacco_Use": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Tobacco use status (Yes/No or 0/1)",
+      "clinical_source": "WHO risk guidelines"
+    },
+    "Alcohol_Use": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Regular alcohol consumption (Yes/No or 0/1)",
+      "clinical_source": "WHO risk guidelines"
+    },
+    "Country": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Patient country of origin",
+      "clinical_source": "Demographics"
+    },
+    "Gender": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Biological sex",
+      "clinical_source": "Demographics"
+    },
+    "Socioeconomic_Status": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Socioeconomic status (High/Middle/Low)",
+      "clinical_source": "Demographics"
+    },
+    "Treatment_Type": {
+      "type": "raw",
+      "version": "1.0.0",
+      "description": "Standard of care treatment type",
+      "clinical_source": "Clinical Oncology Guidelines"
+    },
+    "risk_index": {
+      "type": "derived",
+      "version": "1.0.0",
+      "formula": "Tobacco_Use + Alcohol_Use + HPV_Related",
+      "description": "Composite clinical risk factor index summing major lifestyle and viral factors",
+      "clinical_source": "NCCN Guidelines 2025"
+    },
+    "age_bucket": {
+      "type": "derived",
+      "version": "1.0.0",
+      "formula": "Discretized Age into [18-30, 31-45, 46-60, 61+]",
+      "description": "Age groups for clinical stratification",
+      "clinical_source": "WHO Age Stratification Standards"
+    },
+    "high_incidence_country": {
+      "type": "derived",
+      "version": "1.0.0",
+      "formula": "Country in ['Vietnam', 'Mexico', 'South Africa', 'India', 'Pakistan', 'Tanzania', 'Russia', 'Nigeria', 'DR Congo', 'United Kingdom', 'Germany', 'Philippines']",
+      "description": "Indicator of country with high baseline oral cancer incidence (>70% high risk)",
+      "clinical_source": "IARC Cancer Incidence Database"
+    }
+  }
+}

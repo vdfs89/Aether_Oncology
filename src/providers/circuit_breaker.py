@@ -41,7 +41,9 @@ class CircuitBreaker:
             return False
         # Check if reset window has passed (HALF-OPEN)
         if time.time() - state.opened_at >= self.reset_after_seconds:
-            logger.info(f"[CircuitBreaker] {provider_id} entering HALF-OPEN — attempting recovery")
+            logger.info(
+                f"[CircuitBreaker] {provider_id} entering HALF-OPEN — attempting recovery"
+            )
             state.is_open = False
             state.failures = 0
             return False
@@ -51,11 +53,15 @@ class CircuitBreaker:
         """Registra uma falha. Abre o circuito se threshold for atingido."""
         state = self._get_state(provider_id)
         state.failures += 1
-        logger.warning(f"[CircuitBreaker] {provider_id} failure #{state.failures}/{self.threshold}")
+        logger.warning(
+            f"[CircuitBreaker] {provider_id} failure #{state.failures}/{self.threshold}"
+        )
         if state.failures >= self.threshold:
             state.is_open = True
             state.opened_at = time.time()
-            logger.error(f"[CircuitBreaker] OPEN — {provider_id} blocked for {self.reset_after_seconds}s")
+            logger.error(
+                f"[CircuitBreaker] OPEN — {provider_id} blocked for {self.reset_after_seconds}s"
+            )
 
     def record_success(self, provider_id: str) -> None:
         """Reset do circuito após sucesso (confirma recovery do HALF-OPEN)."""

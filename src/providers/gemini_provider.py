@@ -21,6 +21,7 @@ class GeminiProvider(BaseProvider):
     Modelo: gemini-2.0-flash — ótimo balanceamento velocidade/reasoning para uso clínico.
     SDK: google-genai (novo SDK unificado — suporta Gemini 2.x+)
     """
+
     provider_id = "gemini"
     model_name = "gemini-2.0-flash"
 
@@ -44,9 +45,7 @@ class GeminiProvider(BaseProvider):
         self.client = genai.Client(api_key=api_key)
 
     async def stream_inference(
-        self,
-        messages: List[Dict[str, Any]],
-        context: Dict[str, Any] = None
+        self, messages: List[Dict[str, Any]], context: Dict[str, Any] = None
     ) -> AsyncGenerator[str, None]:
         system_prompt = CLINICAL_SYSTEM_PROMPT
         if context:
@@ -58,21 +57,16 @@ class GeminiProvider(BaseProvider):
             role = "user" if msg["role"] == "user" else "model"
             contents.append(
                 genai_types.Content(
-                    role=role,
-                    parts=[genai_types.Part(text=msg["content"])]
+                    role=role, parts=[genai_types.Part(text=msg["content"])]
                 )
             )
 
         config = genai_types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.0,
-            max_output_tokens=8192
+            system_instruction=system_prompt, temperature=0.0, max_output_tokens=8192
         )
 
         async for chunk in await self.client.aio.models.generate_content_stream(
-            model=self.model_name,
-            contents=contents,
-            config=config
+            model=self.model_name, contents=contents, config=config
         ):
             if chunk.text:
                 yield chunk.text
@@ -83,7 +77,7 @@ class GeminiProvider(BaseProvider):
             response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents="ping",
-                config=genai_types.GenerateContentConfig(max_output_tokens=1)
+                config=genai_types.GenerateContentConfig(max_output_tokens=1),
             )
             return bool(response.text is not None)
         except Exception as e:

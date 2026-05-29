@@ -14,6 +14,7 @@ def format_sse(event: BaseModel) -> str:
     data_str = event.model_dump_json()
     return f"data: {data_str}\n\n"
 
+
 def format_raw_sse(data: dict) -> str:
     """
     Formata um dicionário arbitrário em SSE. Útil para eventos simples.

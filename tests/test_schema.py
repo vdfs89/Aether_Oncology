@@ -93,8 +93,13 @@ def test_schema_valid_dataframe(valid_df: pd.DataFrame) -> None:
 def test_schema_all_columns_present(valid_df: pd.DataFrame) -> None:
     """Todas as colunas do schema devem estar presentes."""
     required_cols = {
-        "Country", "Gender", "Age", "Tobacco_Use",
-        "Alcohol_Use", "Socioeconomic_Status", "Diagnosis_Stage",
+        "Country",
+        "Gender",
+        "Age",
+        "Tobacco_Use",
+        "Alcohol_Use",
+        "Socioeconomic_Status",
+        "Diagnosis_Stage",
     }
     assert required_cols.issubset(set(valid_df.columns))
 
@@ -181,15 +186,19 @@ def test_target_class_balance(df_with_target: pd.DataFrame) -> None:
 
 def test_preprocessor_output_shape(df_with_target: pd.DataFrame) -> None:
     """Preprocessor deve expandir features via OHE (shape > n_features_originais)."""
-    from src.features.preprocessor import (
-        BINARY_FEATURES,
-        CATEGORICAL_FEATURES,
-        NUMERIC_FEATURES,
-        build_preprocessor,
-    )
+    from src.features.preprocessor import build_preprocessor
 
-    feature_cols = NUMERIC_FEATURES + BINARY_FEATURES + CATEGORICAL_FEATURES
-    X = df_with_target[feature_cols]
+    raw_cols = [
+        "Age",
+        "Survival_Rate",
+        "Tobacco_Use",
+        "Alcohol_Use",
+        "Country",
+        "Gender",
+        "Socioeconomic_Status",
+        "Treatment_Type",
+    ]
+    X = df_with_target[raw_cols]
 
     preprocessor = build_preprocessor()
     X_t = preprocessor.fit_transform(X)
@@ -197,22 +206,26 @@ def test_preprocessor_output_shape(df_with_target: pd.DataFrame) -> None:
     # Linhas preservadas
     assert X_t.shape[0] == len(df_with_target)
     # OHE deve expandir o número de colunas
-    assert X_t.shape[1] > len(feature_cols), (
-        f"OHE deveria criar mais colunas que {len(feature_cols)}, obtido {X_t.shape[1]}"
+    assert X_t.shape[1] > len(raw_cols), (
+        f"OHE deveria criar mais colunas que {len(raw_cols)}, obtido {X_t.shape[1]}"
     )
 
 
 def test_preprocessor_no_nan_output(df_with_target: pd.DataFrame) -> None:
     """Preprocessor não deve gerar NaN no output."""
-    from src.features.preprocessor import (
-        BINARY_FEATURES,
-        CATEGORICAL_FEATURES,
-        NUMERIC_FEATURES,
-        build_preprocessor,
-    )
+    from src.features.preprocessor import build_preprocessor
 
-    feature_cols = NUMERIC_FEATURES + BINARY_FEATURES + CATEGORICAL_FEATURES
-    X = df_with_target[feature_cols]
+    raw_cols = [
+        "Age",
+        "Survival_Rate",
+        "Tobacco_Use",
+        "Alcohol_Use",
+        "Country",
+        "Gender",
+        "Socioeconomic_Status",
+        "Treatment_Type",
+    ]
+    X = df_with_target[raw_cols]
 
     preprocessor = build_preprocessor()
     X_t = preprocessor.fit_transform(X)
@@ -221,16 +234,20 @@ def test_preprocessor_no_nan_output(df_with_target: pd.DataFrame) -> None:
 
 
 def test_preprocessor_binary_features_encoded(df_with_target: pd.DataFrame) -> None:
-    """Features binárias (Yes/No) devem ser codificadas como 0 ou 1."""
-    from src.features.preprocessor import (
-        BINARY_FEATURES,
-        CATEGORICAL_FEATURES,
-        NUMERIC_FEATURES,
-        build_preprocessor,
-    )
+    """Features binárias devem ser codificadas e gerar valores finitos."""
+    from src.features.preprocessor import build_preprocessor
 
-    feature_cols = NUMERIC_FEATURES + BINARY_FEATURES + CATEGORICAL_FEATURES
-    X = df_with_target[feature_cols]
+    raw_cols = [
+        "Age",
+        "Survival_Rate",
+        "Tobacco_Use",
+        "Alcohol_Use",
+        "Country",
+        "Gender",
+        "Socioeconomic_Status",
+        "Treatment_Type",
+    ]
+    X = df_with_target[raw_cols]
 
     preprocessor = build_preprocessor()
     X_t = preprocessor.fit_transform(X)
@@ -240,7 +257,7 @@ def test_preprocessor_binary_features_encoded(df_with_target: pd.DataFrame) -> N
 
 
 def test_preprocessor_constants() -> None:
-    """NUMERIC + BINARY + CATEGORICAL devem cobrir 8 features esperadas pela API."""
+    """NUMERIC + BINARY + CATEGORICAL devem cobrir 11 features após extração clínica."""
     from src.features.preprocessor import (
         BINARY_FEATURES,
         CATEGORICAL_FEATURES,
@@ -249,7 +266,7 @@ def test_preprocessor_constants() -> None:
     )
 
     all_features = NUMERIC_FEATURES + BINARY_FEATURES + CATEGORICAL_FEATURES
-    assert len(all_features) == 8, (
-        f"Pipeline deve ter 8 features, encontrado {len(all_features)}"
+    assert len(all_features) == 11, (
+        f"Pipeline deve ter 11 features, encontrado {len(all_features)}"
     )
     assert TARGET == "high_risk"

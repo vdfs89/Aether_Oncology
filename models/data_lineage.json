@@ -1,0 +1,14 @@
+{
+  "model_version": "3.1.0",
+  "timestamp": "2026-05-29T03:03:24.722293Z",
+  "git_commit": "5b2fea750022865a21dc4bd6fdb60de83053795d",
+  "dataset_version": "v1.0",
+  "dataset_hash": "sha256:4cb9194c8623fc8e64c1e5ed341f79acd07b20b941bd45974ba605961b978cf9",
+  "schema_hash": "sha256:494cdbe47c86a35ba7dfd77e9dbd6344b218e3ed32740f8e1d783520f9ce0bef",
+  "inference_schema_hash": "sha256:407ace9305ea7a331408db984ebad193b688cbda7c1b87e420d92e981247c6f7",
+  "clinical_rules_hash": "sha256:b22fd62e4f34dcaa827ed8020dd355f69f49c6627a5c2e6c2cbdb493155cee57",
+  "feature_registry_hash": "sha256:7809bdca0d221b2be8878991fa9d8f99e0eb03694406aa7f32dbdf9e495426e8",
+  "preprocessing_version": "sha256:5048107de9ba7331da95c0371ab12d581732c64bf951958aa93f41afba6de0bd",
+  "calibration_method": "isotonic",
+  "brier_score": 0.21028977632522583
+}

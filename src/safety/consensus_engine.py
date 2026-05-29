@@ -6,17 +6,20 @@ from src.safety.types import ClinicalJudgement
 logger = logging.getLogger(__name__)
 
 # Thresholds
-_CONFIDENCE_FLOOR = 0.50          # below → no consensus
-_MAX_CONTRADICTIONS_OK = 1        # 0–1 contradictions allowed
+_CONFIDENCE_FLOOR = 0.50  # below → no consensus
+_MAX_CONTRADICTIONS_OK = 1  # 0–1 contradictions allowed
 _MIN_EVIDENCE_FOR_LOW_CITES = "MODERATE"  # if evidence is LOW, citations scrutinized
-_MAX_MISSING_CITES_LOW_EVIDENCE = 1       # with LOW evidence, max missing citations
+_MAX_MISSING_CITES_LOW_EVIDENCE = 1  # with LOW evidence, max missing citations
 
 
 class ConsensusResult:
     """Structured output from the consensus layer."""
+
     __slots__ = ("passed", "dissenting_guard", "reason")
 
-    def __init__(self, passed: bool, dissenting_guard: Optional[str] = None, reason: str = "") -> None:
+    def __init__(
+        self, passed: bool, dissenting_guard: Optional[str] = None, reason: str = ""
+    ) -> None:
         self.passed = passed
         self.dissenting_guard = dissenting_guard
         self.reason = reason
@@ -33,7 +36,9 @@ class ConsensusEngine:
       4. contradiction_gate        — ≥2 contradictions → FAIL
     """
 
-    def evaluate_consensus(self, judgement: ClinicalJudgement, _judge_response: str = "") -> bool:
+    def evaluate_consensus(
+        self, judgement: ClinicalJudgement, _judge_response: str = ""
+    ) -> bool:
         """
         Returns True if consensus is reached, False otherwise.
         Logs which guard dissented for audit purposes.

@@ -7,16 +7,20 @@ from src.safety.types import ClinicalJudgement
 
 logger = logging.getLogger(__name__)
 
+
 class ClinicalJudge:
     """
     The orchestrator for the safety layer.
     """
+
     def __init__(self):
         self.guard = HallucinationGuard()
         self.consensus = ConsensusEngine()
         self.policy = EscalationPolicy()
 
-    async def evaluate(self, original_prompt: str, generated_response: str) -> ClinicalJudgement:
+    async def evaluate(
+        self, original_prompt: str, generated_response: str
+    ) -> ClinicalJudgement:
         logger.info("Evaluating response via Clinical Judge...")
 
         # 1. Check for hallucinations and basic evidence
@@ -31,5 +35,7 @@ class ClinicalJudge:
         # 3. Apply escalation policy rules
         final_judgement = self.policy.evaluate(judgement)
 
-        logger.info(f"Clinical Judgement complete. Approved: {final_judgement.approved}, Escalation: {final_judgement.escalation_level}")
+        logger.info(
+            f"Clinical Judgement complete. Approved: {final_judgement.approved}, Escalation: {final_judgement.escalation_level}"
+        )
         return final_judgement

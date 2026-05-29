@@ -10,6 +10,7 @@ class BaseEventMetadata(BaseModel):
     Envelope base para todos os eventos SSE do Clinical Runtime.
     Inclui campos de observabilidade completos para replay, auditoria e tracing.
     """
+
     type: str
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     sequence: int = 0
@@ -69,6 +70,7 @@ class RoutingDecisionEvent(BaseEventMetadata):
     Descreve QUAL provider foi selecionado e POR QUÊ.
     Ouro para auditoria, billing e observabilidade.
     """
+
     type: str = "routing_decision"
     rationale: str
     estimated_latency_ms: int
@@ -81,6 +83,7 @@ class InferenceEnvelopeEvent(BaseEventMetadata):
     Emitido APÓS coleta completa da resposta, ANTES do Judge.
     Captura telemetria real de latência e custo para o InspectorHUD e replay.
     """
+
     type: str = "inference_envelope"
     prompt_tokens: int
     completion_tokens: int
