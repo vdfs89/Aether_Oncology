@@ -53,7 +53,8 @@ jobs:
         # Retrain when drift is detected OR when triggered manually / by dispatch.
         if: steps.drift_check.outputs.drift == 'true' || github.event_name != 'schedule'
         env:
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          # Fall back to a local file store when no remote tracking secret is set.
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI || './mlruns' }}
           MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         run: python -m src.train

@@ -415,35 +415,50 @@ def train() -> None:
         except Exception:
             mlflow_uri = "sqlite:///mlflow.db"
     log.info("MLflow tracking URI: %s", mlflow_uri)
-    mlflow.set_tracking_uri(mlflow_uri)
-    mlflow.set_experiment("Aether_Oncology_OralCancer_HighRisk")
+    # MLflow tracking is observability, not a build gate. The trained model and
+    # all governance artifacts are already persisted to disk above; a tracking
+    # failure (e.g. an unreachable server or invalid credentials supplied via a
+    # CI secret) must NOT fail the training pipeline.
+    try:
+        mlflow.set_tracking_uri(mlflow_uri)
+        mlflow.set_experiment("Aether_Oncology_OralCancer_HighRisk")
 
-    with mlflow.start_run(run_name="aether_clinical_platform_v3_1"):
-        mlflow.log_params(HPARAMS)
-        mlflow.log_param("dataset_hash", dataset_hash)
-        mlflow.log_metrics(
-            {
-                "brier_score": calibration_metrics["brier_score"],
-                "ece": calibration_metrics["ece"],
-                "mce": calibration_metrics["mce"],
-                "fairness_recall_disparity_gender": fairness_report["sensitive_metrics"]
-                .get("Gender", {})
-                .get("recall_disparity", 0.0),
-            }
-        )
+        with mlflow.start_run(run_name="aether_clinical_platform_v3_1"):
+            mlflow.log_params(HPARAMS)
+            mlflow.log_param("dataset_hash", dataset_hash)
+            mlflow.log_metrics(
+                {
+                    "brier_score": calibration_metrics["brier_score"],
+                    "ece": calibration_metrics["ece"],
+                    "mce": calibration_metrics["mce"],
+                    "fairness_recall_disparity_gender": fairness_report[
+                        "sensitive_metrics"
+                    ]
+                    .get("Gender", {})
+                    .get("recall_disparity", 0.0),
+                }
+            )
 
-        # Log artifacts
-        mlflow.log_artifact(str(PREPROCESSOR_PATH))
-        mlflow.log_artifact(str(CALIBRATOR_PATH))
-        mlflow.log_artifact(str(OOD_DETECTOR_PATH))
-        mlflow.log_artifact(str(LINEAGE_PATH))
-        mlflow.log_artifact(str(MODEL_CARD_PATH))
-        mlflow.log_artifact(str(MODELS_DIR / "calibration" / "reliability_curve.png"))
+            # Log artifacts
+            mlflow.log_artifact(str(PREPROCESSOR_PATH))
+            mlflow.log_artifact(str(CALIBRATOR_PATH))
+            mlflow.log_artifact(str(OOD_DETECTOR_PATH))
+            mlflow.log_artifact(str(LINEAGE_PATH))
+            mlflow.log_artifact(str(MODEL_CARD_PATH))
+            mlflow.log_artifact(
+                str(MODELS_DIR / "calibration" / "reliability_curve.png")
+            )
 
-        mlflow.pytorch.log_model(
-            model,
-            artifact_path="model",
-            registered_model_name="AetherOncologyOralCancerHighRisk",
+            mlflow.pytorch.log_model(
+                model,
+                artifact_path="model",
+                registered_model_name="AetherOncologyOralCancerHighRisk",
+            )
+    except Exception as exc:  # noqa: BLE001
+        log.warning(
+            "MLflow tracking skipped (non-fatal). Model artifacts are already "
+            "saved to disk. Reason: %s",
+            exc,
         )
 
     log.info("Pipeline de Treino Clínico Concluído com Sucesso!")
