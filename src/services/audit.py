@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -7,6 +8,8 @@ import pandas as pd
 
 from src.core.logging import request_id_contextvar
 from src.ml_platform.drift import DriftDetector
+
+from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,53 @@ DATA_PATH = _ROOT / "data" / "raw" / "oral_cancer_top30.csv"
 # Features numéricas para detecção de Drift (Oral Cancer Dataset)
 NUMERIC_FEATURES = ["Age", "Survival_Rate"]
 
+_fernet_instance = None
+
+
+def get_fernet() -> Fernet:
+    global _fernet_instance
+    if _fernet_instance is None:
+        key = os.getenv("AUDIT_ENCRYPTION_KEY")
+        if not key:
+            raise RuntimeError("Missing required environment variable: AUDIT_ENCRYPTION_KEY")
+        try:
+            _fernet_instance = Fernet(key.encode())
+        except Exception as e:
+            raise RuntimeError(f"Invalid AUDIT_ENCRYPTION_KEY: {e}")
+    return _fernet_instance
+
+
+def encrypt_entry(entry: dict) -> bytes:
+    """Criptografa uma entrada de log e envolve com envelope de metadados."""
+    fernet = get_fernet()
+    json_str = json.dumps(entry)
+    encrypted_bytes = fernet.encrypt(json_str.encode("utf-8"))
+    
+    envelope = {
+        "key_version": "v1",
+        "algorithm": "fernet",
+        "encrypted": True,
+        "payload": encrypted_bytes.decode("utf-8")
+    }
+    return json.dumps(envelope).encode("utf-8")
+
+
+def decrypt_entry(token: bytes) -> dict:
+    """Descriptografa uma entrada envelopada ou retorna plaintext histórico."""
+    try:
+        data = json.loads(token.decode("utf-8") if isinstance(token, bytes) else token)
+    except Exception:
+        raise ValueError("Invalid JSON format for log entry")
+        
+    if isinstance(data, dict) and data.get("encrypted") is True:
+        payload = data.get("payload")
+        if not payload:
+            raise ValueError("Envelope missing payload field")
+        fernet = get_fernet()
+        decrypted_bytes = fernet.decrypt(payload.encode("utf-8"))
+        return json.loads(decrypted_bytes.decode("utf-8"))
+    else:
+        return data
 
 
 def log_prediction(features: dict, prediction_result: dict):
@@ -38,8 +88,9 @@ def log_prediction(features: dict, prediction_result: dict):
             },
         }
 
-        with open(AUDIT_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+        encrypted_bytes = encrypt_entry(entry)
+        with open(AUDIT_FILE, "ab") as f:
+            f.write(encrypted_bytes + b"\n")
     except Exception as e:
         logger.error("Falha ao gravar log de auditoria: %s", e)
 
@@ -50,8 +101,23 @@ def calculate_drift() -> dict:
         return {"status": "insufficient_data", "metrics": {}}
 
     try:
-        # Lê as últimas 100 predições
-        df = pd.read_json(AUDIT_FILE, lines=True)
+        # Lê e descriptografa as predições
+        decrypted_entries = []
+        with open(AUDIT_FILE, "rb") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    decrypted_entries.append(decrypt_entry(line))
+                except Exception as dec_err:
+                    logger.error("Erro ao decriptar entrada do log de auditoria no drift: %s", dec_err)
+                    continue
+
+        if not decrypted_entries:
+            return {"status": "insufficient_data", "metrics": {}}
+
+        df = pd.DataFrame(decrypted_entries)
         if len(df) < 10:
             return {"status": "collecting", "count": len(df)}
 

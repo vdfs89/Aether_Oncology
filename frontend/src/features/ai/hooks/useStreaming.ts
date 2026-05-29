@@ -19,6 +19,7 @@ import { clinicalToolRuntime } from "../tools/runtime"
 import { ExecutionPlan, ExecutionStage } from "../tools/types"
 import { clinicalPlanner } from "../orchestration/planner"
 import { clinicalApprovalManager } from "../orchestration/runtime/approvalManager"
+import { scrubPHI } from "../telemetry/scrubbers/phi"
 
 export function useStreaming() {
   const {
@@ -55,6 +56,22 @@ export function useStreaming() {
         })
       })
 
+      // Fail-closed PHI scrubber check
+      let scrubbedPrompt = prompt
+      try {
+        scrubbedPrompt = scrubPHI(prompt)
+      } catch (scrubErr: any) {
+        console.error("PHI Scrubber failed (Fail-closed). Aborting inference.", scrubErr)
+        stateMachine.transitionTo("FAILED")
+        clinicalEventBus.publish({
+          type: "InferenceFailed",
+          payload: { error: `Security exception: PHI Scrubber error. ${scrubErr.message || String(scrubErr)}` },
+          metadata: context.createEventMetadata("FAILED")
+        })
+        _finishInference()
+        return
+      }
+
       try {
         // Announce message creation
         clinicalEventBus.publish({
@@ -79,7 +96,7 @@ export function useStreaming() {
         // -----------------------------------------------------------------
         // 2. Build an ExecutionPlan based on prompt analysis
         // -----------------------------------------------------------------
-        const plannerResult = clinicalPlanner.plan(prompt, context.getContext())
+        const plannerResult = clinicalPlanner.plan(scrubbedPrompt, context.getContext())
         
         // Always emit the planning result for telemetry / UI visualization
         clinicalEventBus.publish({
@@ -154,7 +171,7 @@ export function useStreaming() {
         stateMachine.transitionTo("STREAMING")
 
         const messages = session.messages.concat([
-          { id: "temp", role: "user", content: prompt, createdAt: Date.now() }
+          { id: "temp", role: "user", content: scrubbedPrompt, createdAt: Date.now() }
         ])
         const provider = getLLMProvider()
         const stream = provider.stream({

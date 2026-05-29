@@ -51,7 +51,14 @@ from src.api.schemas import OralCancerRequest, PredictionResponse
 from src.core.logging import request_id_contextvar, setup_logging
 from src.ml_platform.orchestrator import MLPlatformOrchestrator
 from src.models.mlp import MLP
-from src.services.audit import AUDIT_FILE, calculate_drift, log_prediction
+from src.services.audit import (
+    AUDIT_FILE,
+    calculate_drift,
+    log_prediction,
+    encrypt_entry,
+    decrypt_entry,
+    get_fernet,
+)
 from src.services.inference_client import inference_client
 from src.services.predictor import predictor
 
@@ -59,7 +66,7 @@ from src.services.predictor import predictor
 # Platform Metadata (v2.2)
 # ---------------------------------------------------------------------------
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 GIT_SHA = os.getenv("RENDER_GIT_COMMIT", os.getenv("GITHUB_SHA", "dev-local"))
 
 # ---------------------------------------------------------------------------
@@ -191,6 +198,15 @@ async def lifespan(app: FastAPI):
     gemini_key = os.getenv("GEMINI_API_KEY")
     if not gemini_key:
         raise EnvironmentError("Missing required environment variable: GEMINI_API_KEY")
+
+    # Verify AUDIT_ENCRYPTION_KEY
+    audit_key = os.getenv("AUDIT_ENCRYPTION_KEY")
+    if not audit_key:
+        raise EnvironmentError("Missing required environment variable: AUDIT_ENCRYPTION_KEY")
+    try:
+        get_fernet()
+    except Exception as e:
+        raise EnvironmentError(f"Invalid AUDIT_ENCRYPTION_KEY: {e}")
 
     # Explicit Dependency Verification
     if not os.path.exists(_BASELINE_PATH):
@@ -689,8 +705,9 @@ async def clinical_feedback(feedback: FeedbackRequest):
     }
 
     def _write_feedback() -> None:
-        with open(AUDIT_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(feedback_entry) + "\n")
+        encrypted_bytes = encrypt_entry(feedback_entry)
+        with open(AUDIT_FILE, "ab") as f:
+            f.write(encrypted_bytes + b"\n")
 
     await asyncio.to_thread(_write_feedback)
 
@@ -714,14 +731,17 @@ def get_audit_trail():
     if not AUDIT_FILE.exists():
         return []
 
-    with open(AUDIT_FILE, "r", encoding="utf-8") as f:
+    with open(AUDIT_FILE, "rb") as f:
         lines = f.readlines()
         # Garante que não falhe se o arquivo estiver vazio ou corrompido
         trail = []
         for line in lines[-100:]:
+            line = line.strip()
+            if not line:
+                continue
             try:
-                trail.append(json.loads(line))
-            except json.JSONDecodeError:
+                trail.append(decrypt_entry(line))
+            except Exception:
                 continue
         return trail
 

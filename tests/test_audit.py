@@ -1,6 +1,6 @@
 import json
 
-from src.services.audit import calculate_drift, log_prediction
+from src.services.audit import calculate_drift, log_prediction, decrypt_entry
 
 
 def test_log_prediction(tmp_path, monkeypatch):
@@ -20,9 +20,9 @@ def test_log_prediction(tmp_path, monkeypatch):
     log_prediction(features, prediction)
 
     assert test_audit_file.exists()
-    with open(test_audit_file, "r") as f:
+    with open(test_audit_file, "rb") as f:
         line = f.readline()
-        data = json.loads(line)
+        data = decrypt_entry(line)
         assert data["input"] == features
         assert data["output"]["risk_level"] == "High"
 

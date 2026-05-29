@@ -17,6 +17,8 @@
  *   For MVP, it reads from a browser session store with a structured PhysicianProfile.
  */
 
+import { cryptoHelper } from "../../services/persistence/crypto"
+
 export interface PhysicianProfile {
   /** Unique physician identifier — CRM number in Brazil, NPI in US */
   physicianId: string
@@ -30,6 +32,8 @@ export interface PhysicianProfile {
   authenticatedAt: number
   /** Session token hash — opaque, not the raw token */
   sessionTokenHash?: string
+  /** Raw session token to derive DB encryption key from */
+  sessionToken?: string
 }
 
 const SESSION_STORAGE_KEY = "aether:physician_session"
@@ -39,6 +43,7 @@ const FALLBACK_PHYSICIAN: PhysicianProfile = {
   specialty: "Oncology",
   crm: undefined,
   authenticatedAt: Date.now(),
+  sessionToken: "demo-session-token-hash-fallback"
 }
 
 class PhysicianSessionManager {
@@ -61,6 +66,11 @@ class PhysicianSessionManager {
         const SESSION_TTL_MS = 8 * 60 * 60 * 1000
         if (Date.now() - parsed.authenticatedAt < SESSION_TTL_MS) {
           this._profile = parsed
+          if (parsed.sessionToken) {
+            cryptoHelper.setSessionToken(parsed.sessionToken).catch(err => {
+              console.error("Failed to pre-derive key from restored session token", err)
+            })
+          }
           return this._profile
         }
         this.clearSession()
@@ -98,6 +108,11 @@ class PhysicianSessionManager {
     } catch {
       // Non-fatal — profile is still in-memory
     }
+    if (fullProfile.sessionToken) {
+      cryptoHelper.setSessionToken(fullProfile.sessionToken).catch(err => {
+        console.error("Failed to pre-derive key from authenticated session token", err)
+      })
+    }
     console.info(`[PhysicianSession] Authenticated: ${fullProfile.displayName} (${fullProfile.physicianId})`)
   }
 
@@ -109,6 +124,7 @@ class PhysicianSessionManager {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY)
     } catch {}
+    cryptoHelper.clearKey()
     console.info("[PhysicianSession] Session cleared")
   }
 }
