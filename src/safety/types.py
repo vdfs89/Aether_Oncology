@@ -1,5 +1,7 @@
+from typing import List, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Literal, Optional
+
 
 class ClinicalJudgement(BaseModel):
     approved: bool = Field(description="Whether the output is clinically safe to proceed")

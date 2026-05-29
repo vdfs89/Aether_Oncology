@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """
 main.py
 =======
@@ -22,10 +23,11 @@ Iniciar o servidor:
 """
 
 import asyncio
-import json
 import logging
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import time
@@ -54,10 +56,10 @@ from src.models.mlp import MLP
 from src.services.audit import (
     AUDIT_FILE,
     calculate_drift,
-    log_prediction,
-    encrypt_entry,
     decrypt_entry,
+    encrypt_entry,
     get_fernet,
+    log_prediction,
 )
 from src.services.inference_client import inference_client
 from src.services.predictor import predictor
@@ -277,6 +279,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 from src.api.routes.clinical_chat import router as clinical_chat_router
+
 app.include_router(clinical_chat_router, prefix="/api/v1/clinical")
 
 

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Request, HTTPException, status
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
+
 from src.orchestration.clinical_runtime import ClinicalInferenceRuntime
 from src.services.approval_store import approval_repository
 
@@ -28,7 +30,7 @@ async def clinical_chat_endpoint(request: ChatRequest):
     Substitui o mock pelo runtime dinâmico.
     """
     payload = request.model_dump()
-    
+
     return StreamingResponse(
         runtime.stream_clinical_response(payload),
         media_type="text/event-stream",

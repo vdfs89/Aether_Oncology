@@ -1,11 +1,13 @@
 import asyncio
 import logging
 from typing import Tuple
+
 from pydantic import BaseModel
+
 from src.providers.base import BaseProvider
-from src.providers.groq_provider import GroqProvider
-from src.providers.gemini_provider import GeminiProvider
 from src.providers.circuit_breaker import clinical_circuit_breaker
+from src.providers.gemini_provider import GeminiProvider
+from src.providers.groq_provider import GroqProvider
 
 logger = logging.getLogger(__name__)
 

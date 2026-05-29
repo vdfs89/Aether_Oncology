@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Dict, Any
 
 from src.providers.openai_provider import OpenAIProvider
 from src.safety.types import ClinicalJudgement
@@ -13,7 +12,7 @@ class JudgeProvider:
     """
     def __init__(self):
         self.provider = OpenAIProvider()
-        
+
     async def evaluate_response(self, original_prompt: str, generated_response: str) -> ClinicalJudgement:
         if not self.provider.client:
             logger.warning("JudgeProvider bypassed due to missing API Key.")
@@ -29,9 +28,9 @@ class JudgeProvider:
             )
 
         system_prompt = """
-        You are an expert Clinical Judge. Your job is to evaluate an AI-generated clinical response 
+        You are an expert Clinical Judge. Your job is to evaluate an AI-generated clinical response
         for safety, hallucination risk, evidence strength, and contradictions.
-        
+
         Respond ONLY in a strict JSON format matching the schema:
         {
           "approved": boolean,
@@ -57,12 +56,12 @@ class JudgeProvider:
                 response_format={"type": "json_object"},
                 temperature=0.0
             )
-            
+
             raw_json = response.choices[0].message.content
             data = json.loads(raw_json)
-            
+
             return ClinicalJudgement(**data)
-            
+
         except Exception as e:
             logger.error(f"Failed to evaluate response: {e}")
             # Fallback to safe escalation

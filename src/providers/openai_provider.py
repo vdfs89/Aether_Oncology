@@ -1,7 +1,8 @@
-import os
-from typing import AsyncGenerator, Dict, Any, List
-from openai import AsyncOpenAI
 import logging
+import os
+from typing import Any, AsyncGenerator, Dict, List
+
+from openai import AsyncOpenAI
 
 from src.providers.base import BaseProvider
 
@@ -13,7 +14,7 @@ class OpenAIProvider(BaseProvider):
         self.provider_type = "openai"
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.model = os.getenv("OPENAI_JUDGE_MODEL", "gpt-4o-mini")
-        
+
         if self.api_key:
             self.client = AsyncOpenAI(api_key=self.api_key)
         else:
@@ -27,18 +28,18 @@ class OpenAIProvider(BaseProvider):
 
         try:
             formatted_messages = self._format_messages(messages, context)
-            
+
             stream = await self.client.chat.completions.create(
                 model=self.model,
                 messages=formatted_messages,
                 stream=True
             )
-            
+
             async for chunk in stream:
                 content = chunk.choices[0].delta.content
                 if content:
                     yield content
-                    
+
         except Exception as e:
             logger.error(f"OpenAI inference error: {e}")
             raise e

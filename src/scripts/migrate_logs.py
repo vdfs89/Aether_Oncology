@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-import os
 import json
+import os
 from pathlib import Path
+
 from cryptography.fernet import Fernet
+
 
 def load_env():
     """Manually parse .env to avoid external dependencies."""
@@ -19,12 +21,12 @@ def load_env():
 
 def main():
     load_env()
-    
+
     key = os.getenv("AUDIT_ENCRYPTION_KEY")
     if not key:
         print("ERROR: AUDIT_ENCRYPTION_KEY environment variable not found in .env or system environment.")
         return
-        
+
     try:
         fernet = Fernet(key.encode())
     except Exception as e:
@@ -33,24 +35,24 @@ def main():
 
     root_dir = Path(__file__).resolve().parents[2]
     audit_file = root_dir / "logs" / "audit_trail.jsonl"
-    
+
     if not audit_file.exists():
         print(f"INFO: Audit log file not found at {audit_file}. Nothing to migrate.")
         return
-        
+
     print(f"INFO: Starting migration of audit logs at {audit_file}...")
-    
+
     migrated_count = 0
     already_encrypted_count = 0
     corrupted_count = 0
     new_lines = []
-    
+
     with open(audit_file, "rb") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            
+
             # Check if line is already encrypted envelope
             try:
                 data = json.loads(line.decode("utf-8"))
@@ -64,7 +66,7 @@ def main():
             except Exception:
                 # Not an encrypted envelope or decryption failed
                 pass
-                
+
             # If not already encrypted, try to parse as plaintext JSON to encrypt it
             try:
                 plaintext_data = json.loads(line.decode("utf-8"))
@@ -82,7 +84,7 @@ def main():
                 # Truly corrupted or unparseable line
                 print(f"WARNING: Skipping unparseable/corrupted line: {e}")
                 corrupted_count += 1
-                
+
     if migrated_count > 0:
         # Write back migrated logs
         with open(audit_file, "wb") as f:

@@ -5,11 +5,10 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+from cryptography.fernet import Fernet
 
 from src.core.logging import request_id_contextvar
 from src.ml_platform.drift import DriftDetector
-
-from cryptography.fernet import Fernet
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ def encrypt_entry(entry: dict) -> bytes:
     fernet = get_fernet()
     json_str = json.dumps(entry)
     encrypted_bytes = fernet.encrypt(json_str.encode("utf-8"))
-    
+
     envelope = {
         "key_version": "v1",
         "algorithm": "fernet",
@@ -58,7 +57,7 @@ def decrypt_entry(token: bytes) -> dict:
         data = json.loads(token.decode("utf-8") if isinstance(token, bytes) else token)
     except Exception:
         raise ValueError("Invalid JSON format for log entry")
-        
+
     if isinstance(data, dict) and data.get("encrypted") is True:
         payload = data.get("payload")
         if not payload:

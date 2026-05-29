@@ -1,5 +1,6 @@
 import logging
 from typing import Optional
+
 from src.safety.types import ClinicalJudgement
 
 logger = logging.getLogger(__name__)

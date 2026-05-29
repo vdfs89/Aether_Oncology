@@ -1,17 +1,23 @@
+import logging
 import time
 import uuid
-import logging
-from typing import AsyncGenerator, Dict, Any
+from typing import Any, AsyncGenerator, Dict
 
-from src.streaming.protocol import (
-    TokenEvent, StatusEvent, CompleteEvent, ErrorEvent,
-    JudgementStartedEvent, JudgementCompletedEvent,
-    EscalationTriggeredEvent, RoutingDecisionEvent, InferenceEnvelopeEvent,
-    format_sse
-)
-from src.providers.router import ClinicalModelRouter, ClinicalTaskProfile
 from src.providers.circuit_breaker import clinical_circuit_breaker
+from src.providers.router import ClinicalModelRouter, ClinicalTaskProfile
 from src.safety.clinical_judge import ClinicalJudge
+from src.streaming.protocol import (
+    CompleteEvent,
+    ErrorEvent,
+    EscalationTriggeredEvent,
+    InferenceEnvelopeEvent,
+    JudgementCompletedEvent,
+    JudgementStartedEvent,
+    RoutingDecisionEvent,
+    StatusEvent,
+    TokenEvent,
+    format_sse,
+)
 
 logger = logging.getLogger(__name__)
 

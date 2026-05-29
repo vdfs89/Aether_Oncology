@@ -164,7 +164,8 @@ def test_version_endpoint_returns_version() -> None:
     assert response.status_code == 200
     data = response.json()
     assert "version" in data
-    assert data["version"] == "3.0.0"
+    assert data["version"] == "3.1.0"
+
 
 
 def test_heartbeat_returns_200() -> None:

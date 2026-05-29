@@ -1,6 +1,5 @@
-import json
 
-from src.services.audit import calculate_drift, log_prediction, decrypt_entry
+from src.services.audit import calculate_drift, decrypt_entry, log_prediction
 
 
 def test_log_prediction(tmp_path, monkeypatch):

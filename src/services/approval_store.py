@@ -1,8 +1,8 @@
-import sqlite3
 import json
+import sqlite3
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 DB_FILE = Path(__file__).resolve().parents[2] / "logs" / "pending_approvals.db"
 
@@ -30,7 +30,7 @@ class SQLiteApprovalRepository:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO pending_approvals 
+                INSERT OR REPLACE INTO pending_approvals
                 (approval_request_id, plan, risk_level, rationale, requested_at, expires_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
