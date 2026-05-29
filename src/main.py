@@ -207,83 +207,96 @@ async def lifespan(app: FastAPI):
         f"BOOT [{request_id}]: Initializing Aether Oncology v{APP_VERSION} ({GIT_SHA})"
     )
 
-    # Explicit Secret Verification (Fail-fast Startup)
+    # ── Configuration & secrets (resilient: warn, never crash the boot) ──
+    # A PaaS (Render / Fly / K8s) MUST be able to start the container. Missing
+    # optional config degrades a single feature — it must not take the whole
+    # API down in a crash loop. Readiness is reported via /health/* instead.
+    from cryptography.fernet import Fernet
+
     api_key = os.getenv("API_KEY")
     if not api_key:
-        raise EnvironmentError("Missing required environment variable: API_KEY")
-    if api_key == "aether-oncology-eval-2026":
+        os.environ["API_KEY"] = "aether-oncology-eval-2026"
         logging.warning(
-            "BOOT: Utilizando API_KEY padrão de avaliação. Defina a variável de ambiente 'API_KEY' para produção."
+            "BOOT: API_KEY ausente — usando chave de avaliação padrão. Defina 'API_KEY' em produção."
+        )
+    elif api_key == "aether-oncology-eval-2026":
+        logging.warning(
+            "BOOT: Utilizando API_KEY padrão de avaliação. Defina 'API_KEY' para produção."
         )
 
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        raise EnvironmentError("Missing required environment variable: OPENAI_API_KEY")
+    # LLM provider keys gate the (experimental) clinical chat copilot only.
+    # The diagnostic /predict endpoint does not need them.
+    for _provider_var in ("OPENAI_API_KEY", "GROQ_API_KEY", "GEMINI_API_KEY"):
+        if not os.getenv(_provider_var):
+            logging.warning(
+                "BOOT: %s ausente — copiloto clínico (chat) indisponível; /predict não é afetado.",
+                _provider_var,
+            )
 
-    groq_key = os.getenv("GROQ_API_KEY")
-    if not groq_key:
-        raise EnvironmentError("Missing required environment variable: GROQ_API_KEY")
-
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        raise EnvironmentError("Missing required environment variable: GEMINI_API_KEY")
-
-    # Verify AUDIT_ENCRYPTION_KEY
-    audit_key = os.getenv("AUDIT_ENCRYPTION_KEY")
-    if not audit_key:
-        raise EnvironmentError(
-            "Missing required environment variable: AUDIT_ENCRYPTION_KEY"
+    # Audit-trail encryption (HIPAA). Prefer a persistent operator-provided key.
+    # If absent/invalid, fall back to an EPHEMERAL key so the service can boot —
+    # audit logs stay encrypted, but are not decryptable across restarts.
+    if not os.getenv("AUDIT_ENCRYPTION_KEY"):
+        os.environ["AUDIT_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+        logging.warning(
+            "BOOT: AUDIT_ENCRYPTION_KEY ausente — gerada chave EFÊMERA. Logs de "
+            "auditoria não sobreviverão a reinícios. Defina uma chave persistente "
+            "em produção (HIPAA)."
         )
     try:
         get_fernet()
     except Exception as e:
-        raise EnvironmentError(f"Invalid AUDIT_ENCRYPTION_KEY: {e}")
+        os.environ["AUDIT_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+        logging.warning(
+            "BOOT: AUDIT_ENCRYPTION_KEY inválida (%s) — regenerada efêmera.", e
+        )
 
-    # Explicit Dependency Verification
+    # ── Model artifacts (resilient: warn + routes return 503 until ready) ──
     if not os.path.exists(_BASELINE_PATH):
-        raise RuntimeError("Arquivo de dependência ausente: data.csv")
+        logging.warning(
+            "BOOT: baseline ausente (%s) — monitoramento de drift/fairness degradado.",
+            _BASELINE_PATH,
+        )
 
     from pathlib import Path
 
     base = Path(__file__).resolve().parents[1]
-    candidates = [
-        base / "models",
-        Path.cwd() / "models",
-        Path("/app/models"),
-    ]
+    candidates = [base / "models", Path.cwd() / "models", Path("/app/models")]
     models_dir = next(
         (p for p in candidates if (p / "preprocessor.joblib").exists()), None
     )
     if not models_dir:
-        raise RuntimeError("Arquivo de dependência ausente: preprocessor.joblib")
+        logging.warning(
+            "BOOT: artefatos do modelo ausentes — /predict responderá 503 até o treino."
+        )
 
-    preprocessor_path = models_dir / "preprocessor.joblib"
-    weights_path = models_dir / "aether_mlp_v2.pth"
-    calibrator_path = models_dir / "calibrator.joblib"
+    # 1. Oral Cancer model (primary inference) — degrade to 503, do not crash.
+    try:
+        if _load_oral_cancer_artifacts():
+            logging.info(
+                f"BOOT [{request_id}]: Oral Cancer MLP pronto para inferência."
+            )
+        else:
+            logging.warning(
+                f"BOOT [{request_id}]: Oral Cancer MLP indisponível — /predict responderá 503."
+            )
+    except Exception as e:
+        logging.warning(
+            f"BOOT [{request_id}]: Falha ao carregar Oral Cancer MLP ({e}) — /predict responderá 503."
+        )
 
-    if not preprocessor_path.exists():
-        raise RuntimeError("Arquivo de dependência ausente: preprocessor.joblib")
-    if not weights_path.exists():
-        raise RuntimeError("Arquivo de dependência ausente: aether_mlp_v2.pth")
-    if not calibrator_path.exists():
-        raise RuntimeError("Arquivo de dependência ausente: calibrator.joblib")
-
-    # 1. Oral Cancer model (v3.0 primary inference)
-    if _load_oral_cancer_artifacts():
-        logging.info(f"BOOT [{request_id}]: Oral Cancer MLP pronto para inferência.")
-    else:
-        raise RuntimeError("Falha ao inicializar artefatos Oral Cancer MLP")
-
-    # 2. Legacy WDBC predictor (monitor/* endpoints)
+    # 2. Legacy WDBC predictor (monitor/* endpoints) — optional.
     try:
         predictor.load_model()
         logging.info(
             f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/)."
         )
     except Exception as e:
-        raise RuntimeError(f"Falha ao inicializar Legacy WDBC predictor: {e}") from e
+        logging.warning(
+            f"BOOT [{request_id}]: Legacy WDBC predictor indisponível ({e})."
+        )
 
-    # 3. Initialize MLPlatformOrchestrator with baseline dataset
+    # 3. MLPlatformOrchestrator with baseline dataset — optional.
     global orchestrator
     try:
         orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
@@ -291,7 +304,10 @@ async def lifespan(app: FastAPI):
             f"BOOT [{request_id}]: MLPlatformOrchestrator carregado com baseline."
         )
     except Exception as e:
-        raise RuntimeError(f"Falha ao inicializar MLPlatformOrchestrator: {e}") from e
+        orchestrator = None
+        logging.warning(
+            f"BOOT [{request_id}]: MLPlatformOrchestrator indisponível ({e})."
+        )
 
     yield
 
