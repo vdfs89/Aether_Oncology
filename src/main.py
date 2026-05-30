@@ -296,22 +296,40 @@ async def lifespan(app: FastAPI):
             f"BOOT [{request_id}]: Legacy WDBC predictor indisponível ({e})."
         )
 
-    # 3. MLPlatformOrchestrator with baseline dataset — optional.
-    global orchestrator
+    # 3. MLPlatformOrchestrator (MLOps Health)
     try:
-        orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
-        logging.info(
-            f"BOOT [{request_id}]: MLPlatformOrchestrator carregado com baseline."
-        )
+        app.state.orchestrator = MLPlatformOrchestrator(_BASELINE_PATH)
+        await app.state.orchestrator.startup()
+        logging.info(f"BOOT [{request_id}]: MLPlatformOrchestrator started.")
     except Exception as e:
-        orchestrator = None
-        logging.warning(
-            f"BOOT [{request_id}]: MLPlatformOrchestrator indisponível ({e})."
-        )
+        app.state.orchestrator = None
+        logging.warning(f"BOOT [{request_id}]: MLPlatformOrchestrator failed to start: {e}")
+
+    # 4. ClinicalInferenceRuntime (Chat Copilot)
+    from src.orchestration.clinical_runtime import ClinicalInferenceRuntime
+    try:
+        app.state.runtime = ClinicalInferenceRuntime()
+        await app.state.runtime.startup()
+        logging.info(f"BOOT [{request_id}]: ClinicalInferenceRuntime ready.")
+    except Exception as e:
+        app.state.runtime = None
+        logging.error(f"BOOT [{request_id}]: ClinicalInferenceRuntime failed to start: {e}")
 
     yield
 
-    logging.info(f"SHUTDOWN [{request_id}]: Graceful termination initiated.")
+    # ── Shutdown Logic ──
+    logging.info(f"SHUTDOWN [{request_id}]: Initiating graceful termination...")
+    
+    # Shutdown clinical runtime if exists
+    if hasattr(app.state, "runtime") and app.state.runtime:
+        await app.state.runtime.shutdown()
+        logging.info(f"SHUTDOWN [{request_id}]: ClinicalInferenceRuntime stopped.")
+
+    # Shutdown orchestrator if exists
+    if hasattr(app.state, "orchestrator") and app.state.orchestrator:
+        await app.state.orchestrator.shutdown()
+        logging.info(f"SHUTDOWN [{request_id}]: MLPlatformOrchestrator stopped.")
+
     await inference_client.shutdown()
     logging.info(f"SHUTDOWN [{request_id}]: Inference client closed.")
 
@@ -809,14 +827,14 @@ def get_audit_trail():
 _BASELINE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "data", "raw", "data.csv"
 )
-orchestrator = None
 
 
 @app.get("/monitor/drift", tags=["MLOps"], dependencies=[Security(get_api_key)])
-def monitor_drift():
+def monitor_drift(request: Request):
     """
     Detecta Data Drift comparando o rastro de auditoria com o baseline WDBC.
     """
+    orchestrator = request.app.state.orchestrator
     if not orchestrator or not AUDIT_FILE.exists():
         return {
             "status": "error",
@@ -857,11 +875,12 @@ def monitor_drift():
 
 
 @app.get("/monitor/fairness", tags=["MLOps"], dependencies=[Security(get_api_key)])
-def monitor_fairness():
+def monitor_fairness(request: Request):
     """
     Auditoria de Equidade (Fairness) em tempo real.
     Verifica se o recall é consistente entre tumores pequenos e grandes.
     """
+    orchestrator = request.app.state.orchestrator
     if not orchestrator or not AUDIT_FILE.exists():
         return {"status": "error", "message": "Monitoramento de equidade indisponível"}
 

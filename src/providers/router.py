@@ -11,6 +11,9 @@ from src.providers.groq_provider import GroqProvider
 
 logger = logging.getLogger(__name__)
 
+# Global lock and instance for ClinicalModelRouter singleton
+_router_lock = asyncio.Lock()
+_router_instance = None
 
 class ClinicalTaskProfile(BaseModel):
     """Perfil da tarefa clínica para roteamento inteligente."""
@@ -52,6 +55,17 @@ class ClinicalModelRouter:
     - reasoning complexity
     - circuit breaker status
     """
+
+    @classmethod
+    async def get_instance(cls) -> "ClinicalModelRouter":
+        """Singleton: Returns the global instance of the router."""
+        global _router_instance
+        if _router_instance is None:
+            async with _router_lock:
+                if _router_instance is None:
+                    logger.info("[Router] Initializing ClinicalModelRouter singleton")
+                    _router_instance = cls()
+        return _router_instance
 
     def __init__(self):
         self._groq: GroqProvider | None = None

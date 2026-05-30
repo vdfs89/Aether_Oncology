@@ -17,9 +17,31 @@ class MLPlatformOrchestrator:
     """
 
     def __init__(self, baseline_data_path: str):
-        self.baseline_df = pd.read_csv(baseline_data_path)
-        self.drift_detector = DriftDetector(self.baseline_df)
-        self.fairness_auditor = FairnessAuditor()
+        self.baseline_data_path = baseline_data_path
+        self.baseline_df = None
+        self.drift_detector = None
+        self.fairness_auditor = None
+
+    def _load_resources(self):
+        """Synchronous resource loading."""
+        if self.baseline_df is None:
+            logger.info(f"[Orchestrator] Loading baseline from {self.baseline_data_path}")
+            self.baseline_df = pd.read_csv(self.baseline_data_path)
+            self.drift_detector = DriftDetector(self.baseline_df)
+            self.fairness_auditor = FairnessAuditor()
+
+    async def startup(self):
+        """Initializes heavy resources during application startup."""
+        logger.info("[Orchestrator] Starting ML Platform Orchestrator...")
+        self._load_resources()
+        logger.info("[Orchestrator] ML Platform Orchestrator ready.")
+
+    async def shutdown(self):
+        """Cleans up resources during application shutdown."""
+        logger.info("[Orchestrator] Shutting down ML Platform Orchestrator...")
+        self.baseline_df = None
+        self.drift_detector = None
+        self.fairness_auditor = None
 
     def run_production_health_check(
         self,

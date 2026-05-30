@@ -36,6 +36,7 @@ def run_enterprise_training_pipeline(data_path: str, model_save_path: str):
 
     # 3. Fairness Audit (GATE)
     orchestrator = MLPlatformOrchestrator(data_path)
+    orchestrator._load_resources()
 
     # Get predictions for validation set
     model.eval()

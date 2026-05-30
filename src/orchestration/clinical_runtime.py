@@ -35,9 +35,22 @@ class ClinicalInferenceRuntime:
     """
 
     def __init__(self):
-        self.router = ClinicalModelRouter()
-        self.judge = ClinicalJudge()
+        self.router: ClinicalModelRouter | None = None
+        self.judge: ClinicalJudge | None = None
         self._sequence_counter: Dict[str, int] = {}
+
+    async def startup(self):
+        """Initializes clinical components during application startup."""
+        logger.info("[Runtime] Initializing Clinical Inference Runtime...")
+        self.router = await ClinicalModelRouter.get_instance()
+        self.judge = ClinicalJudge()
+        logger.info("[Runtime] Clinical Inference Runtime ready.")
+
+    async def shutdown(self):
+        """Graceful shutdown of clinical components."""
+        logger.info("[Runtime] Shutting down Clinical Inference Runtime...")
+        self.router = None
+        self.judge = None
 
     def _next_seq(self, trace_id: str) -> int:
         self._sequence_counter[trace_id] = self._sequence_counter.get(trace_id, 0) + 1

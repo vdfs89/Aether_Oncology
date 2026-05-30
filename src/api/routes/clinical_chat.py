@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -8,7 +8,6 @@ from src.orchestration.clinical_runtime import ClinicalInferenceRuntime
 from src.services.approval_store import approval_repository
 
 router = APIRouter(tags=["Clinical AI Copilot"])
-runtime = ClinicalInferenceRuntime()
 
 
 class ChatRequest(BaseModel):
@@ -27,12 +26,13 @@ class PendingApprovalModel(BaseModel):
 
 
 @router.post("/chat", response_class=StreamingResponse)
-async def clinical_chat_endpoint(request: ChatRequest):
+async def clinical_chat_endpoint(request: ChatRequest, fastapi_req: Request):
     """
     Endpoint SSE real para o Aether Oncology.
     Substitui o mock pelo runtime dinâmico.
     """
     payload = request.model_dump()
+    runtime: ClinicalInferenceRuntime = fastapi_req.app.state.runtime
 
     return StreamingResponse(
         runtime.stream_clinical_response(payload),
