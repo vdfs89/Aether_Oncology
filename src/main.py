@@ -62,6 +62,7 @@ from src.services.audit import (
     get_fernet,
     log_prediction,
 )
+from src.services.audit_logger import get_audit_logger
 from src.services.inference_client import inference_client
 from src.services.predictor import predictor
 
@@ -315,11 +316,43 @@ async def lifespan(app: FastAPI):
         app.state.runtime = None
         logging.error(f"BOOT [{request_id}]: ClinicalInferenceRuntime failed to start: {e}")
 
+    # 5. Approval cleanup worker — sweeps expired PENDING approvals every 60s
+    # so timeout enforcement does not depend on the FE setTimeout.
+    from src.services.approval_store import approval_repository
+
+    async def _approval_cleanup_loop():
+        while True:
+            try:
+                await asyncio.sleep(60)
+                expired = await asyncio.to_thread(approval_repository.cleanup_expired)
+                if expired:
+                    logging.info(
+                        "APPROVAL_CLEANUP: marked %d pending approval(s) as EXPIRED",
+                        expired,
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logging.warning("APPROVAL_CLEANUP: sweep failed: %s", exc)
+
+    app.state.approval_cleanup_task = asyncio.create_task(_approval_cleanup_loop())
+    logging.info(f"BOOT [{request_id}]: approval cleanup worker started (60s).")
+
     yield
 
     # ── Shutdown Logic ──
     logging.info(f"SHUTDOWN [{request_id}]: Initiating graceful termination...")
-    
+
+    # Stop approval cleanup worker
+    cleanup_task = getattr(app.state, "approval_cleanup_task", None)
+    if cleanup_task is not None:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        logging.info(f"SHUTDOWN [{request_id}]: approval cleanup worker stopped.")
+
     # Shutdown clinical runtime if exists
     if hasattr(app.state, "runtime") and app.state.runtime:
         await app.state.runtime.shutdown()
@@ -425,6 +458,45 @@ async def add_sre_telemetry(request: Request, call_next):
             request.url.path,
         )
     return response
+
+
+@app.middleware("http")
+async def audit_trail_middleware(request: Request, call_next):
+    """
+    HIPAA Audit Trail Middleware:
+    - Logs access to sensitive endpoints (/audit, /feedback, /analytics)
+    - Captures HTTP method and response status
+    - Tracks request correlation via X-Request-ID
+    """
+    audit_logger = get_audit_logger()
+    request_id = request_id_contextvar.get()
+
+    # List of endpoints to audit
+    sensitive_paths = ["/audit", "/feedback", "/analytics", "/monitor/"]
+    should_audit = any(request.url.path.startswith(p) for p in sensitive_paths)
+
+    if should_audit and request.method in ["GET", "POST", "DELETE"]:
+        # Log access attempt (will log after call_next to capture status)
+        response = await call_next(request)
+
+        # Determine action from HTTP method
+        action_map = {"GET": "READ", "POST": "WRITE", "DELETE": "DELETE"}
+        action = action_map.get(request.method, "READ")
+
+        audit_logger.log_access(
+            resource_type=request.url.path.strip("/").split("/")[0] or "api",
+            action=action,
+            user_id=request.headers.get("access_token"),
+            details={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "request_id": request_id,
+            },
+        )
+        return response
+    else:
+        return await call_next(request)
 
 
 app.add_middleware(
@@ -734,7 +806,17 @@ async def make_prediction(
     }
 
     # Auditoria assíncrona — não bloqueia o event loop
-    await asyncio.to_thread(log_prediction, features.model_dump(), result_for_audit)
+    async def _audit_prediction():
+        request_id = request_id_contextvar.get()
+        user_id = request.headers.get("access_token")
+        await asyncio.to_thread(log_prediction, features.model_dump(), result_for_audit)
+        # Log with new audit logger (includes PHI scrubbing)
+        audit_logger = get_audit_logger()
+        await asyncio.to_thread(
+            audit_logger.log_prediction, request_id, features.model_dump(), result_for_audit, user_id
+        )
+
+    await _audit_prediction()
 
     return PredictionResponse(
         risk_level=risk_level,
@@ -759,7 +841,7 @@ class FeedbackRequest(BaseModel):
 
 
 @app.post("/feedback", tags=["Clinical Feedback"], dependencies=[Security(get_api_key)])
-async def clinical_feedback(feedback: FeedbackRequest):
+async def clinical_feedback(request: Request, feedback: FeedbackRequest):
     """
     Recebe o resultado real (biópsia/cirurgia) para validar a precisão da IA.
     Este loop é essencial para detecção de Concept Drift e auditoria de Fairness.
@@ -775,10 +857,19 @@ async def clinical_feedback(feedback: FeedbackRequest):
         "data": feedback.model_dump(),
     }
 
-    def _write_feedback() -> None:
+    async def _write_feedback() -> None:
         encrypted_bytes = encrypt_entry(feedback_entry)
         with open(AUDIT_FILE, "ab") as f:
             f.write(encrypted_bytes + b"\n")
+
+        # Log with audit logger (HIPAA-compliant)
+        request_id = request_id_contextvar.get()
+        audit_logger = get_audit_logger()
+        audit_logger.log_feedback(
+            request_id,
+            feedback.model_dump(),
+            request.headers.get("access_token"),
+        )
 
     await asyncio.to_thread(_write_feedback)
 
@@ -795,10 +886,19 @@ def get_mlops_analytics():
 
 
 @app.get("/audit", tags=["Governance"], dependencies=[Security(get_api_key)])
-def get_audit_trail():
+def get_audit_trail(request: Request):
     """
     Retorna o rastro de auditoria para fins de regulação e governança.
     """
+    # Log this audit access (HIPAA compliance)
+    audit_logger = get_audit_logger()
+    audit_logger.log_access(
+        resource_type="audit_trail",
+        action="READ",
+        user_id=request.headers.get("access_token"),
+        details={"request_id": request_id_contextvar.get()},
+    )
+
     if not AUDIT_FILE.exists():
         return []
 
