@@ -8,7 +8,7 @@
  *   - ClinicalToolRuntime (DAG-based tool execution with retries/timeouts)
  *   - LLMProvider abstraction (provider-agnostic streaming)
  */
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useEffect } from "react"
 import { useAI } from "./useAI"
 import { getLLMProvider } from "../api/factory"
 import { nanoid } from "nanoid"
@@ -30,6 +30,15 @@ export function useStreaming() {
   } = useAI()
 
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Fail-safe cleanup: abort any in-flight inference when the consumer unmounts
+  // so the async streaming loop stops dispatching into an unmounted tree
+  // (prevents the "state update on unmounted component" leak).
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   const triggerInference = useCallback(
     async (assistantMessageId: string, prompt: string) => {

@@ -19,16 +19,25 @@ class JudgeProvider:
         self, original_prompt: str, generated_response: str
     ) -> ClinicalJudgement:
         if not self.provider.client:
-            logger.warning("JudgeProvider bypassed due to missing API Key.")
+            # Fail-SAFE, not fail-open: when the safety judge cannot run we must
+            # NOT silently mark the response as approved/NONE. Deliver it in a
+            # degraded mode but flag it as UNVERIFIED and require physician review
+            # (WARNING, not HARD_STOP, so the experimental copilot still works).
+            logger.warning(
+                "JudgeProvider unavailable (OPENAI_API_KEY not set) — returning "
+                "UNVERIFIED judgement that requires physician review."
+            )
             return ClinicalJudgement(
-                approved=True,
-                confidence=1.0,
-                hallucination_risk="LOW",
-                evidence_strength="MODERATE",
+                approved=False,
+                confidence=0.0,
+                hallucination_risk="MEDIUM",
+                evidence_strength="LOW",
                 contradictions=[],
-                missing_citations=[],
-                requires_physician_review=False,
-                escalation_level="NONE",
+                missing_citations=[
+                    "Safety judge unavailable: response not verified by the clinical judge."
+                ],
+                requires_physician_review=True,
+                escalation_level="WARNING",
             )
 
         system_prompt = """
