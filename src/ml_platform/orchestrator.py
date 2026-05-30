@@ -25,7 +25,9 @@ class MLPlatformOrchestrator:
     def _load_resources(self):
         """Synchronous resource loading."""
         if self.baseline_df is None:
-            logger.info(f"[Orchestrator] Loading baseline from {self.baseline_data_path}")
+            logger.info(
+                f"[Orchestrator] Loading baseline from {self.baseline_data_path}"
+            )
             self.baseline_df = pd.read_csv(self.baseline_data_path)
             self.drift_detector = DriftDetector(self.baseline_df)
             self.fairness_auditor = FairnessAuditor()

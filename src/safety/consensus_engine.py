@@ -119,8 +119,7 @@ class ConsensusEngine:
         """
         if not self._judges:
             raise RuntimeError(
-                "evaluate_multi_judge requires ≥2 judges injected at "
-                "construction time"
+                "evaluate_multi_judge requires ≥2 judges injected at construction time"
             )
 
         # Each judge is wrapped in HallucinationGuard to produce a

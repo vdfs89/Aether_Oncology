@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 _router_lock = asyncio.Lock()
 _router_instance = None
 
+
 class ClinicalTaskProfile(BaseModel):
     """Perfil da tarefa clínica para roteamento inteligente."""
 

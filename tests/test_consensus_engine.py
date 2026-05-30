@@ -88,7 +88,9 @@ def test_passed_log_disclaims_final_decision(caplog: pytest.LogCaptureFixture) -
         assert engine.evaluate_consensus(_passing_judgement()) is True
 
     passed_records = [
-        r for r in caplog.records if "PASSED" in r.getMessage() and "Consensus" in r.getMessage()
+        r
+        for r in caplog.records
+        if "PASSED" in r.getMessage() and "Consensus" in r.getMessage()
     ]
     assert passed_records, "expected at least one Consensus PASSED log line"
     assert any(

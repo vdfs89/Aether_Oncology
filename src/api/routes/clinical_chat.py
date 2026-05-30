@@ -111,8 +111,7 @@ async def resolve_approval(approval_id: str, body: ResolveApprovalModel):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"Approval request {approval_id} is already "
-                f"{record['status'].lower()}"
+                f"Approval request {approval_id} is already {record['status'].lower()}"
             ),
         )
 

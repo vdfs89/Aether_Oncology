@@ -28,7 +28,11 @@ class PHIScrubber:
                 logger.info("PHI patterns loaded from %s", patterns_file)
                 return
             except Exception as e:
-                logger.warning("Failed to load patterns from %s: %s. Using defaults.", patterns_file, e)
+                logger.warning(
+                    "Failed to load patterns from %s: %s. Using defaults.",
+                    patterns_file,
+                    e,
+                )
 
         # Default patterns for common PHI/PII
         self.patterns = {
@@ -74,7 +78,9 @@ class PHIScrubber:
 
         return scrubbed, detected
 
-    def scrub_dict(self, data: dict, sensitive_fields: list[str] | None = None) -> tuple[dict, dict]:
+    def scrub_dict(
+        self, data: dict, sensitive_fields: list[str] | None = None
+    ) -> tuple[dict, dict]:
         """
         Scrub PHI from dictionary values. Optionally treat specific fields as sensitive.
 
@@ -110,13 +116,17 @@ class PHIScrubber:
                 for item in value:
                     if isinstance(item, str):
                         scrubbed_item, detected = self.scrub_string(item)
-                        scrubbed_list.append(scrubbed_item if detected or is_sensitive else item)
+                        scrubbed_list.append(
+                            scrubbed_item if detected or is_sensitive else item
+                        )
                         if detected:
                             if key not in all_detected:
                                 all_detected[key] = []
                             all_detected[key].append(detected)
                     elif isinstance(item, dict):
-                        scrubbed_item, detected = self.scrub_dict(item, sensitive_fields)
+                        scrubbed_item, detected = self.scrub_dict(
+                            item, sensitive_fields
+                        )
                         scrubbed_list.append(scrubbed_item)
                         if detected:
                             if key not in all_detected:
@@ -149,6 +159,8 @@ def get_phi_scrubber() -> PHIScrubber:
     """Get or create global PHI scrubber instance."""
     global _scrubber_instance
     if _scrubber_instance is None:
-        config_path = Path(__file__).resolve().parents[1] / "config" / "phi_patterns.json"
+        config_path = (
+            Path(__file__).resolve().parents[1] / "config" / "phi_patterns.json"
+        )
         _scrubber_instance = PHIScrubber(str(config_path))
     return _scrubber_instance
