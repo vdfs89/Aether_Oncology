@@ -36,6 +36,9 @@ class ClinicalJudge:
         final_judgement = self.policy.evaluate(judgement)
 
         logger.info(
-            f"Clinical Judgement complete. Approved: {final_judgement.approved}, Escalation: {final_judgement.escalation_level}"
+            "Final clinical decision: approved=%s consensus_gate=%s escalation=%s",
+            final_judgement.approved,
+            has_consensus,
+            final_judgement.escalation_level,
         )
         return final_judgement
