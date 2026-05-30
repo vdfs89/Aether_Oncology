@@ -62,6 +62,10 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${inter.variable} ${sora.variable}`}
+      // Browser extensions (Dark Reader, Grammarly…) mutate <html>/<body>
+      // attributes before React hydrates, causing a benign hydration mismatch.
+      // suppressHydrationWarning only silences this element's own attribute diff.
+      suppressHydrationWarning
     >
       <body>{children}</body>
     </html>
