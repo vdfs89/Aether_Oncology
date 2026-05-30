@@ -8,7 +8,9 @@ const withBundleAnalyzer = BundleAnalyzer({
 
 const nextConfig: NextConfig = {
   // ── Turbopack root — suppresses multiple-lockfile workspace warning ──────────
-  // turbopack: { root: __dirname },  // Uncomment if workspace root mismatch persists
+  // The repo root carries its own package-lock.json (the Vite static portal),
+  // so Next mis-infers the workspace root. Pin it to this frontend dir.
+  turbopack: { root: __dirname },
 
   // ── Image optimization ─────────────────────────────────────────────────────
   images: {
