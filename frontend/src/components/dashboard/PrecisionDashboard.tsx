@@ -329,44 +329,6 @@ function Spark() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Brand mark — lotus logo (echoes the Aether Oncology lotus/crescent */
-/*  identity; vector so it stays crisp + themeable at any size)        */
-/* ------------------------------------------------------------------ */
-function AetherLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 64 64" fill="none" role="img" aria-label="Aether Oncology">
-      <defs>
-        <linearGradient id="ao-logo-main" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#f04bc7" />
-          <stop offset="0.5" stopColor="#a855f7" />
-          <stop offset="1" stopColor="#4dd6f7" />
-        </linearGradient>
-        <linearGradient id="ao-logo-core" x1="24" y1="20" x2="40" y2="52" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#7fe9ff" />
-          <stop offset="1" stopColor="#c084fc" />
-        </linearGradient>
-      </defs>
-      {/* halo crescent */}
-      <path
-        d="M51 22a21 21 0 1 1-19-11"
-        stroke="url(#ao-logo-main)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        opacity="0.7"
-      />
-      {/* lotus — outer petals */}
-      <path d="M32 52C23 48 14 42 11 33C21 33 30 43 32 52Z" fill="url(#ao-logo-main)" opacity="0.7" />
-      <path d="M32 52C41 48 50 42 53 33C43 33 34 43 32 52Z" fill="url(#ao-logo-main)" opacity="0.7" />
-      {/* lotus — inner petals */}
-      <path d="M32 52C25 44 20 34 20 24C28 29 31 40 32 52Z" fill="url(#ao-logo-main)" opacity="0.92" />
-      <path d="M32 52C39 44 44 34 44 24C36 29 33 40 32 52Z" fill="url(#ao-logo-main)" opacity="0.92" />
-      {/* lotus — center petal */}
-      <path d="M32 52C27 41 27 29 32 20C37 29 37 41 32 52Z" fill="url(#ao-logo-core)" />
-    </svg>
-  )
-}
-
-/* ------------------------------------------------------------------ */
 /*  Control widget (language + theme)                                  */
 /* ------------------------------------------------------------------ */
 function ControlWidget({
@@ -478,7 +440,14 @@ export function PrecisionDashboard() {
         {/* ---------- TOPBAR ---------- */}
         <header className="topbar">
           <div className="brand">
-            <AetherLogo className="brand-mark" />
+            <Image
+              src="/brand-logo.png"
+              alt="Aether Oncology"
+              width={211}
+              height={187}
+              className="brand-mark"
+              priority
+            />
             <div className="brand-text">
               <div className="brand-name">Aether Oncology</div>
               <div className="brand-sub">PRECISION FOR LIFE</div>

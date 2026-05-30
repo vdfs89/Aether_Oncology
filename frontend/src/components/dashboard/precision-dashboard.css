@@ -141,7 +141,7 @@
 }
 .ao-dash .brand { display: flex; align-items: center; gap: 16px; }
 .ao-dash .brand-mark {
-  width: 56px; height: 56px;
+  height: 56px; width: auto;
   filter: drop-shadow(0 0 14px rgba(190,80,255,0.55));
 }
 .ao-dash .brand-text { line-height: 1.05; }
