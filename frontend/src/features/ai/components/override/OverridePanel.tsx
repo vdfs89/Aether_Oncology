@@ -81,6 +81,7 @@ export function OverridePanel({ approvalRequestId, plan, onOverrideReady }: Over
   }
 
   const hasChanges = removedTools.size > 0
+  const isAuthenticated = physicianSession.isAuthenticated
 
   return (
     <div className="border border-white/10 rounded-xl overflow-hidden">
@@ -153,14 +154,22 @@ export function OverridePanel({ approvalRequestId, plan, onOverrideReady }: Over
             />
           </div>
 
-          {/* Commit Override Button */}
+          {/* Commit Override Button — disabled when unauthenticated (Fix #2) */}
           {hasChanges && (
-            <button
-              onClick={handleCommitOverride}
-              className="w-full py-2.5 text-sm font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-lg transition-all"
-            >
-              Apply Override & Approve Modified Plan
-            </button>
+            <>
+              <button
+                onClick={handleCommitOverride}
+                disabled={!isAuthenticated}
+                className="w-full py-2.5 text-sm font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500/15"
+              >
+                Apply Override & Approve Modified Plan
+              </button>
+              {!isAuthenticated && (
+                <p className="text-[11px] text-amber-400/80 text-center -mt-3">
+                  Sign in with a valid CRM/NPI to authorize clinical overrides.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

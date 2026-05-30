@@ -857,7 +857,7 @@ async def clinical_feedback(request: Request, feedback: FeedbackRequest):
         "data": feedback.model_dump(),
     }
 
-    async def _write_feedback() -> None:
+    def _write_feedback() -> None:
         encrypted_bytes = encrypt_entry(feedback_entry)
         with open(AUDIT_FILE, "ab") as f:
             f.write(encrypted_bytes + b"\n")

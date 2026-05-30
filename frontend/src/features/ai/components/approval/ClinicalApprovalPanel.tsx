@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react"
 import { Shield, Check, X, FileText, Activity } from "lucide-react"
 import { clinicalApprovalManager, PendingApproval } from "../../orchestration/runtime/approvalManager"
 import { clinicalEventBus } from "../../orchestration/runtime/eventBus"
+import {
+  physicianSession,
+  UnauthenticatedPhysicianError,
+} from "../../orchestration/runtime/physicianSession"
 import { useAI } from "../../hooks/useAI"
 import { ApprovalRiskBadge } from "./ApprovalRiskBadge"
 import { ApprovalToolCard } from "./ApprovalToolCard"
@@ -14,12 +18,15 @@ export function ClinicalApprovalPanel() {
 
   const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null)
   const [isApproving, setIsApproving] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
   // Physician override state
   const [pendingOverride, setPendingOverride] = useState<{
     override: ExecutionPlanOverride
     resolvedPlan: ResolvedExecutionPlan
     riskDiff: { before: RiskProfile; after: RiskProfile }
   } | null>(null)
+
+  const isAuthenticated = physicianSession.isAuthenticated
 
   // Listen to event bus for approval state changes
   useEffect(() => {
@@ -42,62 +49,63 @@ export function ClinicalApprovalPanel() {
 
   if (!pendingApproval) return null
 
-  const handleApprove = () => {
+  const buildContext = () => ({
+    createEventMetadata: () => ({
+      traceId: "ui-trace",
+      sessionId: activeSessionId || "",
+      patientId: state.activePatientId || "",
+      timestamp: Date.now(),
+      runtimeState: "WAITING_APPROVAL" as const,
+    }),
+  })
+
+  const runResolve = async (work: () => Promise<void>) => {
+    setResolveError(null)
     setIsApproving(true)
-    setTimeout(() => {
+    try {
+      await work()
+      setPendingOverride(null)
+    } catch (err) {
+      if (err instanceof UnauthenticatedPhysicianError) {
+        setResolveError(err.message)
+      } else {
+        const message = err instanceof Error ? err.message : String(err)
+        setResolveError(`Failed to record decision: ${message}`)
+      }
+      console.error("[ClinicalApprovalPanel] resolve failed:", err)
+    } finally {
+      setIsApproving(false)
+    }
+  }
+
+  const handleApprove = () => {
+    void runResolve(() =>
       clinicalApprovalManager.resolveApproval(
         pendingApproval!.approvalRequestId,
         "APPROVED",
-        { 
-          createEventMetadata: () => ({ 
-            traceId: "ui-trace", 
-            sessionId: activeSessionId || "", 
-            patientId: state.activePatientId || "", 
-            timestamp: Date.now(), 
-            runtimeState: "WAITING_APPROVAL" 
-          }) 
-        } as any
-      )
-      setPendingOverride(null)
-      setIsApproving(false)
-    }, 400)
+        buildContext() as any,
+      ),
+    )
   }
 
   const handleApproveWithOverride = () => {
     if (!pendingOverride || !pendingApproval) return
-    setIsApproving(true)
-    setTimeout(() => {
+    void runResolve(() =>
       clinicalApprovalManager.resolveWithOverride(
         pendingApproval.approvalRequestId,
         pendingOverride.override,
-        {
-          createEventMetadata: () => ({
-            traceId: "ui-trace",
-            sessionId: activeSessionId || "",
-            patientId: state.activePatientId || "",
-            timestamp: Date.now(),
-            runtimeState: "WAITING_APPROVAL"
-          })
-        } as any
-      )
-      setPendingOverride(null)
-      setIsApproving(false)
-    }, 400)
+        buildContext() as any,
+      ),
+    )
   }
 
   const handleReject = () => {
-    clinicalApprovalManager.resolveApproval(
-      pendingApproval.approvalRequestId,
-      "REJECTED",
-      { 
-        createEventMetadata: () => ({ 
-          traceId: "ui-trace", 
-          sessionId: activeSessionId || "", 
-          patientId: state.activePatientId || "", 
-          timestamp: Date.now(), 
-          runtimeState: "WAITING_APPROVAL" 
-        }) 
-      } as any
+    void runResolve(() =>
+      clinicalApprovalManager.resolveApproval(
+        pendingApproval.approvalRequestId,
+        "REJECTED",
+        buildContext() as any,
+      ),
     )
   }
 
@@ -108,7 +116,7 @@ export function ClinicalApprovalPanel() {
 
       {/* Modal */}
       <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
+
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -127,7 +135,7 @@ export function ClinicalApprovalPanel() {
 
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          
+
           {/* Rationale Section */}
           <section>
             <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
@@ -165,12 +173,26 @@ export function ClinicalApprovalPanel() {
 
         </div>
 
+        {/* Auth + error banners */}
+        {!isAuthenticated && (
+          <div className="px-6 py-3 border-t border-amber-500/20 bg-amber-500/10 text-[12px] text-amber-300 shrink-0">
+            Sign in with a valid CRM/NPI before approving or rejecting this plan.
+            Clinical decisions cannot be recorded under the demo identity.
+          </div>
+        )}
+        {resolveError && (
+          <div className="px-6 py-3 border-t border-red-500/30 bg-red-500/10 text-[12px] text-red-300 shrink-0 flex items-start gap-2">
+            <X className="w-4 h-4 mt-px shrink-0" />
+            <span>{resolveError}</span>
+          </div>
+        )}
+
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-white/5 bg-zinc-900/50 flex items-center justify-end gap-3 shrink-0">
           <button
             onClick={handleReject}
-            disabled={isApproving}
-            className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-lg transition-all"
+            disabled={isApproving || !isAuthenticated}
+            className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5"
           >
             Reject Execution
           </button>
@@ -179,17 +201,17 @@ export function ClinicalApprovalPanel() {
           {pendingOverride && (
             <button
               onClick={handleApproveWithOverride}
-              disabled={isApproving}
+              disabled={isApproving || !isAuthenticated}
               className="px-4 py-2 text-sm font-medium text-amber-300 bg-amber-600/20 hover:bg-amber-500/30 border border-amber-500/30 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
             >
               <Check className="w-4 h-4" />
               Approve Modified Plan
             </button>
           )}
-          
+
           <button
             onClick={handleApprove}
-            disabled={isApproving}
+            disabled={isApproving || !isAuthenticated}
             className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(217,119,6,0.4)] hover:shadow-[0_0_25px_rgba(217,119,6,0.6)] disabled:opacity-50 disabled:pointer-events-none"
           >
             {isApproving ? (

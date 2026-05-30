@@ -23,6 +23,9 @@ import { clinicalEventBus } from "./eventBus"
 import { ClinicalExecutionContext } from "./executionContext"
 import { applyOverride, computeRiskDiff } from "./overrideEngine"
 import { physicianSession } from "./physicianSession"
+import type { ApprovalDecision as ApprovalDecisionType } from "./types"
+
+const SYSTEM_TIMEOUT_ID = "SYSTEM_TIMEOUT"
 
 /** Clinical approval timeout — 15 minutes by default, 5 for CRITICAL risk */
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000
@@ -101,6 +104,34 @@ class ApprovalRepository {
       return await res.json()
     } catch {
       return []
+    }
+  }
+
+  /**
+   * Resolve an approval server-side. The backend enforces:
+   *   - 403 if physician_id is the fallback sentinel
+   *   - 408 if the approval window expired
+   *   - 409 if already resolved or concurrently modified
+   * Returns the HTTP status so callers can branch on 408 → SYSTEM_TIMEOUT.
+   */
+  async resolve(
+    approvalRequestId: string,
+    decision: ApprovalDecisionType,
+    physicianId: string
+  ): Promise<{ ok: boolean; status: number }> {
+    try {
+      const res = await fetch(
+        `${this.getBaseUrl()}/api/v1/clinical/approvals/${approvalRequestId}/resolve`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision, physician_id: physicianId })
+        }
+      )
+      return { ok: res.ok, status: res.status }
+    } catch (e) {
+      console.error("[ApprovalRepository] Failed to resolve approval:", e)
+      return { ok: false, status: 0 }
     }
   }
 }
@@ -202,19 +233,62 @@ class ClinicalApprovalManager {
 
   /**
    * Standard physician decision — Approve or Reject without mutations.
+   *
+   * Fix #2: requires an authenticated physician (throws otherwise).
+   * Fix #3: server-side resolve enforces the timeout window — a 408 response
+   * is translated into a SYSTEM_TIMEOUT REJECTED audit event so the trail
+   * stays consistent with the client-side timer path.
    */
-  resolveApproval(
+  async resolveApproval(
     approvalRequestId: string,
     decision: ApprovalDecision,
     context: ClinicalExecutionContext
-  ) {
+  ): Promise<void> {
     const pending = this.pendingApprovals.get(approvalRequestId)
     if (!pending) {
       console.warn(`[ApprovalManager] No pending approval: ${approvalRequestId}`)
       return
     }
 
-    const physician = physicianSession.getProfile()
+    const physician = physicianSession.requireAuthenticatedPhysician(
+      `resolveApproval(${decision})`
+    )
+
+    const serverResult = await this.repository.resolve(
+      approvalRequestId,
+      decision,
+      physician.physicianId
+    )
+
+    if (serverResult.status === 408) {
+      // Server expired the approval before the physician acted. Audit-parity
+      // with the client-side _scheduleTimeout path: emit a REJECTED resolution
+      // attributed to SYSTEM_TIMEOUT and reject the pending promise.
+      clinicalEventBus.publish({
+        type: "ClinicalApprovalResolved",
+        payload: {
+          approvalRequestId,
+          decision: "REJECTED",
+          approvedBy: { physicianId: SYSTEM_TIMEOUT_ID, timestamp: Date.now() }
+        },
+        metadata: context.createEventMetadata("WAITING_APPROVAL")
+      })
+      this._clearTimers(approvalRequestId)
+      pending.reject(
+        new Error(
+          `Server enforced approval timeout for ${approvalRequestId} (HTTP 408)`
+        )
+      )
+      this.pendingApprovals.delete(approvalRequestId)
+      this._persistState()
+      return
+    }
+
+    if (!serverResult.ok) {
+      throw new Error(
+        `Failed to resolve approval ${approvalRequestId}: HTTP ${serverResult.status}`
+      )
+    }
 
     clinicalEventBus.publish({
       type: "ClinicalApprovalResolved",
@@ -233,30 +307,68 @@ class ClinicalApprovalManager {
     const resolved = applyOverride(pending.plan, null)
     pending.resolve(decision, resolved)
     this.pendingApprovals.delete(approvalRequestId)
-    this.repository.delete(approvalRequestId)
     this._persistState()
   }
 
   /**
    * Physician approves WITH mutations — Phase 5.5 Physician Override.
    * Emits full governance audit trail before resuming the runtime.
+   *
+   * Fix #2: requires an authenticated physician.
+   * Fix #3: hits the server resolve endpoint with decision=MODIFIED; 408
+   * translates to a SYSTEM_TIMEOUT REJECTED event (override discarded).
    */
-  resolveWithOverride(
+  async resolveWithOverride(
     approvalRequestId: string,
     override: ExecutionPlanOverride,
     context: ClinicalExecutionContext
-  ) {
+  ): Promise<void> {
     const pending = this.pendingApprovals.get(approvalRequestId)
     if (!pending) {
       console.warn(`[ApprovalManager] No pending approval: ${approvalRequestId}`)
       return
     }
 
-    const physician = physicianSession.getProfile()
+    const physician = physicianSession.requireAuthenticatedPhysician(
+      "resolveWithOverride(MODIFIED)"
+    )
     const auditedOverride: ExecutionPlanOverride = {
       ...override,
       physicianId: physician.physicianId,
       timestamp: new Date().toISOString()
+    }
+
+    const serverResult = await this.repository.resolve(
+      approvalRequestId,
+      "MODIFIED",
+      physician.physicianId
+    )
+
+    if (serverResult.status === 408) {
+      clinicalEventBus.publish({
+        type: "ClinicalApprovalResolved",
+        payload: {
+          approvalRequestId,
+          decision: "REJECTED",
+          approvedBy: { physicianId: SYSTEM_TIMEOUT_ID, timestamp: Date.now() }
+        },
+        metadata: context.createEventMetadata("WAITING_APPROVAL")
+      })
+      this._clearTimers(approvalRequestId)
+      pending.reject(
+        new Error(
+          `Server enforced approval timeout for ${approvalRequestId} (HTTP 408)`
+        )
+      )
+      this.pendingApprovals.delete(approvalRequestId)
+      this._persistState()
+      return
+    }
+
+    if (!serverResult.ok) {
+      throw new Error(
+        `Failed to resolve approval with override ${approvalRequestId}: HTTP ${serverResult.status}`
+      )
     }
 
     const resolvedPlan = applyOverride(pending.plan, auditedOverride)
@@ -290,7 +402,6 @@ class ClinicalApprovalManager {
     this._clearTimers(approvalRequestId)
     pending.resolve("MODIFIED", resolvedPlan)
     this.pendingApprovals.delete(approvalRequestId)
-    this.repository.delete(approvalRequestId)
     this._persistState()
   }
 
