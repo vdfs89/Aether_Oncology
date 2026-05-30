@@ -58,9 +58,9 @@ from src.services.audit import (
     AUDIT_FILE,
     calculate_drift,
     decrypt_entry,
-    encrypt_entry,
     get_fernet,
     log_prediction,
+    seal_and_append,
 )
 from src.services.audit_logger import get_audit_logger
 from src.services.inference_client import inference_client
@@ -304,17 +304,22 @@ async def lifespan(app: FastAPI):
         logging.info(f"BOOT [{request_id}]: MLPlatformOrchestrator started.")
     except Exception as e:
         app.state.orchestrator = None
-        logging.warning(f"BOOT [{request_id}]: MLPlatformOrchestrator failed to start: {e}")
+        logging.warning(
+            f"BOOT [{request_id}]: MLPlatformOrchestrator failed to start: {e}"
+        )
 
     # 4. ClinicalInferenceRuntime (Chat Copilot)
     from src.orchestration.clinical_runtime import ClinicalInferenceRuntime
+
     try:
         app.state.runtime = ClinicalInferenceRuntime()
         await app.state.runtime.startup()
         logging.info(f"BOOT [{request_id}]: ClinicalInferenceRuntime ready.")
     except Exception as e:
         app.state.runtime = None
-        logging.error(f"BOOT [{request_id}]: ClinicalInferenceRuntime failed to start: {e}")
+        logging.error(
+            f"BOOT [{request_id}]: ClinicalInferenceRuntime failed to start: {e}"
+        )
 
     # 5. Approval cleanup worker — sweeps expired PENDING approvals every 60s
     # so timeout enforcement does not depend on the FE setTimeout.
@@ -813,7 +818,11 @@ async def make_prediction(
         # Log with new audit logger (includes PHI scrubbing)
         audit_logger = get_audit_logger()
         await asyncio.to_thread(
-            audit_logger.log_prediction, request_id, features.model_dump(), result_for_audit, user_id
+            audit_logger.log_prediction,
+            request_id,
+            features.model_dump(),
+            result_for_audit,
+            user_id,
         )
 
     await _audit_prediction()
@@ -858,9 +867,7 @@ async def clinical_feedback(request: Request, feedback: FeedbackRequest):
     }
 
     def _write_feedback() -> None:
-        encrypted_bytes = encrypt_entry(feedback_entry)
-        with open(AUDIT_FILE, "ab") as f:
-            f.write(encrypted_bytes + b"\n")
+        seal_and_append(feedback_entry, AUDIT_FILE)
 
         # Log with audit logger (HIPAA-compliant)
         request_id = request_id_contextvar.get()

@@ -1,5 +1,4 @@
 import hashlib
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -7,7 +6,7 @@ from typing import Any, Literal
 
 from src.core.logging import request_id_contextvar
 from src.safety.phi_scrubber import get_phi_scrubber
-from src.services.audit import encrypt_entry, get_fernet
+from src.services.audit import seal_and_append
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +40,9 @@ class AuditLogger:
 
     def log_event(
         self,
-        event_type: Literal["prediction", "feedback", "access", "export", "retrain", "auth"],
+        event_type: Literal[
+            "prediction", "feedback", "access", "export", "retrain", "auth"
+        ],
         action: Literal["READ", "WRITE", "DELETE", "EXPORT", "EXECUTE"],
         resource_affected: str | None = None,
         data: dict[str, Any] | None = None,
@@ -82,7 +83,9 @@ class AuditLogger:
                 "action": action,
                 "user_id": self._anonymize_user(user_id),
                 "request_id": request_id_contextvar.get(),
-                "resource_affected": resource_affected if resource_affected else "system",
+                "resource_affected": resource_affected
+                if resource_affected
+                else "system",
                 "status": status,
                 "data": scrubbed_data,
                 "phi_scrubbed": phi_scrubbed,
@@ -92,10 +95,8 @@ class AuditLogger:
             if error_message:
                 audit_entry["error_message"] = error_message
 
-            # Encrypt and write
-            encrypted_bytes = encrypt_entry(audit_entry)
-            with open(self.audit_file, "ab") as f:
-                f.write(encrypted_bytes + b"\n")
+            # Encrypt, hash-chain (tamper-evidence) and append
+            seal_and_append(audit_entry, self.audit_file)
 
             logger.info(
                 "Audit event logged [%s] event_type=%s action=%s status=%s phi_scrubbed=%s",
@@ -154,7 +155,9 @@ class AuditLogger:
 
     def log_access(
         self,
-        resource_type: Literal["audit_trail", "analytics", "model_weights", "data_export"],
+        resource_type: Literal[
+            "audit_trail", "analytics", "model_weights", "data_export"
+        ],
         action: Literal["READ", "WRITE", "DELETE", "EXPORT"],
         user_id: str | None = None,
         details: dict[str, Any] | None = None,

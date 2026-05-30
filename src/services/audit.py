@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from cryptography.fernet import Fernet
 
 from src.core.logging import request_id_contextvar
 from src.ml_platform.drift import DriftDetector
+from src.services import audit_chain
 
 logger = logging.getLogger(__name__)
 
@@ -38,19 +40,63 @@ def get_fernet() -> Fernet:
     return _fernet_instance
 
 
-def encrypt_entry(entry: dict) -> bytes:
-    """Criptografa uma entrada de log e envolve com envelope de metadados."""
+def build_envelope(entry: dict) -> dict:
+    """Criptografa a entrada e monta o envelope de metadados (sem selo de cadeia)."""
     fernet = get_fernet()
     json_str = json.dumps(entry)
     encrypted_bytes = fernet.encrypt(json_str.encode("utf-8"))
 
-    envelope = {
+    return {
         "key_version": "v1",
         "algorithm": "fernet",
         "encrypted": True,
         "payload": encrypted_bytes.decode("utf-8"),
     }
-    return json.dumps(envelope).encode("utf-8")
+
+
+def encrypt_entry(entry: dict) -> bytes:
+    """Envelope criptografado (sem cadeia). Prefira `seal_and_append`."""
+    return json.dumps(build_envelope(entry)).encode("utf-8")
+
+
+# In-process chain head per audit file: {path: (last_seq, last_entry_hash)}.
+# Lazily recovered from disk on first write, then advanced in memory. Append is
+# single-writer (the running service), so this stays consistent; verify_chain
+# always re-reads from disk independently.
+_chain_lock = threading.Lock()
+_chain_heads: dict[str, tuple[int, str]] = {}
+
+
+def seal_and_append(entry: dict, audit_file: Path | None = None) -> dict:
+    """
+    Encrypt, hash-chain (tamper-evidence) and append one entry to the audit
+    trail. Returns the sealed envelope (incl. seq / prev_hash / entry_hash).
+
+    The chain makes the append-only log *tamper-evident*: editing, reordering or
+    deleting any sealed line breaks verification (see `audit_chain.verify_chain`).
+    """
+    target = audit_file or AUDIT_FILE
+    envelope = build_envelope(entry)
+    with _chain_lock:
+        key = str(target)
+        if key not in _chain_heads:
+            _chain_heads[key] = audit_chain.read_chain_head(target)
+        seq, prev = _chain_heads[key]
+        seq += 1
+        payload = envelope["payload"]
+        entry_hash = audit_chain.compute_entry_hash(prev, seq, payload)
+        envelope["seq"] = seq
+        envelope["prev_hash"] = prev
+        envelope["entry_hash"] = entry_hash
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with open(target, "ab") as f:
+            f.write(json.dumps(envelope).encode("utf-8") + b"\n")
+            f.flush()
+            os.fsync(f.fileno())
+
+        _chain_heads[key] = (seq, entry_hash)
+    return envelope
 
 
 def decrypt_entry(token: bytes) -> dict:
@@ -89,9 +135,7 @@ def log_prediction(features: dict, prediction_result: dict):
             },
         }
 
-        encrypted_bytes = encrypt_entry(entry)
-        with open(AUDIT_FILE, "ab") as f:
-            f.write(encrypted_bytes + b"\n")
+        seal_and_append(entry)
     except Exception as e:
         logger.error("Falha ao gravar log de auditoria: %s", e)
 
