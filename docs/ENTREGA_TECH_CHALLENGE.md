@@ -9,7 +9,7 @@
 | **Projeto** | Aether Oncology |
 | **Versão** | 3.1.0 |
 | **Repositório** | https://github.com/vdfs89/Aether_Oncology |
-| **Deploy (API)** | https://aether-oncology-api.onrender.com |
+| **Deploy (API)** | https://api.vitorsilva.engineer |
 | **Grupo / RMs** | Vitor Diogo Fonseca da Silva — RM375157 |
 | **Data de entrega** | 30/06/2026 |
 
@@ -217,7 +217,7 @@ imunocomprometida.
 - **README (EN):** [README.md](../README.md) · **PT:** [README.pt-br.md](../README.pt-br.md)
 - **Model Card:** [docs/MODEL_CARD.md](MODEL_CARD.md)
 - **Auditoria/HIPAA:** [docs/AUDIT_PHI_IMPLEMENTATION.md](AUDIT_PHI_IMPLEMENTATION.md)
-- **Deploy:** https://aether-oncology-api.onrender.com
+- **Deploy:** https://api.vitorsilva.engineer
 - **Demonstração:** A ser adicionado até 30/06/2026
 
 ---
