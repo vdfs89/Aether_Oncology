@@ -52,13 +52,14 @@ spec:
           value: "INFO"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health/live
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
+          # Gate traffic on the PRIMARY Oral Cancer model being loaded.
           httpGet:
-            path: /health
+            path: /health/ready
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
