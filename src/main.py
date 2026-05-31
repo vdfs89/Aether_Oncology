@@ -928,6 +928,23 @@ def get_audit_trail(request: Request):
         return trail
 
 
+@app.get(
+    "/compliance/report", tags=["Governance"], dependencies=[Security(get_api_key)]
+)
+def get_compliance_report(request: Request, days: int | None = None):
+    """Automated HIPAA compliance report over the audit trail (Mongo/JSONL),
+    including the tamper-evidence integrity verdict."""
+    from src.services.compliance_report import generate_report
+
+    get_audit_logger().log_access(
+        resource_type="audit_trail",
+        action="EXPORT",
+        user_id=request.headers.get("access_token"),
+        details={"request_id": request_id_contextvar.get(), "report_days": days},
+    )
+    return generate_report(days=days)
+
+
 # ---------------------------------------------------------------------------
 # Enterprise ML Platform Monitoring (v2.1)
 # ---------------------------------------------------------------------------
