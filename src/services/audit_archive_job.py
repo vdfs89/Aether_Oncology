@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from src.services import mongo
+from src.services import mongo, slack_alerter
 from src.services.audit import seal_and_append
 from src.services.audit_store_mongo import MongoAuditStore
 
@@ -69,3 +69,22 @@ def run_archive_cycle(*, days: int | None = None, now: datetime | None = None) -
         )
         logger.info("AUDIT ARCHIVE cycle: %s", res)
     return {"status": "ok", **res}
+
+
+def check_volume_anomaly(*, now: datetime | None = None) -> dict | None:
+    """T3: compare the last hour's audit volume against the 24h hourly mean and
+    raise a Slack WARNING on silence (0 in usage hours) or a >10x spike."""
+    active = mongo.get_audit_collection()
+    if active is None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    last_hour = active.count_documents(
+        {"created_dt": {"$gte": now - timedelta(hours=1)}}
+    )
+    last_24 = active.count_documents(
+        {"created_dt": {"$gte": now - timedelta(hours=24)}}
+    )
+    alert = slack_alerter.evaluate_volume(last_hour, last_24 / 24.0, now.hour)
+    if alert:
+        slack_alerter.send_alert(alert["level"], alert["title"], alert["details"])
+    return alert

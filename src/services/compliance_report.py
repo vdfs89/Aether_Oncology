@@ -16,7 +16,7 @@ import logging
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
-from src.services import audit_chain, audit_rotation, mongo
+from src.services import audit_chain, audit_rotation, mongo, slack_alerter
 from src.services.audit import LOG_DIR, get_fernet
 from src.services.audit_store_mongo import MongoAuditStore
 
@@ -45,8 +45,10 @@ def _inner(envelope: dict) -> dict | None:
     if envelope.get("encrypted") is True and envelope.get("payload"):
         try:
             raw = get_fernet().decrypt(envelope["payload"].encode("utf-8"))
+            slack_alerter.record_decrypt_result(True)
             return json.loads(raw.decode("utf-8"))
         except Exception as e:  # noqa: BLE001 - report must not crash on one bad row
+            slack_alerter.record_decrypt_result(False)  # T4: recurring -> alert
             logger.warning("compliance: undecryptable entry skipped: %s", e)
             return None
     return envelope  # legacy plaintext
@@ -86,13 +88,14 @@ def _iter_envelopes(start: datetime | None):
 
 
 def _integrity() -> dict:
-    """Tamper-evidence verdict of the active store."""
+    """Tamper-evidence verdict of the active store (+ T1 alert on failure)."""
     coll = mongo.get_audit_collection()
     if coll is not None:
-        rep = MongoAuditStore(coll).verify()
-        return {"source": "mongodb", **rep}
-    rep = audit_rotation.verify_trail(LOG_DIR, "audit_trail")
-    return {"source": "jsonl", **rep}
+        rep = {"source": "mongodb", **MongoAuditStore(coll).verify()}
+    else:
+        rep = {"source": "jsonl", **audit_rotation.verify_trail(LOG_DIR, "audit_trail")}
+    slack_alerter.alert_chain_status(rep, rep["source"])  # T1
+    return rep
 
 
 def generate_report(

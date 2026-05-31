@@ -366,6 +366,20 @@ async def lifespan(app: FastAPI):
     app.state.audit_archive_task = asyncio.create_task(_audit_archive_loop())
     logging.info(f"BOOT [{request_id}]: audit archival worker started.")
 
+    # 7. Audit volume monitor — hourly Slack alert on silence/spike (T3).
+    async def _audit_volume_loop():
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                await asyncio.to_thread(audit_archive_job.check_volume_anomaly)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logging.warning("AUDIT_VOLUME: check failed: %s", exc)
+
+    app.state.audit_volume_task = asyncio.create_task(_audit_volume_loop())
+    logging.info(f"BOOT [{request_id}]: audit volume monitor started (1h).")
+
     yield
 
     # ── Shutdown Logic ──
@@ -390,6 +404,16 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
         logging.info(f"SHUTDOWN [{request_id}]: audit archival worker stopped.")
+
+    # Stop audit volume monitor
+    volume_task = getattr(app.state, "audit_volume_task", None)
+    if volume_task is not None:
+        volume_task.cancel()
+        try:
+            await volume_task
+        except asyncio.CancelledError:
+            pass
+        logging.info(f"SHUTDOWN [{request_id}]: audit volume monitor stopped.")
 
     # Shutdown clinical runtime if exists
     if hasattr(app.state, "runtime") and app.state.runtime:

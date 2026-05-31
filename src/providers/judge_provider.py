@@ -3,6 +3,7 @@ import logging
 
 from src.providers.openai_provider import OpenAIProvider
 from src.safety.types import ClinicalJudgement
+from src.services import slack_alerter
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,12 @@ class JudgeProvider:
             logger.warning(
                 "JudgeProvider unavailable (OPENAI_API_KEY not set) — returning "
                 "UNVERIFIED judgement that requires physician review."
+            )
+            slack_alerter.send_alert(  # T2: judge cannot verify the response
+                slack_alerter.CRITICAL,
+                "Clinical judge unavailable (fail-safe)",
+                "OPENAI_API_KEY not set — response delivered UNVERIFIED, "
+                "physician review required.",
             )
             return ClinicalJudgement(
                 approved=False,
