@@ -918,9 +918,13 @@ def get_audit_trail(request: Request):
             if not line:
                 continue
             try:
-                trail.append(decrypt_entry(line))
+                decoded = decrypt_entry(line)
             except Exception:
                 continue
+            # Don't surface rotation segment headers in the audit view.
+            if isinstance(decoded, dict) and decoded.get("type") == "segment_header":
+                continue
+            trail.append(decoded)
         return trail
 
 

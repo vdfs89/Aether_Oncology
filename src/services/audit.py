@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 
 from src.core.logging import request_id_contextvar
 from src.ml_platform.drift import DriftDetector
-from src.services import audit_chain
+from src.services import audit_chain, audit_rotation
 
 logger = logging.getLogger(__name__)
 
@@ -66,22 +66,49 @@ def encrypt_entry(entry: dict) -> bytes:
 _chain_lock = threading.Lock()
 _chain_heads: dict[str, tuple[int, str]] = {}
 
+# Rotation policy + archival destination, resolved once from the environment.
+# `seq` is global/monotonic across segments, so rotation never breaks the chain.
+_rotation_policy = audit_rotation.RotationPolicy.from_env()
+_archiver = audit_rotation.LoggingArchiver()
 
-def seal_and_append(entry: dict, audit_file: Path | None = None) -> dict:
+
+def seal_and_append(
+    entry: dict,
+    audit_file: Path | None = None,
+    *,
+    policy: "audit_rotation.RotationPolicy | None" = None,
+) -> dict:
     """
     Encrypt, hash-chain (tamper-evidence) and append one entry to the audit
     trail. Returns the sealed envelope (incl. seq / prev_hash / entry_hash).
 
     The chain makes the append-only log *tamper-evident*: editing, reordering or
     deleting any sealed line breaks verification (see `audit_chain.verify_chain`).
+
+    Before appending, the live file is rotated if it exceeds the size/age cap.
+    Rotation preserves custody: the new segment opens with a header signing the
+    rotated segment's closing head, and `seq` carries over (see audit_rotation).
     """
     target = audit_file or AUDIT_FILE
+    pol = policy or _rotation_policy
     envelope = build_envelope(entry)
     with _chain_lock:
         key = str(target)
         if key not in _chain_heads:
             _chain_heads[key] = audit_chain.read_chain_head(target)
         seq, prev = _chain_heads[key]
+
+        # Rotate first (carrying the current head into the new segment header).
+        if pol is not None and audit_rotation.should_rotate(target, pol):
+            audit_rotation.rotate(
+                target,
+                head_seq=seq,
+                head_hash=prev,
+                policy=pol,
+                archiver=_archiver,
+            )
+            # Head is unchanged; the new live file now carries it in its header.
+
         seq += 1
         payload = envelope["payload"]
         entry_hash = audit_chain.compute_entry_hash(prev, seq, payload)
@@ -154,13 +181,17 @@ def calculate_drift() -> dict:
                 if not line:
                     continue
                 try:
-                    decrypted_entries.append(decrypt_entry(line))
+                    decoded = decrypt_entry(line)
                 except Exception as dec_err:
                     logger.error(
                         "Erro ao decriptar entrada do log de auditoria no drift: %s",
                         dec_err,
                     )
                     continue
+                # Skip non-prediction records (segment headers, feedback, …) so
+                # rotation metadata never reaches the drift feature matrix.
+                if isinstance(decoded, dict) and "input" in decoded:
+                    decrypted_entries.append(decoded)
 
         if not decrypted_entries:
             return {"status": "insufficient_data", "metrics": {}}
