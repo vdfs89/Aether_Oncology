@@ -7,10 +7,11 @@ from pathlib import Path
 
 import pandas as pd
 from cryptography.fernet import Fernet
+from pymongo.errors import PyMongoError
 
 from src.core.logging import request_id_contextvar
 from src.ml_platform.drift import DriftDetector
-from src.services import audit_chain, audit_rotation
+from src.services import audit_chain, audit_rotation, audit_store_mongo, mongo
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,36 @@ _rotation_policy = audit_rotation.RotationPolicy.from_env()
 _archiver = audit_rotation.LoggingArchiver()
 
 
+def _recover_head(target: Path) -> tuple[int, str]:
+    """Recover the chain head from whichever store is ahead: MongoDB (primary)
+    or the local JSONL trail (fallback). Taking the max seq keeps the chain
+    monotonic even if some entries landed in the fallback during a Mongo outage."""
+    jsonl_head = audit_chain.read_chain_head(target)
+    coll = mongo.get_audit_collection()
+    if coll is not None:
+        try:
+            mongo_head = audit_store_mongo.MongoAuditStore(coll).read_head()
+            return mongo_head if mongo_head[0] >= jsonl_head[0] else jsonl_head
+        except PyMongoError as e:
+            logger.warning("Mongo head read failed, using JSONL head: %s", e)
+    return jsonl_head
+
+
+def _append_jsonl(target: Path, envelope: dict, pol) -> None:
+    """Append a sealed envelope to the local JSONL trail, rotating first if the
+    size/age cap is hit (rotation preserves chain custody — see audit_rotation)."""
+    if pol is not None and audit_rotation.should_rotate(target, pol):
+        seq, prev = _chain_heads[str(target)]
+        audit_rotation.rotate(
+            target, head_seq=seq, head_hash=prev, policy=pol, archiver=_archiver
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with open(target, "ab") as f:
+        f.write(json.dumps(envelope).encode("utf-8") + b"\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
 def seal_and_append(
     entry: dict,
     audit_file: Path | None = None,
@@ -79,15 +110,15 @@ def seal_and_append(
     policy: "audit_rotation.RotationPolicy | None" = None,
 ) -> dict:
     """
-    Encrypt, hash-chain (tamper-evidence) and append one entry to the audit
-    trail. Returns the sealed envelope (incl. seq / prev_hash / entry_hash).
+    Encrypt, hash-chain (tamper-evidence) and persist one audit entry.
 
-    The chain makes the append-only log *tamper-evident*: editing, reordering or
-    deleting any sealed line breaks verification (see `audit_chain.verify_chain`).
+    Storage: **MongoDB primary, JSONL fallback** — if the cluster is unreachable
+    the entry is appended to the local file so the audit log is never lost. The
+    same sealed envelope (seq / prev_hash / entry_hash) goes to either store, and
+    `seq` is global/monotonic, so the tamper-evident chain spans both.
 
-    Before appending, the live file is rotated if it exceeds the size/age cap.
-    Rotation preserves custody: the new segment opens with a header signing the
-    rotated segment's closing head, and `seq` carries over (see audit_rotation).
+    The chain makes the log *tamper-evident*: editing, reordering or deleting any
+    sealed entry breaks verification (see audit_chain / MongoAuditStore.verify).
     """
     target = audit_file or AUDIT_FILE
     pol = policy or _rotation_policy
@@ -95,19 +126,8 @@ def seal_and_append(
     with _chain_lock:
         key = str(target)
         if key not in _chain_heads:
-            _chain_heads[key] = audit_chain.read_chain_head(target)
+            _chain_heads[key] = _recover_head(target)
         seq, prev = _chain_heads[key]
-
-        # Rotate first (carrying the current head into the new segment header).
-        if pol is not None and audit_rotation.should_rotate(target, pol):
-            audit_rotation.rotate(
-                target,
-                head_seq=seq,
-                head_hash=prev,
-                policy=pol,
-                archiver=_archiver,
-            )
-            # Head is unchanged; the new live file now carries it in its header.
 
         seq += 1
         payload = envelope["payload"]
@@ -116,11 +136,17 @@ def seal_and_append(
         envelope["prev_hash"] = prev
         envelope["entry_hash"] = entry_hash
 
-        target.parent.mkdir(parents=True, exist_ok=True)
-        with open(target, "ab") as f:
-            f.write(json.dumps(envelope).encode("utf-8") + b"\n")
-            f.flush()
-            os.fsync(f.fileno())
+        # Primary: MongoDB. Fallback: local JSONL trail.
+        wrote_mongo = False
+        coll = mongo.get_audit_collection()
+        if coll is not None:
+            try:
+                audit_store_mongo.MongoAuditStore(coll).append(envelope)
+                wrote_mongo = True
+            except PyMongoError as e:
+                logger.warning("Mongo audit write failed, JSONL fallback: %s", e)
+        if not wrote_mongo:
+            _append_jsonl(target, envelope, pol)
 
         _chain_heads[key] = (seq, entry_hash)
     return envelope

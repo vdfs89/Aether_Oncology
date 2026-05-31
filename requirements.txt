@@ -26,7 +26,11 @@ groq>=0.4.2
 google-genai>=0.3.0
 openai>=1.14.0
 
+# Audit trail persistence (MongoDB Atlas — primary store, JSONL fallback)
+pymongo>=4.6.0
+
 # Dev dependencies
 ruff>=0.4.0
 pytest>=8.0.0
 pytest-cov>=4.1.0
+mongomock>=4.1
