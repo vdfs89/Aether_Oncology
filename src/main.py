@@ -343,6 +343,29 @@ async def lifespan(app: FastAPI):
     app.state.approval_cleanup_task = asyncio.create_task(_approval_cleanup_loop())
     logging.info(f"BOOT [{request_id}]: approval cleanup worker started (60s).")
 
+    # 6. Audit archival worker — moves audit docs older than the retention
+    # window to a cold MongoDB collection, then expires them from the active one
+    # (chain head preserved). In-process, no external scheduler.
+    from src.services import audit_archive_job
+
+    async def _audit_archive_loop():
+        if not audit_archive_job.enabled():
+            return
+        period = audit_archive_job.interval_seconds()
+        while True:
+            try:
+                res = await asyncio.to_thread(audit_archive_job.run_archive_cycle)
+                if res.get("archived"):
+                    logging.info("AUDIT_ARCHIVE: %s", res)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logging.warning("AUDIT_ARCHIVE: cycle failed: %s", exc)
+            await asyncio.sleep(period)
+
+    app.state.audit_archive_task = asyncio.create_task(_audit_archive_loop())
+    logging.info(f"BOOT [{request_id}]: audit archival worker started.")
+
     yield
 
     # ── Shutdown Logic ──
@@ -357,6 +380,16 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
         logging.info(f"SHUTDOWN [{request_id}]: approval cleanup worker stopped.")
+
+    # Stop audit archival worker
+    archive_task = getattr(app.state, "audit_archive_task", None)
+    if archive_task is not None:
+        archive_task.cancel()
+        try:
+            await archive_task
+        except asyncio.CancelledError:
+            pass
+        logging.info(f"SHUTDOWN [{request_id}]: audit archival worker stopped.")
 
     # Shutdown clinical runtime if exists
     if hasattr(app.state, "runtime") and app.state.runtime:

@@ -74,6 +74,16 @@ def get_audit_collection() -> Collection | None:
         return None
 
 
+def get_archive_collection() -> Collection | None:
+    """Cold collection for archived audit docs (same cluster/db). None if Mongo
+    is unavailable."""
+    if get_audit_collection() is None:
+        return None
+    db_name = os.getenv("AUDIT_MONGO_DB", "aether_audit")
+    coll_name = os.getenv("AUDIT_MONGO_ARCHIVE_COLLECTION", "audit_trail_archive")
+    return _client[db_name][coll_name]
+
+
 def reset() -> None:
     """Drop cached connection state (used by tests / after config changes)."""
     global _client, _collection, _init_failed

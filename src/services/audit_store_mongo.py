@@ -154,3 +154,51 @@ class MongoAuditStore:
             "Archived %d audit docs (seq %s..%s) -> %s", len(docs), lo, hi, out.name
         )
         return {"archived": len(docs), "path": str(out), "seq_range": [lo, hi]}
+
+    # -- archive to a cold collection THEN expire from active ------------- #
+    def archive_to_cold(
+        self,
+        cold: Collection,
+        *,
+        retention_days: int,
+        now: datetime | None = None,
+    ) -> dict:
+        """Move docs older than `retention_days` to the `cold` collection and
+        delete them from the active one. The current chain head (max seq) is
+        NEVER archived, so the active collection never empties and the first
+        remaining doc still anchors to the archived head (chain stays verifiable
+        on both sides)."""
+        now = now or datetime.now(timezone.utc)
+        cutoff = datetime.fromtimestamp(
+            now.timestamp() - retention_days * 24 * 3600, tz=timezone.utc
+        )
+        head = self.collection.find_one(sort=[("seq", -1)])
+        head_seq = head["seq"] if head else None
+
+        query: dict = {"created_dt": {"$lt": cutoff}}
+        if head_seq is not None:
+            query["seq"] = {"$ne": head_seq}  # preserve the live anchor
+        docs = list(self.collection.find(query, sort=[("seq", 1)]))
+        if not docs:
+            return {"archived": 0, "seq_range": None, "anchor_hash": None}
+
+        cold.create_index("seq", unique=True, name="uniq_seq")
+        for d in docs:
+            d = {k: v for k, v in d.items() if k != "_id"}
+            try:
+                cold.insert_one(d)
+            except DuplicateKeyError:
+                pass  # idempotent re-run
+
+        seqs = [d["seq"] for d in docs]
+        self.collection.delete_many({"seq": {"$in": seqs}})
+        lo, hi = docs[0]["seq"], docs[-1]["seq"]
+        logger.info(
+            "Archived %d audit docs (seq %s..%s) -> %s", len(docs), lo, hi, cold.name
+        )
+        return {
+            "archived": len(docs),
+            "seq_range": [lo, hi],
+            "anchor_seq": hi,
+            "anchor_hash": docs[-1].get("entry_hash"),
+        }
