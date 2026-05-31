@@ -81,7 +81,6 @@ model-index:
 <p align="center">
   <img src="https://img.shields.io/badge/Recall-97.2%25-00C853?style=flat-square&logo=target&logoColor=white" alt="Recall" />
   <img src="https://img.shields.io/badge/F1--Score-96.5%25-2196F3?style=flat-square" alt="F1" />
-  <img src="https://img.shields.io/badge/ROC--AUC-99.1%25-7C4DFF?style=flat-square" alt="AUC" />
   <img src="https://img.shields.io/badge/Coverage-~91%25-green?style=flat-square" alt="Coverage" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
 </p>
@@ -418,7 +417,7 @@ Governance is event-sourced end-to-end (`frontend/src/features/ai/orchestration/
 
 ### HIPAA (PHI confidentiality)
 - **Encrypted audit logs** — `src/services/audit.py` wraps every prediction in a Fernet-encrypted JSON envelope (`key_version`, `algorithm`, `encrypted`, `payload`).
-- **Fail-closed startup** — the API refuses to boot without `AUDIT_ENCRYPTION_KEY` (and validates it can construct a Fernet cipher).
+- **Fail-closed auth** — in production (`AETHER_ENV != dev`), protected endpoints return **503** when `API_KEY` is unset (no open access) and the app never injects default/ephemeral keys. A missing `AUDIT_ENCRYPTION_KEY` disables audit writes (fail-safe) and is logged **critical** instead of silently using a throwaway key.
 - **Encrypted client storage** — conversation data is AES-GCM-256 encrypted in IndexedDB before persistence.
 - **Migration tooling** — `src/scripts/migrate_logs.py` upgrades legacy plaintext logs into encrypted envelopes.
 
@@ -627,7 +626,7 @@ cp .env.local.example .env.local   # or create .env.local manually
 ## 🔑 Environment Variables
 
 > [!IMPORTANT]
-> The backend performs **fail-fast startup**: it refuses to boot if any **required** variable is missing (`src/main.py` lifespan).
+> The backend **validates configuration at startup** and logs **critical** when a required variable (`API_KEY`, `AUDIT_ENCRYPTION_KEY`) is missing in production. Rather than crash-looping a PaaS, it **fails closed at the request layer** (protected endpoints → 503) and **fails safe** for audit (writes disabled) — never using insecure defaults (`src/main.py` lifespan + `get_api_key`).
 
 ### Backend
 

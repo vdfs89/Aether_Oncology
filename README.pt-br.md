@@ -418,7 +418,7 @@ A governança é event-sourced de ponta a ponta (`frontend/src/features/ai/orche
 
 ### HIPAA (confidencialidade de PHI)
 - **Logs de auditoria criptografados** — `src/services/audit.py` envolve cada predição em um envelope JSON criptografado com Fernet (`key_version`, `algorithm`, `encrypted`, `payload`).
-- **Startup fail-closed** — a API se recusa a iniciar sem `AUDIT_ENCRYPTION_KEY` (e valida que consegue construir uma cifra Fernet).
+- **Auth fail-closed** — em produção (`AETHER_ENV != dev`), endpoints protegidos retornam **503** quando `API_KEY` não está definida (sem acesso aberto) e a app nunca injeta chaves padrão/efêmeras. `AUDIT_ENCRYPTION_KEY` ausente desabilita a escrita de auditoria (fail-safe) e é logado como **crítico**, em vez de usar uma chave descartável.
 - **Armazenamento client-side criptografado** — dados de conversa são criptografados com AES-GCM-256 no IndexedDB antes da persistência.
 - **Ferramenta de migração** — `src/scripts/migrate_logs.py` migra logs legados em texto plano para envelopes criptografados.
 
