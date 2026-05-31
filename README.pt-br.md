@@ -221,33 +221,33 @@ A plataforma abrange duas superfícies complementares:
 
 ```mermaid
 flowchart TB
-    subgraph FE["🖥️ Frontend — Next.js 15 / TypeScript"]
+    subgraph FE["Frontend - Next.js 15 / TypeScript"]
         UI["UI do Copiloto Clínico"]
-        PLAN["Planner Clínico<br/>(intenção → ferramentas → DAG)"]
-        SM["Máquina de Estados<br/>(10 estados)"]
-        BUS["Event Bus Clínico<br/>(event-sourced)"]
+        PLAN["Planner Clínico<br/>intencao to ferramentas to DAG"]
+        SM["Máquina de Estados<br/>10 estados"]
+        BUS["Event Bus Clínico<br/>event-sourced"]
         APPR["Motor de Aprovação / Override"]
         IDB[("IndexedDB Criptografado<br/>AES-GCM-256")]
-        PHI["Scrubber de PHI (LGPD)"]
+        PHI["Scrubber de PHI LGPD"]
     end
 
-    subgraph GW["🔌 Transporte"]
-        SSE["Gateway SSE<br/>validado por Zod · 13 eventos"]
+    subgraph GW["Transporte"]
+        SSE["Gateway SSE<br/>validado por Zod - 13 eventos"]
     end
 
-    subgraph BE["⚙️ Backend — FastAPI / Python 3.12"]
+    subgraph BE["Backend - FastAPI / Python 3.12"]
         RT["ClinicalInferenceRuntime"]
         ROUTER["Roteador de Modelos Clínicos<br/>+ Circuit Breaker"]
-        JUDGE["🛡️ Juiz de Segurança Clínica"]
-        PRED["PredictorService<br/>(/predict · MLP)"]
-        AUDIT[("🔐 Trilha de Auditoria Criptografada<br/>Fernet · JSONL")]
-        RAG["Pesquisa / RAG<br/>PubMed · Cochrane · S2"]
+        JUDGE["Juiz de Segurança Clínica"]
+        PRED["PredictorService<br/>predict - MLP"]
+        AUDIT[("Trilha de Auditoria Criptografada<br/>Fernet - JSONL")]
+        RAG["Pesquisa / RAG<br/>PubMed - Cochrane - S2"]
     end
 
-    subgraph PROV["🤖 Provedores de LLM"]
-        GROQ["Groq · LLaMA 3.3 70B<br/>~200ms"]
-        GEM["Gemini 2.0 Flash<br/>raciocínio · multimodal"]
-        OAI["OpenAI · gpt-4o-mini<br/>(apenas juiz)"]
+    subgraph PROV["Provedores de LLM"]
+        GROQ["Groq - LLaMA 3.3 70B<br/>~200ms"]
+        GEM["Gemini 2.0 Flash<br/>raciocinio - multimodal"]
+        OAI["OpenAI - gpt-4o-mini<br/>apenas juiz"]
     end
 
     UI --> PLAN --> SM --> APPR
@@ -255,10 +255,10 @@ flowchart TB
     APPR --> SSE
     SM --> BUS
     BUS --> IDB
-    SSE <-->|"text/event-stream"| RT
+    SSE <-->|text/event-stream| RT
     RT --> ROUTER
     ROUTER --> GROQ
-    ROUTER -. fallback .-> GEM
+    ROUTER -.fallback.-> GEM
     RT --> JUDGE
     JUDGE --> OAI
     RT --> AUDIT
@@ -272,30 +272,30 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Cliente (useStreaming)
+    participant C as Cliente useStreaming
     participant G as Gateway SSE
     participant R as ClinicalInferenceRuntime
-    participant RT as Roteador + CircuitBreaker
-    participant P as Provedor (Groq/Gemini)
+    participant RT as Roteador CircuitBreaker
+    participant P as Provedor Groq/Gemini
     participant J as ClinicalJudge
 
-    C->>G: POST /api/v1/clinical/chat {messages, task, context}
+    C->>G: POST /api/v1/clinical/chat
     G->>R: stream_clinical_response()
-    R-->>C: event: routing_decision (provedor, justificativa, custo)
-    R->>RT: route(ClinicalTaskProfile)
+    R-->>C: event routing_decision provedor justificativa custo
+    R->>RT: route ClinicalTaskProfile
     RT->>P: stream_inference()
-    R-->>C: event: status (generating_internally)
+    R-->>C: event status generating_internally
     P-->>R: tokens em buffer
-    R-->>C: event: inference_envelope (latência, tokens, custo)
-    R->>J: evaluate(prompt, resposta)
-    R-->>C: event: judgement_started
-    J-->>R: ClinicalJudgement (risco, escalation_level)
+    R-->>C: event inference_envelope latencia tokens custo
+    R->>J: evaluate prompt resposta
+    R-->>C: event judgement_started
+    J-->>R: ClinicalJudgement risco escalation_level
     alt escalation_level == HARD_STOP
-        R-->>C: event: error (resposta bloqueada) ⛔
-    else NONE / WARNING
-        R-->>C: event: judgement_completed
-        R-->>C: event: token … token (em chunks)
-        R-->>C: event: complete ✅
+        R-->>C: event error resposta bloqueada
+    else NONE or WARNING
+        R-->>C: event judgement_completed
+        R-->>C: event token em chunks
+        R-->>C: event complete
     end
 ```
 
@@ -303,14 +303,14 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    IN["prompt_usuário + resposta_ia"] --> HG["HallucinationGuard<br/>check_claims()"]
-    HG --> CE["ConsensusEngine<br/>4 portões · TODOS devem passar"]
-    CE -->|confiança ≥ 0,50| EP
-    CE -->|contradições ≤ 1| EP
-    CE -->|evidência/citações| EP["EscalationPolicy"]
-    EP -->|alucinação ALTA · evidência BAIXA · contradição| HS["⛔ HARD_STOP<br/>approved=false<br/>requires_physician_review"]
-    EP -->|alucinação MÉDIA · citação ausente| W["⚠️ WARNING<br/>revisão médica"]
-    EP -->|limpo| OK["✅ NONE — aprovado"]
+    IN["prompt_usuario + resposta_ia"] --> HG["HallucinationGuard<br/>check_claims()"]
+    HG --> CE["ConsensusEngine<br/>4 portoes - TODOS devem passar"]
+    CE -->|"confianca >= 0.50"| EP["EscalationPolicy"]
+    CE -->|"contradicoes <= 1"| EP
+    CE -->|"evidencia / citacoes"| EP
+    EP -->|"alucinacao ALTA - evidencia BAIXA - contradicao"| HS["HARD_STOP<br/>approved=false<br/>requires_physician_review"]
+    EP -->|"alucinacao MEDIA - citacao ausente"| W["WARNING<br/>revisao medica"]
+    EP -->|limpo| OK["NONE - aprovado"]
 ```
 
 ### Fluxo de Aprovação & Override Médico
@@ -318,12 +318,12 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
     [*] --> EXECUTING
-    EXECUTING --> WAITING_APPROVAL: requiresApproval (ferramenta HIGH/CRITICAL)
-    WAITING_APPROVAL --> APPROVED: médico aprova
-    WAITING_APPROVAL --> REJECTED: médico rejeita
-    WAITING_APPROVAL --> MODIFIED: override (remover/forçar/reordenar ferramentas)
-    WAITING_APPROVAL --> ESCALATED: timeout (15m / 5m CRITICAL)
-    MODIFIED --> RiskDiff: computeRiskDiff(antes, depois)
+    EXECUTING --> WAITING_APPROVAL: requiresApproval ferramenta HIGH ou CRITICAL
+    WAITING_APPROVAL --> APPROVED: medico aprova
+    WAITING_APPROVAL --> REJECTED: medico rejeita
+    WAITING_APPROVAL --> MODIFIED: override remover forcar reordenar ferramentas
+    WAITING_APPROVAL --> ESCALATED: timeout 15m ou 5m CRITICAL
+    MODIFIED --> RiskDiff: computeRiskDiff antes depois
     RiskDiff --> STREAMING: retoma com ResolvedExecutionPlan
     APPROVED --> STREAMING
     REJECTED --> FAILED

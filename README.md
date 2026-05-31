@@ -221,33 +221,33 @@ The platform spans two complementary surfaces:
 
 ```mermaid
 flowchart TB
-    subgraph FE["🖥️ Frontend — Next.js 15 / TypeScript"]
+    subgraph FE["Frontend - Next.js 15 / TypeScript"]
         UI["Clinical Copilot UI"]
-        PLAN["Clinical Planner<br/>(intent → tools → DAG)"]
-        SM["Runtime State Machine<br/>(10 states)"]
-        BUS["Clinical Event Bus<br/>(event-sourced)"]
+        PLAN["Clinical Planner<br/>intent to tools to DAG"]
+        SM["Runtime State Machine<br/>10 states"]
+        BUS["Clinical Event Bus<br/>event-sourced"]
         APPR["Approval / Override Engine"]
         IDB[("Encrypted IndexedDB<br/>AES-GCM-256")]
-        PHI["PHI Scrubber (LGPD)"]
+        PHI["PHI Scrubber LGPD"]
     end
 
-    subgraph GW["🔌 Transport"]
-        SSE["SSE Gateway<br/>Zod-validated · 13 events"]
+    subgraph GW["Transport"]
+        SSE["SSE Gateway<br/>Zod-validated - 13 events"]
     end
 
-    subgraph BE["⚙️ Backend — FastAPI / Python 3.12"]
+    subgraph BE["Backend - FastAPI / Python 3.12"]
         RT["ClinicalInferenceRuntime"]
         ROUTER["Clinical Model Router<br/>+ Circuit Breaker"]
-        JUDGE["🛡️ Clinical Safety Judge"]
-        PRED["PredictorService<br/>(/predict · MLP)"]
-        AUDIT[("🔐 Encrypted Audit Trail<br/>Fernet · JSONL")]
-        RAG["Research / RAG<br/>PubMed · Cochrane · S2"]
+        JUDGE["Clinical Safety Judge"]
+        PRED["PredictorService<br/>predict - MLP"]
+        AUDIT[("Encrypted Audit Trail<br/>Fernet - JSONL")]
+        RAG["Research / RAG<br/>PubMed - Cochrane - S2"]
     end
 
-    subgraph PROV["🤖 LLM Providers"]
-        GROQ["Groq · LLaMA 3.3 70B<br/>~200ms"]
-        GEM["Gemini 2.0 Flash<br/>reasoning · multimodal"]
-        OAI["OpenAI · gpt-4o-mini<br/>(judge only)"]
+    subgraph PROV["LLM Providers"]
+        GROQ["Groq - LLaMA 3.3 70B<br/>~200ms"]
+        GEM["Gemini 2.0 Flash<br/>reasoning - multimodal"]
+        OAI["OpenAI - gpt-4o-mini<br/>judge only"]
     end
 
     UI --> PLAN --> SM --> APPR
@@ -255,10 +255,10 @@ flowchart TB
     APPR --> SSE
     SM --> BUS
     BUS --> IDB
-    SSE <-->|"text/event-stream"| RT
+    SSE <-->|text/event-stream| RT
     RT --> ROUTER
     ROUTER --> GROQ
-    ROUTER -. fallback .-> GEM
+    ROUTER -.fallback.-> GEM
     RT --> JUDGE
     JUDGE --> OAI
     RT --> AUDIT
@@ -272,30 +272,30 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as Client (useStreaming)
+    participant C as Client useStreaming
     participant G as SSE Gateway
     participant R as ClinicalInferenceRuntime
-    participant RT as Router + CircuitBreaker
-    participant P as Provider (Groq/Gemini)
+    participant RT as Router CircuitBreaker
+    participant P as Provider Groq/Gemini
     participant J as ClinicalJudge
 
-    C->>G: POST /api/v1/clinical/chat {messages, task, context}
+    C->>G: POST /api/v1/clinical/chat
     G->>R: stream_clinical_response()
-    R-->>C: event: routing_decision (provider, rationale, cost)
-    R->>RT: route(ClinicalTaskProfile)
+    R-->>C: event routing_decision provider rationale cost
+    R->>RT: route ClinicalTaskProfile
     RT->>P: stream_inference()
-    R-->>C: event: status (generating_internally)
+    R-->>C: event status generating_internally
     P-->>R: buffered tokens
-    R-->>C: event: inference_envelope (latency, tokens, cost)
-    R->>J: evaluate(prompt, response)
-    R-->>C: event: judgement_started
-    J-->>R: ClinicalJudgement (risk, escalation_level)
+    R-->>C: event inference_envelope latency tokens cost
+    R->>J: evaluate prompt response
+    R-->>C: event judgement_started
+    J-->>R: ClinicalJudgement risk escalation_level
     alt escalation_level == HARD_STOP
-        R-->>C: event: error (response blocked) ⛔
-    else NONE / WARNING
-        R-->>C: event: judgement_completed
-        R-->>C: event: token … token (chunked)
-        R-->>C: event: complete ✅
+        R-->>C: event error response blocked
+    else NONE or WARNING
+        R-->>C: event judgement_completed
+        R-->>C: event token chunked
+        R-->>C: event complete
     end
 ```
 
@@ -304,13 +304,13 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     IN["user_prompt + ai_response"] --> HG["HallucinationGuard<br/>check_claims()"]
-    HG --> CE["ConsensusEngine<br/>4 gates · ALL must pass"]
-    CE -->|confidence ≥ 0.50| EP
-    CE -->|contradictions ≤ 1| EP
-    CE -->|evidence/citations| EP["EscalationPolicy"]
-    EP -->|HIGH halluc. · LOW evidence · contradiction| HS["⛔ HARD_STOP<br/>approved=false<br/>requires_physician_review"]
-    EP -->|MEDIUM halluc. · missing citation| W["⚠️ WARNING<br/>physician review"]
-    EP -->|clean| OK["✅ NONE — approved"]
+    HG --> CE["ConsensusEngine<br/>4 gates - ALL must pass"]
+    CE -->|"confidence >= 0.50"| EP["EscalationPolicy"]
+    CE -->|"contradictions <= 1"| EP
+    CE -->|"evidence / citations"| EP
+    EP -->|"HIGH halluc - LOW evidence - contradiction"| HS["HARD_STOP<br/>approved=false<br/>requires_physician_review"]
+    EP -->|"MEDIUM halluc - missing citation"| W["WARNING<br/>physician review"]
+    EP -->|clean| OK["NONE - approved"]
 ```
 
 ### Physician Approval & Override Workflow
@@ -318,12 +318,12 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
     [*] --> EXECUTING
-    EXECUTING --> WAITING_APPROVAL: requiresApproval (HIGH/CRITICAL tool)
+    EXECUTING --> WAITING_APPROVAL: requiresApproval HIGH or CRITICAL tool
     WAITING_APPROVAL --> APPROVED: physician approves
     WAITING_APPROVAL --> REJECTED: physician rejects
-    WAITING_APPROVAL --> MODIFIED: override (remove/force/reorder tools)
-    WAITING_APPROVAL --> ESCALATED: timeout (15m / 5m CRITICAL)
-    MODIFIED --> RiskDiff: computeRiskDiff(before, after)
+    WAITING_APPROVAL --> MODIFIED: override remove force reorder tools
+    WAITING_APPROVAL --> ESCALATED: timeout 15m or 5m CRITICAL
+    MODIFIED --> RiskDiff: computeRiskDiff before after
     RiskDiff --> STREAMING: resume with ResolvedExecutionPlan
     APPROVED --> STREAMING
     REJECTED --> FAILED
