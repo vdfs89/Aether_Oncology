@@ -18,6 +18,7 @@ Nota sobre autenticação:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -34,8 +35,8 @@ from src.main import app
 
 client = TestClient(app)
 
-# Header correto (APIKeyHeader name="access_token")
-_HEADERS = {"access_token": "aether-oncology-eval-2026"}
+# Header correto — usa a API_KEY (não-eval) fixada no conftest.
+_HEADERS = {"access_token": os.environ["API_KEY"]}
 
 # ---------------------------------------------------------------------------
 # Payloads de referência — Oral Cancer v3.0
@@ -182,63 +183,56 @@ def test_heartbeat_returns_200() -> None:
 # ===========================================================================
 
 
-def test_predict_without_token_returns_403(monkeypatch) -> None:
-    """POST /predict sem access_token deve retornar 403."""
+# Nota: /predict é PÚBLICO (avaliação). A auth é exercida nas rotas de
+# governança (ex.: GET /audit), usadas pelos testes abaixo.
+
+
+def test_protected_without_token_returns_403(monkeypatch) -> None:
+    """GET /audit sem access_token deve retornar 403."""
     import src.main as main_mod
 
     monkeypatch.setattr(main_mod, "_RAW_API_KEY", "chave-secreta-test")
     secured = TestClient(main_mod.app)
 
-    response = secured.post("/predict", json=HIGH_RISK_PAYLOAD)
+    response = secured.get("/audit")
     assert response.status_code == 403
 
 
-def test_predict_wrong_token_returns_403(monkeypatch) -> None:
-    """POST /predict com access_token errado deve retornar 403."""
+def test_protected_wrong_token_returns_403(monkeypatch) -> None:
+    """GET /audit com access_token errado deve retornar 403."""
     import src.main as main_mod
 
     monkeypatch.setattr(main_mod, "_RAW_API_KEY", "chave-correta")
     secured = TestClient(main_mod.app)
 
-    response = secured.post(
-        "/predict",
-        json=HIGH_RISK_PAYLOAD,
-        headers={"access_token": "chave-errada"},
-    )
+    response = secured.get("/audit", headers={"access_token": "chave-errada"})
     assert response.status_code == 403
     assert "Acesso negado" in response.json()["detail"]
 
 
 def test_auth_fail_closed_without_api_key(monkeypatch) -> None:
-    """Sem API_KEY em produção, endpoint protegido falha fechado (503)."""
+    """Sem API_KEY em produção, rota protegida falha fechado (503)."""
     import src.main as main_mod
 
     monkeypatch.setattr(main_mod, "_RAW_API_KEY", None)
     monkeypatch.setattr(main_mod, "_DEV_MODE", False)
     secured = TestClient(main_mod.app)
 
-    response = secured.post(
-        "/predict", json=HIGH_RISK_PAYLOAD, headers={"access_token": "qualquer"}
-    )
+    response = secured.get("/audit", headers={"access_token": "qualquer"})
     assert response.status_code == 503
     assert "Auth não configurada" in response.json()["detail"]
 
 
 def test_auth_dev_mode_allows_without_api_key(monkeypatch) -> None:
-    """Em modo DEV sem API_KEY, a auth é relaxada (não 503/403)."""
+    """Em modo DEV sem API_KEY, a auth é relaxada (passa da auth)."""
     import src.main as main_mod
 
     monkeypatch.setattr(main_mod, "_RAW_API_KEY", None)
     monkeypatch.setattr(main_mod, "_DEV_MODE", True)
     secured = TestClient(main_mod.app)
 
-    response = secured.post("/predict", json=HIGH_RISK_PAYLOAD)
-    # Passa da auth; sem modelo treinado retorna 503 do /predict (não da auth).
-    assert response.status_code != 403
-    assert (
-        response.json().get("detail")
-        != "Auth não configurada no servidor (API_KEY ausente)."
-    )
+    response = secured.get("/audit")  # passa da auth; /audit retorna 200
+    assert response.status_code == 200
 
 
 # ===========================================================================
@@ -365,6 +359,25 @@ def test_predict_includes_clinical_disclaimer(mock_oral_model) -> None:
     data = response.json()
     assert data["clinical_disclaimer"] == CLINICAL_DISCLAIMER
     assert "apoio à decisão" in data["clinical_disclaimer"]
+
+
+def test_predict_aborts_on_audit_failure(mock_oral_model, monkeypatch) -> None:
+    """P3: falha na trilha de auditoria → 500 e o laudo NÃO é emitido."""
+    from unittest.mock import MagicMock
+
+    import src.main as main_mod
+
+    # drift-feed best-effort vira no-op; a trilha HIPAA estrita falha ("error").
+    monkeypatch.setattr(main_mod, "log_prediction", lambda *a, **k: None)
+    failing = MagicMock()
+    failing.log_prediction.return_value = "error"
+    monkeypatch.setattr(main_mod, "get_audit_logger", lambda *a, **k: failing)
+
+    response = client.post("/predict", json=HIGH_RISK_PAYLOAD, headers=_HEADERS)
+    assert response.status_code == 500
+    body = response.json()
+    assert "auditoria" in body["detail"].lower()
+    assert "risk_level" not in body  # laudo não emitido
 
 
 def test_predict_low_confidence_triggers_warning(

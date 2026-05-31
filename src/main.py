@@ -350,6 +350,19 @@ async def lifespan(app: FastAPI):
             f"BOOT [{request_id}]: ClinicalInferenceRuntime failed to start: {e}"
         )
 
+    # Background workers (cleanup / archival / volume) MUST run on exactly ONE
+    # process. With multiple web replicas they would race on the audit chain
+    # (seq collisions) and duplicate Slack alerts. Default "true" preserves the
+    # single-container behavior; in a multi-pod deploy set
+    # RUN_BACKGROUND_WORKERS=false on the web replicas and run ONE dedicated
+    # worker (or CronJob) with it set to "true".
+    _run_workers = os.getenv("RUN_BACKGROUND_WORKERS", "true").lower() == "true"
+    if not _run_workers:
+        logging.info(
+            f"BOOT [{request_id}]: background workers DISABLED "
+            "(RUN_BACKGROUND_WORKERS=false) — this replica serves traffic only."
+        )
+
     # 5. Approval cleanup worker — sweeps expired PENDING approvals every 60s
     # so timeout enforcement does not depend on the FE setTimeout.
     from src.services.approval_store import approval_repository
@@ -369,8 +382,11 @@ async def lifespan(app: FastAPI):
             except Exception as exc:
                 logging.warning("APPROVAL_CLEANUP: sweep failed: %s", exc)
 
-    app.state.approval_cleanup_task = asyncio.create_task(_approval_cleanup_loop())
-    logging.info(f"BOOT [{request_id}]: approval cleanup worker started (60s).")
+    app.state.approval_cleanup_task = (
+        asyncio.create_task(_approval_cleanup_loop()) if _run_workers else None
+    )
+    if _run_workers:
+        logging.info(f"BOOT [{request_id}]: approval cleanup worker started (60s).")
 
     # 6. Audit archival worker — moves audit docs older than the retention
     # window to a cold MongoDB collection, then expires them from the active one
@@ -392,8 +408,11 @@ async def lifespan(app: FastAPI):
                 logging.warning("AUDIT_ARCHIVE: cycle failed: %s", exc)
             await asyncio.sleep(period)
 
-    app.state.audit_archive_task = asyncio.create_task(_audit_archive_loop())
-    logging.info(f"BOOT [{request_id}]: audit archival worker started.")
+    app.state.audit_archive_task = (
+        asyncio.create_task(_audit_archive_loop()) if _run_workers else None
+    )
+    if _run_workers:
+        logging.info(f"BOOT [{request_id}]: audit archival worker started.")
 
     # 7. Audit volume monitor — hourly Slack alert on silence/spike (T3).
     async def _audit_volume_loop():
@@ -406,8 +425,11 @@ async def lifespan(app: FastAPI):
             except Exception as exc:
                 logging.warning("AUDIT_VOLUME: check failed: %s", exc)
 
-    app.state.audit_volume_task = asyncio.create_task(_audit_volume_loop())
-    logging.info(f"BOOT [{request_id}]: audit volume monitor started (1h).")
+    app.state.audit_volume_task = (
+        asyncio.create_task(_audit_volume_loop()) if _run_workers else None
+    )
+    if _run_workers:
+        logging.info(f"BOOT [{request_id}]: audit volume monitor started (1h).")
 
     yield
 
@@ -749,15 +771,17 @@ async def health_live():
 
 @app.get("/health/ready", tags=["SRE"])
 async def health_ready():
-    """Readiness probe: Model is loaded and API is ready for traffic."""
-    if not predictor.is_ready():
+    """Readiness probe: the PRIMARY Oral Cancer model (`_oral_model`) — the one
+    `/predict` actually serves — must be loaded before receiving traffic. (The
+    legacy WDBC `predictor` is NOT what readiness should gate on.)"""
+    if _oral_model is None or _oral_preprocessor is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Model not loaded yet",
+            detail="Modelo Oral Cancer não carregado",
         )
     return {
         "status": "ready",
-        "model_version": getattr(predictor, "model_version", "v1"),
+        "model_version": (_oral_lineage or {}).get("model_version") or MODEL_VERSION,
         "timestamp": time.time(),
     }
 
@@ -799,7 +823,9 @@ async def platform_heartbeat():
         "Countries (160k registros, MIT License). "
         "**confidence='Low'** ativa o campo `warning` — revisão clínica obrigatória."
     ),
-    dependencies=[Security(get_api_key)],
+    # PÚBLICO (sem API key) para avaliação acadêmica do Tech Challenge — a
+    # inferência é rate-limited e auditada (fail-closed). As rotas de GOVERNANÇA
+    # (/audit, /compliance, /monitor, /feedback) permanecem protegidas.
 )
 @limiter.limit("10/minute")
 async def make_prediction(
@@ -896,22 +922,35 @@ async def make_prediction(
         "status": "success",
     }
 
-    # Auditoria assíncrona — não bloqueia o event loop
-    async def _audit_prediction():
-        request_id = request_id_contextvar.get()
-        user_id = request.headers.get("access_token")
-        await asyncio.to_thread(log_prediction, features.model_dump(), result_for_audit)
-        # Log with new audit logger (includes PHI scrubbing)
-        audit_logger = get_audit_logger()
-        await asyncio.to_thread(
-            audit_logger.log_prediction,
-            request_id,
-            features.model_dump(),
-            result_for_audit,
-            user_id,
-        )
+    # Auditoria (não bloqueia o event loop — offload em thread).
+    request_id = request_id_contextvar.get()
+    user_id = request.headers.get("access_token")
 
-    await _audit_prediction()
+    # Best-effort: alimenta o cálculo de drift (monitoramento, não-compliance).
+    await asyncio.to_thread(log_prediction, features.model_dump(), result_for_audit)
+
+    # Fail-closed (HIPAA): a trilha de auditoria cifrada (Mongo → JSONL fallback)
+    # é OBRIGATÓRIA. `log_prediction` do AuditLogger retorna "error" somente
+    # quando AMBOS os stores falham — nesse caso o laudo NÃO é emitido (500).
+    audit_id = await asyncio.to_thread(
+        get_audit_logger().log_prediction,
+        request_id,
+        features.model_dump(),
+        result_for_audit,
+        user_id,
+    )
+    if audit_id == "error":
+        logging.error(
+            "AUDIT_FAILURE [%s]: trilha não registrada — abortando laudo clínico.",
+            request_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Falha de sistema: não foi possível registrar a trilha de "
+                "auditoria. Laudo não emitido."
+            ),
+        )
 
     return PredictionResponse(
         risk_level=risk_level,
