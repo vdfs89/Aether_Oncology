@@ -14,6 +14,14 @@
 | **Grupo / RMs** | Vitor Diogo Fonseca da Silva — RM375157 |
 | **Data de entrega** | 30/06/2026 |
 
+> ### Nota de Segurança (Tech Challenge)
+> `/predict` está **aberto** (sem API Key) para facilitar a avaliação — a
+> inferência é **rate-limited** e **auditada** (audit trail fail-closed). As
+> rotas de **governança** (`/audit`, `/compliance`, `/monitor`, `/feedback`)
+> permanecem **protegidas por API Key** (`get_api_key`, já fail-closed). Em
+> produção, todas as rotas seriam protegidas e, futuramente, por **OAuth2/OIDC**
+> por usuário individual.
+
 ---
 
 ## 1. Sumário Executivo
