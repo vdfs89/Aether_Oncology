@@ -15,10 +15,14 @@ import json
 import sys
 from pathlib import Path
 
-from src.services import audit_chain, mongo
-from src.services.audit import AUDIT_FILE
-from src.services.audit_rotation import list_segments
-from src.services.audit_store_mongo import MongoAuditStore
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from src.services import audit_chain, mongo  # noqa: E402
+from src.services.audit import AUDIT_FILE  # noqa: E402
+from src.services.audit_rotation import list_segments  # noqa: E402
+from src.services.audit_store_mongo import MongoAuditStore  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
