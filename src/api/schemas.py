@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from src.core.model_meta import CLINICAL_DISCLAIMER, MODEL_VERSION
+
 # ---------------------------------------------------------------------------
 # Request schema — Oral Cancer Top 30 Countries
 # ---------------------------------------------------------------------------
@@ -172,8 +174,15 @@ class PredictionResponse(BaseModel):
         ),
     )
     model_version: str = Field(
-        default="3.1.0",
+        default=MODEL_VERSION,
         description="Versão do modelo Aether Oncology",
+    )
+    clinical_disclaimer: str = Field(
+        default=CLINICAL_DISCLAIMER,
+        description=(
+            "Aviso de limites de uso — sempre presente. Apoio à decisão, não "
+            "diagnóstico; não regulado; requer supervisão médica."
+        ),
     )
     clinical_metadata: ClinicalMetadata | None = Field(
         default=None,
@@ -198,7 +207,7 @@ class PredictionResponse(BaseModel):
                         "probability": 0.83,
                         "confidence": "High",
                         "warning": None,
-                        "model_version": "3.0.0",
+                        "model_version": "3.1.0",
                     },
                 },
                 {
@@ -211,7 +220,7 @@ class PredictionResponse(BaseModel):
                             "⚠️ BAIXA CONFIANÇA: Probabilidade próxima ao limiar — "
                             "revisão clínica manual dupla obrigatória antes de qualquer decisão."
                         ),
-                        "model_version": "3.0.0",
+                        "model_version": "3.1.0",
                     },
                 },
             ]

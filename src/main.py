@@ -52,6 +52,7 @@ from slowapi.util import get_remote_address
 
 from src.api.schemas import OralCancerRequest, PredictionResponse
 from src.core.logging import request_id_contextvar, setup_logging
+from src.core.model_meta import CLINICAL_DISCLAIMER, MODEL_VERSION
 from src.ml_platform.orchestrator import MLPlatformOrchestrator
 from src.models.mlp import MLP
 from src.services.audit import (
@@ -87,12 +88,32 @@ limiter = Limiter(key_func=get_remote_address)
 
 _RAW_API_KEY = os.getenv("API_KEY")
 
+# DEV mode relaxes auth/secrets for local DX. Anything other than an explicit
+# dev/development/local value is treated as PRODUCTION (fail-closed by default).
+_DEV_MODE = os.getenv("AETHER_ENV", "production").lower() in (
+    "dev",
+    "development",
+    "local",
+)
+
 _api_key_header = APIKeyHeader(name="access_token", auto_error=False)
 
 
 async def get_api_key(key: str = Security(_api_key_header)) -> str:
-    """Valida o header 'access_token'. Retorna 403 se a chave for incorreta."""
-    if _RAW_API_KEY and key != _RAW_API_KEY:
+    """Valida o header 'access_token'.
+
+    Fail-closed: sem `API_KEY` configurada em produção, recusa o acesso
+    protegido com 503 (não falha em aberto). Em modo DEV (`AETHER_ENV=dev`) a
+    verificação é relaxada para facilitar o desenvolvimento local.
+    """
+    if not _RAW_API_KEY:
+        if _DEV_MODE:
+            return key  # DEV: auth desabilitada (avisado no boot)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Auth não configurada no servidor (API_KEY ausente).",
+        )
+    if not key or key != _RAW_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado: API Key inválida ou ausente",
@@ -216,14 +237,15 @@ async def lifespan(app: FastAPI):
 
     api_key = os.getenv("API_KEY")
     if not api_key:
-        os.environ["API_KEY"] = "aether-oncology-eval-2026"
-        logging.warning(
-            "BOOT: API_KEY ausente — usando chave de avaliação padrão. Defina 'API_KEY' em produção."
-        )
-    elif api_key == "aether-oncology-eval-2026":
-        logging.warning(
-            "BOOT: Utilizando API_KEY padrão de avaliação. Defina 'API_KEY' para produção."
-        )
+        if _DEV_MODE:
+            logging.warning(
+                "BOOT: API_KEY ausente — modo DEV: endpoints protegidos SEM auth."
+            )
+        else:
+            logging.critical(
+                "BOOT: API_KEY ausente — endpoints protegidos retornarão 503 "
+                "(fail-closed). Defina 'API_KEY' em produção."
+            )
 
     # LLM provider keys gate the (experimental) clinical chat copilot only.
     # The diagnostic /predict endpoint does not need them.
@@ -234,23 +256,30 @@ async def lifespan(app: FastAPI):
                 _provider_var,
             )
 
-    # Audit-trail encryption (HIPAA). Prefer a persistent operator-provided key.
-    # If absent/invalid, fall back to an EPHEMERAL key so the service can boot —
-    # audit logs stay encrypted, but are not decryptable across restarts.
+    # Audit-trail encryption (HIPAA). The operator MUST provide a persistent key.
+    # NO ephemeral key is generated in production — an ephemeral key would make
+    # every prior audit entry undecryptable after a restart. In DEV only, a
+    # throwaway key is generated for convenience.
     if not os.getenv("AUDIT_ENCRYPTION_KEY"):
-        os.environ["AUDIT_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
-        logging.warning(
-            "BOOT: AUDIT_ENCRYPTION_KEY ausente — gerada chave EFÊMERA. Logs de "
-            "auditoria não sobreviverão a reinícios. Defina uma chave persistente "
-            "em produção (HIPAA)."
-        )
-    try:
-        get_fernet()
-    except Exception as e:
-        os.environ["AUDIT_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
-        logging.warning(
-            "BOOT: AUDIT_ENCRYPTION_KEY inválida (%s) — regenerada efêmera.", e
-        )
+        if _DEV_MODE:
+            os.environ["AUDIT_ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+            logging.warning(
+                "BOOT: AUDIT_ENCRYPTION_KEY ausente — modo DEV: gerada chave "
+                "EFÊMERA (logs não sobrevivem a reinícios)."
+            )
+        else:
+            logging.critical(
+                "BOOT: AUDIT_ENCRYPTION_KEY ausente — auditoria NÃO será gravada "
+                "(fail-safe). Defina uma chave persistente em produção (HIPAA)."
+            )
+    else:
+        try:
+            get_fernet()
+        except Exception as e:
+            logging.critical(
+                "BOOT: AUDIT_ENCRYPTION_KEY inválida (%s) — auditoria indisponível.",
+                e,
+            )
 
     # ── Model artifacts (resilient: warn + routes return 503 until ready) ──
     if not os.path.exists(_BASELINE_PATH):
@@ -889,7 +918,8 @@ async def make_prediction(
         probability=round(prob, 4),
         confidence=confidence,
         warning=warning,
-        model_version="3.0.0",
+        model_version=(_oral_lineage or {}).get("model_version") or MODEL_VERSION,
+        clinical_disclaimer=CLINICAL_DISCLAIMER,
     )
 
 

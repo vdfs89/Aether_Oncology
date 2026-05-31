@@ -209,6 +209,38 @@ def test_predict_wrong_token_returns_403(monkeypatch) -> None:
     assert "Acesso negado" in response.json()["detail"]
 
 
+def test_auth_fail_closed_without_api_key(monkeypatch) -> None:
+    """Sem API_KEY em produção, endpoint protegido falha fechado (503)."""
+    import src.main as main_mod
+
+    monkeypatch.setattr(main_mod, "_RAW_API_KEY", None)
+    monkeypatch.setattr(main_mod, "_DEV_MODE", False)
+    secured = TestClient(main_mod.app)
+
+    response = secured.post(
+        "/predict", json=HIGH_RISK_PAYLOAD, headers={"access_token": "qualquer"}
+    )
+    assert response.status_code == 503
+    assert "Auth não configurada" in response.json()["detail"]
+
+
+def test_auth_dev_mode_allows_without_api_key(monkeypatch) -> None:
+    """Em modo DEV sem API_KEY, a auth é relaxada (não 503/403)."""
+    import src.main as main_mod
+
+    monkeypatch.setattr(main_mod, "_RAW_API_KEY", None)
+    monkeypatch.setattr(main_mod, "_DEV_MODE", True)
+    secured = TestClient(main_mod.app)
+
+    response = secured.post("/predict", json=HIGH_RISK_PAYLOAD)
+    # Passa da auth; sem modelo treinado retorna 503 do /predict (não da auth).
+    assert response.status_code != 403
+    assert (
+        response.json().get("detail")
+        != "Auth não configurada no servidor (API_KEY ausente)."
+    )
+
+
 # ===========================================================================
 # 3. VALIDAÇÃO PYDANTIC — Não requerem modelo (422 antes do endpoint body)
 # ===========================================================================
@@ -316,10 +348,23 @@ def test_predict_optional_fields_none(mock_oral_model) -> None:
     assert response.status_code == 200
 
 
-def test_predict_model_version_is_3(mock_oral_model) -> None:
-    """model_version deve ser '3.0.0'."""
+def test_predict_model_version_single_source(mock_oral_model) -> None:
+    """model_version vem da fonte única (src.core.model_meta.MODEL_VERSION)."""
+    from src.core.model_meta import MODEL_VERSION
+
     response = client.post("/predict", json=HIGH_RISK_PAYLOAD, headers=_HEADERS)
-    assert response.json()["model_version"] == "3.0.0"
+    # Runtime prefere o lineage; na ausência, cai na constante única.
+    assert response.json()["model_version"] in (MODEL_VERSION, "3.1.0")
+
+
+def test_predict_includes_clinical_disclaimer(mock_oral_model) -> None:
+    """Toda resposta de /predict deve trazer o disclaimer clínico (U1)."""
+    from src.core.model_meta import CLINICAL_DISCLAIMER
+
+    response = client.post("/predict", json=HIGH_RISK_PAYLOAD, headers=_HEADERS)
+    data = response.json()
+    assert data["clinical_disclaimer"] == CLINICAL_DISCLAIMER
+    assert "apoio à decisão" in data["clinical_disclaimer"]
 
 
 def test_predict_low_confidence_triggers_warning(
