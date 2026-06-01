@@ -525,7 +525,7 @@ Base URL (prod): `https://api.vitorsilva.engineer` · Interactive docs: `/docs`.
 | `POST` | `/api/v1/clinical/approvals` | — | Create an approval request. |
 | `DELETE` | `/api/v1/clinical/approvals/{id}` | — | Resolve / delete an approval. |
 | `POST` | `/feedback` | ✅ | Submit ground truth for a prediction (drift/fairness loop). |
-| `GET` | `/analytics` | — | Drift metrics (KS-test p-values). |
+| `GET` | `/analytics` | ✅ | Drift metrics (KS-test p-values). |
 | `GET` | `/audit` | ✅ | Decrypted audit-trail view. |
 | `GET` | `/monitor/drift` | ✅ | KS-test drift report. |
 | `GET` | `/monitor/fairness` | ✅ | Fairness audit vs. ground-truth feedback. |

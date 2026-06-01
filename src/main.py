@@ -1009,7 +1009,7 @@ async def clinical_feedback(request: Request, feedback: FeedbackRequest):
     return {"status": "success", "message": "Feedback clínico registrado com sucesso."}
 
 
-@app.get("/analytics", tags=["MLOps"])
+@app.get("/analytics", tags=["MLOps"], dependencies=[Security(get_api_key)])
 def get_mlops_analytics():
     """
     Endpoint de Observabilidade e Monitoramento de Drift (Aula 5).

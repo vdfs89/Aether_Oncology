@@ -235,6 +235,18 @@ def test_auth_dev_mode_allows_without_api_key(monkeypatch) -> None:
     assert response.status_code == 200
 
 
+def test_analytics_requires_auth(monkeypatch) -> None:
+    """GET /analytics (governança) exige access_token — S5."""
+    import src.main as main_mod
+
+    monkeypatch.setattr(main_mod, "_RAW_API_KEY", "chave-correta")
+    secured = TestClient(main_mod.app)
+
+    assert secured.get("/analytics").status_code == 403
+    ok = secured.get("/analytics", headers={"access_token": "chave-correta"})
+    assert ok.status_code != 403  # passa da auth (200/erro de dados, não 403)
+
+
 # ===========================================================================
 # 3. VALIDAÇÃO PYDANTIC — Não requerem modelo (422 antes do endpoint body)
 # ===========================================================================
@@ -412,8 +424,8 @@ def test_predict_low_confidence_triggers_warning(
 
 
 def test_analytics_endpoint_returns_200() -> None:
-    """GET /analytics deve retornar 200."""
-    response = client.get("/analytics")
+    """GET /analytics (com auth) deve retornar 200."""
+    response = client.get("/analytics", headers=_HEADERS)
     assert response.status_code == 200
     assert "status" in response.json()
 
