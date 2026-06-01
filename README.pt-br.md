@@ -513,11 +513,13 @@ data: {"type":"complete"}
 
 ## 🌐 Referência da API
 
-URL base (prod): `https://api.vitorsilva.engineer` · Docs interativas: `/docs`. Rotas protegidas exigem o header `access_token`.
+URL base (prod): `https://api.vitorsilva.engineer` · Docs interativas: `/docs`. Rotas **✅** exigem o header `access_token`; **🌐** são abertas. Auth é **fail-closed** (503 se `API_KEY` ausente em produção).
+
+> **Nota Tech Challenge:** `/predict` está **aberto (🌐, sem key)** para avaliação acadêmica — segue rate-limited e auditado (fail-closed). As rotas de **governança** permanecem protegidas. Em produção toda rota seria key-gated e, depois, **OAuth2/OIDC** por usuário.
 
 | Método | Rota | Auth | Descrição |
 | :--- | :--- | :---: | :--- |
-| `POST` | `/predict` | ✅ | Predição de risco de câncer oral (`OralCancerRequest` → `PredictionResponse`). Rate-limit 10/min. |
+| `POST` | `/predict` | 🌐 | Predição de risco de câncer oral (`OralCancerRequest` → `PredictionResponse`). Pública (avaliação), rate-limit 10/min, auditada fail-closed. |
 | `POST` | `/api/v1/clinical/chat` | — | Stream **SSE** do copiloto clínico. |
 | `GET` | `/api/v1/clinical/approvals` | — | Lista aprovações médicas pendentes. |
 | `GET` | `/api/v1/clinical/approvals/{id}` | — | Busca uma aprovação. |
@@ -627,13 +629,13 @@ cp .env.local.example .env.local   # ou crie .env.local manualmente
 ## 🔑 Variáveis de Ambiente
 
 > [!IMPORTANT]
-> O backend executa **startup fail-fast**: recusa-se a iniciar se qualquer variável **obrigatória** estiver ausente (lifespan em `src/main.py`).
+> O backend **valida a configuração no startup** e loga **crítico** quando uma variável obrigatória (`API_KEY`, `AUDIT_ENCRYPTION_KEY`) está ausente em produção. Em vez de crash-loop num PaaS, ele **falha fechado na camada de request** (rotas protegidas → 503) e **falha seguro** na auditoria (escrita desabilitada) — nunca usa defaults inseguros (`src/main.py` lifespan + `get_api_key`).
 
 ### Backend
 
 | Variável | Obrigatória | Padrão | Propósito |
 | :--- | :---: | :--- | :--- |
-| `API_KEY` | ✅ | `aether-oncology-eval-2026` | Header `access_token` para endpoints protegidos (um aviso é logado se o padrão for usado). |
+| `API_KEY` | ✅ (prod) | — | Header `access_token` das rotas protegidas. **Sem default**: ausente em produção → rotas protegidas retornam 503 (fail-closed). `/predict` é público. |
 | `OPENAI_API_KEY` | ✅ | — | Alimenta o **juiz** de segurança (`gpt-4o-mini`). |
 | `GROQ_API_KEY` | ✅ | — | Provedor de LLM primário de baixa latência (LLaMA 3.3 70B). |
 | `GEMINI_API_KEY` | ✅ | — | Provedor de fallback de raciocínio/multimodal (Gemini 2.0 Flash). |

@@ -512,11 +512,13 @@ data: {"type":"complete"}
 
 ## 🌐 API Reference
 
-Base URL (prod): `https://api.vitorsilva.engineer` · Interactive docs: `/docs`. Protected routes require the `access_token` header.
+Base URL (prod): `https://api.vitorsilva.engineer` · Interactive docs: `/docs`. **✅** routes require the `access_token` header; **🌐** are open. Auth is **fail-closed** (503 if `API_KEY` is unset in production).
+
+> **Tech Challenge note:** `/predict` is intentionally **open (🌐, no key)** for academic evaluation — it stays rate-limited and audited (fail-closed). All **governance** routes remain protected. In production every route would be key-gated and, later, per-user **OAuth2/OIDC**.
 
 | Method | Route | Auth | Description |
 | :--- | :--- | :---: | :--- |
-| `POST` | `/predict` | ✅ | Oral-cancer risk prediction (`OralCancerRequest` → `PredictionResponse`). Rate-limited 10/min. |
+| `POST` | `/predict` | 🌐 | Oral-cancer risk prediction (`OralCancerRequest` → `PredictionResponse`). Public (eval), rate-limited 10/min, audited fail-closed. |
 | `POST` | `/api/v1/clinical/chat` | — | **SSE** clinical-copilot stream. |
 | `GET` | `/api/v1/clinical/approvals` | — | List pending physician approvals. |
 | `GET` | `/api/v1/clinical/approvals/{id}` | — | Fetch an approval. |
@@ -632,7 +634,7 @@ cp .env.local.example .env.local   # or create .env.local manually
 
 | Variable | Required | Default | Purpose |
 | :--- | :---: | :--- | :--- |
-| `API_KEY` | ✅ | `aether-oncology-eval-2026` | `access_token` header for protected endpoints (a warning is logged if the default is used). |
+| `API_KEY` | ✅ (prod) | — | `access_token` header for protected routes. **No default**: if unset in production, protected routes return 503 (fail-closed). `/predict` is public. |
 | `OPENAI_API_KEY` | ✅ | — | Powers the safety **judge** (`gpt-4o-mini`). |
 | `GROQ_API_KEY` | ✅ | — | Primary low-latency LLM provider (LLaMA 3.3 70B). |
 | `GEMINI_API_KEY` | ✅ | — | Reasoning / multimodal fallback provider (Gemini 2.0 Flash). |
