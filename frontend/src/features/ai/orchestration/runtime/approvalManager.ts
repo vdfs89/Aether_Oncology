@@ -60,9 +60,7 @@ interface PersistedApproval {
 
 class ApprovalRepository {
   private getBaseUrl() {
-    return typeof window !== "undefined"
-      ? (window as any).__env__?.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-      : "http://localhost:8000"
+    return process.env.NEXT_PUBLIC_API_URL ?? "https://api.vitorsilva.engineer"
   }
 
   async save(approval: PersistedApproval): Promise<void> {

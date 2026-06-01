@@ -615,8 +615,9 @@ async def audit_trail_middleware(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://aether-oncology.vercel.app",  # Production Frontend
-        "https://aether-oncology-portal.vitorsilva.engineer",  # Custom Domain
+        "https://aetheroncology.vercel.app",  # Production Frontend (Next.js, real domain)
+        "https://aether-oncology.vercel.app",  # legacy/alias (hyphenated)
+        "https://aether-oncology-portal.vitorsilva.engineer",  # legacy Vite portal
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:5173",

@@ -19,7 +19,7 @@ import { clinicalEventBus } from "../orchestration/runtime/eventBus"
 import { AIStreamEventSchema } from "../transport/protocol/protocol"
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.vitorsilva.engineer"
 const CHAT_ENDPOINT = `${BASE_URL}/api/v1/clinical/chat`
 
 export interface GatewayPayload {

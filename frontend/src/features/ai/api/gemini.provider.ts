@@ -5,7 +5,8 @@ export class GeminiProvider extends OpenAICompatibleProvider {
   name = "Gemini 1.5 Clinical Engine"
 
   constructor() {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "https://api.vitorsilva.engineer"
     super(`${baseUrl}/api/v1/clinical/chat`)
     this.capabilities = {
       streaming: true,
