@@ -315,16 +315,16 @@ async def lifespan(app: FastAPI):
             f"BOOT [{request_id}]: Falha ao carregar Oral Cancer MLP ({e}) — /predict responderá 503."
         )
 
-    # 2. Legacy WDBC predictor (monitor/* endpoints) — optional.
+    # 2. Predictor helper (preprocessor + Green-AI monitor) — optional.
+    # The legacy WDBC proxy model was retired (see predictor.load_resources);
+    # this only warms the preprocessor + Green-AI monitor for /monitor/*.
     try:
         predictor.load_model()
         logging.info(
-            f"BOOT [{request_id}]: Legacy WDBC predictor carregado (monitor/)."
+            f"BOOT [{request_id}]: predictor helper pronto (preprocessor + Green-AI)."
         )
     except Exception as e:
-        logging.warning(
-            f"BOOT [{request_id}]: Legacy WDBC predictor indisponível ({e})."
-        )
+        logging.warning(f"BOOT [{request_id}]: predictor helper indisponível ({e}).")
 
     # 3. MLPlatformOrchestrator (MLOps Health)
     try:
@@ -1084,97 +1084,36 @@ _BASELINE_PATH = os.path.join(
 
 
 @app.get("/monitor/drift", tags=["MLOps"], dependencies=[Security(get_api_key)])
-def monitor_drift(request: Request):
+def monitor_drift():
     """
-    Detecta Data Drift comparando o rastro de auditoria com o baseline WDBC.
+    Data drift do modelo **Oral Cancer** (KS-test sobre o rastro de auditoria
+    vs. baseline de treino). Delegado a `calculate_drift()` — alinhado às
+    features reais do modelo (Age, Survival_Rate). Degrada graciosamente quando
+    o baseline ou o rastro estão ausentes.
     """
-    orchestrator = request.app.state.orchestrator
-    if not orchestrator or not AUDIT_FILE.exists():
-        return {
-            "status": "error",
-            "message": "Monitoramento indisponível (Falta rastro de auditoria)",
-        }
-
-    # Carrega as últimas 100 inferências (apenas do tipo prediction)
-    audit_data = [d for d in get_audit_trail() if "features" in d]
-    if len(audit_data) < 10:
-        return {"status": "insufficient_data", "samples": len(audit_data)}
-
-    # Extrai features
-    live_samples = [d["features"] for d in audit_data]
-    current_df = pd.DataFrame(live_samples)
-
-    # Alinhamento de colunas: o modelo espera snake_case, o detector espera os nomes do CSV original
-    # Orchestrator lida com a tradução ou o DF deve bater com o baseline_df.columns
-    # WDBC Baseline columns: 'mean radius', 'mean texture', etc.
-    # Nossa API features: 'radius_mean', 'texture_mean', etc.
-
-    # Mapeamento reverso para bater com o baseline do WDBC
-    feature_mapping = {
-        "radius_mean": "mean radius",
-        "texture_mean": "mean texture",
-        "perimeter_mean": "mean perimeter",
-        "area_mean": "mean area",
-        "smoothness_mean": "mean smoothness",
-        "compactness_mean": "mean compactness",
-        "concavity_mean": "mean concavity",
-        "concave_points_mean": "mean concave points",
-        "symmetry_mean": "mean symmetry",
-        "fractal_dimension_mean": "mean fractal dimension",
-    }
-    # (Simplified for the top 10 features, expand if needed)
-    current_df = current_df.rename(columns=feature_mapping)
-
-    return orchestrator.drift_detector.check_data_drift(current_df)
+    return calculate_drift()
 
 
 @app.get("/monitor/fairness", tags=["MLOps"], dependencies=[Security(get_api_key)])
-def monitor_fairness(request: Request):
+def monitor_fairness():
     """
-    Auditoria de Equidade (Fairness) em tempo real.
-    Verifica se o recall é consistente entre tumores pequenos e grandes.
-    """
-    orchestrator = request.app.state.orchestrator
-    if not orchestrator or not AUDIT_FILE.exists():
-        return {"status": "error", "message": "Monitoramento de equidade indisponível"}
+    Auditoria de Equidade (Fairness).
 
-    all_audit = get_audit_trail()
-    predictions = [d for d in all_audit if "features" in d]
-    feedbacks = {
-        d["data"]["prediction_id"]: d["data"]["ground_truth"]
-        for d in all_audit
-        if d.get("type") == "clinical_feedback"
+    A auditoria estatística (Equalized Odds — recall/FPR/FNR por gênero, faixa
+    etária e país) é executada **offline no pipeline de treino** e publicada no
+    model card. Em produção, fairness ao vivo exige feedback de ground-truth
+    correlacionado por paciente — degradação graciosa enquanto não houver.
+    """
+    return {
+        "status": "offline_audit",
+        "message": (
+            "Fairness é auditada no pipeline de treino (Equalized Odds por "
+            "gênero/idade/país) e publicada no model card. Auditoria ao vivo "
+            "requer feedback de ground-truth por paciente — indisponível no "
+            "momento."
+        ),
+        "reference": "models/model_card.md",
     }
-
-    # Filtra apenas predições que possuem feedback (ground truth)
-    matches = []
-    for p in predictions:
-        p_id = str(p.get("timestamp"))  # Usando timestamp como ID simplificado
-        if p_id in feedbacks:
-            matches.append(
-                {
-                    "features": p["features"],
-                    "prediction": p["result"]["prediction"],
-                    "ground_truth": feedbacks[p_id],
-                }
-            )
-
-    if len(matches) < 5:
-        return {
-            "status": "waiting_for_ground_truth",
-            "monitored_samples": len(predictions),
-            "samples_with_feedback": len(matches),
-            "message": "Necessário ao menos 5 feedbacks reais para auditoria estatística.",
-        }
-
-    live_df = pd.DataFrame([m["features"] for m in matches])
-    # Map to match orchestrator expectation
-    live_df = live_df.rename(columns={"radius_mean": "mean radius"})
-
-    y_pred = np.array([m["prediction"] for m in matches])
-    y_true = np.array([m["ground_truth"] for m in matches])
-
-    return orchestrator.run_production_health_check(live_df, y_pred, y_true)
 
 
 @app.get(

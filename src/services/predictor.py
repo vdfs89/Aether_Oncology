@@ -20,7 +20,6 @@ import numpy as np
 import torch
 
 from src.ml_platform.green_ai import GreenAIMonitor
-from src.models.mlp import MLP
 from src.services.inference_client import inference_client
 from src.services.research import fetch_scientific_evidence
 
@@ -154,7 +153,6 @@ class PredictorService:
         logger.info(f"Searching for clinical artifacts in: {models_dir}")
 
         pipeline_path = models_dir / "preprocessor.joblib"
-        model_path = models_dir / "aether_mlp_v2.pth"
         calibrator_path = models_dir / "calibrator.joblib"
 
         try:
@@ -170,18 +168,15 @@ class PredictorService:
                 self.preprocessor = joblib.load(pipeline_path)
                 logger.info("Local Preprocessor loaded successfully.")
 
-            # Proxy Model for XAI and Fallback
-            self.model = MLP(input_shape=30)
-            if model_path.exists():
-                self.model.load_state_dict(
-                    torch.load(model_path, weights_only=True, map_location="cpu")
-                )
-                self.model.eval()
-                logger.info("Local Proxy Model loaded for XAI/Fallback.")
-            else:
-                logger.warning(
-                    f"Local weights not found in '{model_path}'. Fallback and XAI will be limited."
-                )
+            # Legacy WDBC proxy model RETIRED. The trained checkpoint
+            # (aether_mlp_v2.pth) is the Oral Cancer architecture (input_dim=50,
+            # hidden [128,64,32]); loading it into the old WDBC MLP(input_shape=30)
+            # raised a state_dict size-mismatch CRITICAL on every boot. The
+            # authoritative Oral Cancer model lives in main.py (`_oral_model`).
+            # This service now provides only the preprocessor + Green-AI monitor;
+            # the local fallback / XAI paths below degrade gracefully when
+            # `self.model is None`.
+            self.model = None
 
             if calibrator_path.exists():
                 self.calibrator = joblib.load(calibrator_path)
