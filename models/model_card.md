@@ -258,3 +258,8 @@ SHA-256 checksums persistidos em `models/data_lineage.json`:
 - **Não-aprovação regulatória:** Sem FDA, ANVISA, CE. **Apenas uso em pesquisa/screening, não para billing.**
 
 ### 9.2 Recomendações
+- **Validação em Coorte Clínica Real:** É mandatório realizar um estudo retrospectivo e prospectivo utilizando dados de pacientes reais de centros oncológicos parceiros para validar a sensibilidade e taxa de falso positivo reportadas.
+- **Monitoramento de Drift de Dados:** Configurar e monitorar alertas automáticos de drift em produção utilizando testes estatísticos como o Kolmogorov-Smirnov (KS-test) e o Population Stability Index (PSI) no endpoint `/monitor/drift`, prevenindo a degradação silenciosa do modelo.
+- **Auditoria de Viés com Fairlearn:** Integrar a biblioteca Fairlearn à esteira de CI/CD para automatizar a verificação de métricas de disparidade (Equalized Odds e FFN) com dados reais, estabelecendo um limiar máximo aceitável de 15%.
+- **Integração com Prontuários Eletrônicos (EHR):** Em caso de integração via barramento HL7 FHIR ou PACS, validar exaustivamente os mapeamentos de features clínicas e demográficas para evitar erros de consistência que acionem o `ClinicalRulesEngine`.
+- **Mitigação de Indisponibilidade de APIs:** Certificar-se de que os circuit breakers e fallbacks de provedores de LLM (ex: Groq para Gemini) estejam devidamente configurados no módulo de explicabilidade clínica (XAI) e RAG para evitar falhas em tempo de inferência.
