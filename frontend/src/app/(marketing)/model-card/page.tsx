@@ -131,12 +131,12 @@ function Panel({
       variants={fadeUp}
       className="rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[rgba(255,255,255,0.02)] p-7 md:p-10"
     >
-      <header className="flex items-center gap-4 pb-6 mb-7 border-b border-[rgba(255,255,255,0.07)]">
+      <header className="flex flex-col items-center text-center gap-3 pb-6 mb-7 border-b border-[rgba(255,255,255,0.07)]">
         <div className="w-11 h-11 rounded-xl bg-[rgba(0,229,255,0.08)] border border-[rgba(0,229,255,0.22)] flex items-center justify-center flex-shrink-0">
           <Icon size={20} className="text-[var(--cyan)]" />
         </div>
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[rgba(255,255,255,0.4)] mb-0.5">
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[rgba(255,255,255,0.4)] mb-1">
             {n} / 09
           </div>
           <h2 className="text-lg md:text-xl font-bold tracking-tight text-white leading-tight">
@@ -155,10 +155,12 @@ function DefList({ rows }: { rows: [string, string][] }) {
       {rows.map(([k, v]) => (
         <div
           key={k}
-          className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-1 md:gap-6 py-4 first:pt-0 last:pb-0"
+          className="flex flex-col items-center text-center gap-1.5 py-4 first:pt-0 last:pb-0"
         >
           <dt className="text-sm font-semibold text-[rgba(255,255,255,0.9)]">{k}</dt>
-          <dd className="text-sm text-[rgba(255,255,255,0.62)] leading-relaxed">{v}</dd>
+          <dd className="text-sm text-[rgba(255,255,255,0.62)] leading-relaxed max-w-2xl mx-auto">
+            {v}
+          </dd>
         </div>
       ))}
     </dl>
@@ -257,7 +259,7 @@ export default function ModelCardPage() {
             {/* 1 */}
             <Panel icon={Brain} n="01" title="Detalhes do Modelo">
               <DefList rows={DETAILS} />
-              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6 leading-relaxed">
+              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6 leading-relaxed text-center max-w-2xl mx-auto">
                 A fonte da verdade gerada automaticamente (hashes de lineage, métricas de
                 calibração, fairness por subgrupo) vive em{" "}
                 <code className="text-[var(--cyan)] font-mono">models/model_card.md</code>,
@@ -273,7 +275,7 @@ export default function ModelCardPage() {
             {/* 3 */}
             <Panel icon={Database} n="03" title="Dados de Treinamento & Features">
               <DefList rows={DATA_ROWS} />
-              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6 leading-relaxed">
+              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6 leading-relaxed text-center max-w-2xl mx-auto">
                 Governança no treino: contratos Pandera distintos para treino/inferência,
                 regras de coerência clínica (OK/WARNING/HIGH/CRITICAL), auditoria de vazamento
                 (Pearson |r|&gt;0,95, MI&gt;0,95, permutação&gt;0,45), detecção OOD (Isolation
@@ -298,7 +300,7 @@ export default function ModelCardPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6">
+              <p className="text-xs text-[rgba(255,255,255,0.42)] mt-6 text-center max-w-2xl mx-auto">
                 O modelo seleciona automaticamente o melhor método (Platt vs. Isotônica) por
                 Brier score — menor é melhor.
               </p>
@@ -306,12 +308,12 @@ export default function ModelCardPage() {
 
             {/* 5 */}
             <Panel icon={Scale} n="05" title="Auditoria de Fairness (Equalized Odds)">
-              <p className="text-sm text-[rgba(255,255,255,0.68)] leading-relaxed mb-6">
+              <p className="text-sm text-[rgba(255,255,255,0.68)] leading-relaxed mb-6 text-center max-w-2xl mx-auto">
                 A auditoria computa Recall / FPR / FNR / Brier por subgrupo de Gênero, faixa
                 etária e País (30 países), com threshold de disparidade de 15%.
               </p>
-              <div className="rounded-xl border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.06)] p-6">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-3">
+              <div className="rounded-xl border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.06)] p-6 text-center">
+                <div className="flex items-center justify-center gap-2 text-amber-400 font-bold text-sm mb-3">
                   <AlertTriangle size={16} /> Nota de integridade (transparência obrigatória)
                 </div>
                 <p className="text-sm text-[rgba(255,255,255,0.75)] leading-relaxed">
@@ -336,11 +338,11 @@ export default function ModelCardPage() {
 
             {/* 7 */}
             <Panel icon={AlertTriangle} n="07" title="Limitações & Contraindicações">
-              <ul className="space-y-3">
+              <ul className="space-y-3 max-w-2xl mx-auto">
                 {LIMITATIONS.map((l) => (
                   <li
                     key={l}
-                    className="flex gap-3 text-sm text-[rgba(255,255,255,0.68)] leading-relaxed"
+                    className="flex justify-center items-start gap-2.5 text-sm text-[rgba(255,255,255,0.68)] leading-relaxed text-center"
                   >
                     <span className="text-amber-400 mt-0.5 flex-shrink-0">▸</span>
                     <span>{l}</span>
@@ -356,11 +358,11 @@ export default function ModelCardPage() {
 
             {/* 9 */}
             <Panel icon={BookOpen} n="09" title="Referências Técnicas">
-              <ol className="space-y-3 list-decimal list-inside marker:text-[rgba(255,255,255,0.35)]">
+              <ol className="space-y-3 list-decimal list-inside marker:text-[rgba(255,255,255,0.35)] text-center max-w-2xl mx-auto">
                 {REFERENCES.map((r) => (
                   <li
                     key={r}
-                    className="text-sm text-[rgba(255,255,255,0.62)] leading-relaxed pl-1"
+                    className="text-sm text-[rgba(255,255,255,0.62)] leading-relaxed"
                   >
                     {r}
                   </li>
