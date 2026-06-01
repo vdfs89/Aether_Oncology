@@ -21,6 +21,16 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
+# ---------------------------------------------------------------------------
+# MLflow Tracking — must be set BEFORE any mlflow API call.
+# Follows the env-var contract declared in `src/main.py` and `.env.example`.
+# Falls back to a local `./mlruns` directory when the env var is absent so
+# that local development never crashes; in production, the var is required.
+# ---------------------------------------------------------------------------
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "./mlruns")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+print(f"[mlflow] tracking URI = {MLFLOW_TRACKING_URI}")
+
 # Pipeline Imports
 from src.features.preprocessor import TARGET, build_preprocessor
 from src.ml.pipelines.audit.fairness import ClinicalFairnessAuditor
