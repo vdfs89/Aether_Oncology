@@ -1,7 +1,11 @@
+# ruff: noqa: E402
 """
 train.py
 ========
 Aether Oncology v3.1 — Hospital-Grade Clinical ML Pipeline.
+
+Note: MLflow tracking is configured before the local `src.*` imports (see below),
+so module-level imports intentionally appear after that call (E402 suppressed).
 """
 
 from __future__ import annotations
