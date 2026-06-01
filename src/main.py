@@ -653,14 +653,11 @@ for folder in ["css", "js", "images"]:
 # ---------------------------------------------------------------------------
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def read_index() -> HTMLResponse:
-    """Serve o portal clínico modular."""
-    index_path = os.path.join(
-        os.path.dirname(__file__), "static", "aether-oncology-portal", "index.html"
-    )
-    with open(index_path, encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+@app.get("/", include_in_schema=False)
+async def read_index():
+    """Redireciona para o frontend Next.js hospedado no Vercel."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="https://aetheroncology.vercel.app", status_code=302)
 
 
 @app.get("/portal.html", response_class=HTMLResponse, include_in_schema=False)
