@@ -447,8 +447,9 @@
    ============================================================ */
 .ao-dash .pipeline {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 14px 12px;
+  /* 3 em cima, 3 embaixo (2 linhas × 3 colunas) */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px 14px;
   margin-top: 16px;
   padding: 26px 20px;
   align-items: start;

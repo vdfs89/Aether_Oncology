@@ -17,6 +17,7 @@ import {
   Zap,
   GitBranch,
   Search,
+  ClipboardList,
 } from "lucide-react"
 
 /* ──────────────────────────── helpers ──────────────────────────── */
@@ -76,6 +77,14 @@ const MODULES = [
     desc: "Valores SHAP por feature, counterfactuals e atribuição de contribuição. Cada predição é auditável e explicável para o oncologista.",
     color: "magenta" as const,
     badge: "XAI",
+  },
+  {
+    icon: ClipboardList,
+    title: "Model Card",
+    desc: "Documentação clínica completa do modelo v3.1.0: arquitetura, dados, calibração, fairness (com nota de integridade), limitações e compliance. Transparência total.",
+    color: "cyan" as const,
+    badge: "DOCS",
+    href: "/model-card",
   },
 ]
 
