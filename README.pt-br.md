@@ -782,6 +782,13 @@ Por favor, siga as convenções de módulos existentes (`src/` para o backend, `
 
 ---
 
+## 👤 Autor
+
+**Vitor Diogo Fonseca da Silva** — RM375157
+FIAP · Pós-Tech — Tech Challenge (Fase 1). [github.com/vdfs89](https://github.com/vdfs89)
+
+---
+
 ## 📄 Licença
 
 Distribuído sob a **Licença MIT**. Veja [`LICENSE`](./LICENSE) para detalhes.
