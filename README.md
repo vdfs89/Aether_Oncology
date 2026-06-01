@@ -86,7 +86,9 @@ model-index:
 </p>
 
 <p align="center">
-  <a href="https://api.vitorsilva.engineer/"><img src="https://img.shields.io/badge/🔬_Clinical_Portal-Live_Demo-0052FF?style=flat-square" alt="Live Demo" /></a>
+  <a href="https://portal.vitorsilva.engineer/"><img src="https://img.shields.io/badge/🔬_Clinical_Portal-Live_Demo-0052FF?style=flat-square" alt="Live Demo" /></a>
+  <a href="https://aetheroncology.vercel.app/platform"><img src="https://img.shields.io/badge/🚀_Platform_Page-Live-000000?style=flat-square&logo=vercel&logoColor=white" alt="Platform" /></a>
+  <a href="https://aetheroncology.vercel.app/dashboard"><img src="https://img.shields.io/badge/📊_Precision_Dashboard-Live-7C3AED?style=flat-square" alt="Dashboard" /></a>
   <a href="https://api.vitorsilva.engineer/docs"><img src="https://img.shields.io/badge/📋_API_Docs-OpenAPI-05998B?style=flat-square&logo=fastapi&logoColor=white" alt="API Docs" /></a>
 </p>
 
@@ -507,6 +509,21 @@ data: {"type":"complete"}
 **Deterministic replay** — the client gateway retries with exponential backoff (3 attempts: 500 ms · 1 s · 2 s), supports `AbortSignal` cancellation, recognizes the `[DONE]` marker, and forwards unknown-but-typed events for forward compatibility. Because every event carries a `sequence` within its `traceId`, a session can be replayed event-by-event from the event bus.
 
 > 🧪 Several backend telemetry events (`judgement_*`, `routing_decision`, `inference_envelope`, `hallucination_detected`, `escalation_triggered`) are defined and emitted, but not all are consumed by the current frontend hooks.
+
+---
+
+## 🌐 Live Surfaces
+
+| Surface | URL | What it is |
+| :--- | :--- | :--- |
+| 🔬 **Clinical Portal** (FastAPI) | `https://portal.vitorsilva.engineer/` | Interactive clinical inference portal (formerly served from the backend root, now promoted to its own subdomain). |
+| 🚀 **Platform Page** (Next.js) | `https://aetheroncology.vercel.app/platform` | Marketing-grade product overview: 6 modules, architecture, CTAs. |
+| 📊 **Precision Dashboard** (Next.js) | `https://aetheroncology.vercel.app/dashboard` | Live clinical metrics — recall, calibration, fairness, drift. |
+| 🧪 **AI Runtime Sandbox** (Next.js) | `https://aetheroncology.vercel.app/sandbox/ai-runtime` | Interactive clinical copilot with SSE streaming & event timeline. |
+| 🔌 **API** (FastAPI) | `https://api.vitorsilva.engineer` | Public FastAPI surface (JSON + SSE). Interactive docs at `/docs`. |
+| 🌐 **Frontend root** (Next.js) | `https://aetheroncology.vercel.app/` | Marketing landing page. |
+
+**DNS model:** `vitorsilva.engineer` is managed by **Name.com** nameservers. `api.vitorsilva.engineer` and `portal.vitorsilva.engineer` are CNAMEs to `aether-oncology-api.onrender.com` (Render). The frontend lives on Vercel.
 
 ---
 
