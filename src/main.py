@@ -657,6 +657,7 @@ for folder in ["css", "js", "images"]:
 async def read_index():
     """Redireciona para o frontend Next.js hospedado no Vercel."""
     from fastapi.responses import RedirectResponse
+
     return RedirectResponse(url="https://aetheroncology.vercel.app", status_code=302)
 
 
