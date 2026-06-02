@@ -31,9 +31,6 @@ jobs:
           ruff check src/ tests/
           ruff format src/ tests/ --check
 
-      - name: Generate Mock Dataset
-        run: python scratch/regenerate_data.py
-
       - name: Run Tests with Coverage
         run: pytest tests/ --cov=src --cov-report=xml
 
@@ -63,9 +60,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install ".[dev]"
-
-      - name: Generate Fresh Dataset
-        run: python scratch/regenerate_data.py
 
       - name: Train and Register Model
         env:

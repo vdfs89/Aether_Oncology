@@ -24,9 +24,6 @@ jobs:
       - name: Install dependencies
         run: pip install ".[dev]"
 
-      - name: Generate Dataset (baseline + current)
-        run: python scratch/regenerate_data.py
-
       - name: Detect Drift (KS-Test)
         id: drift_check
         # Non-blocking: "no drift" is a valid outcome and must not fail the pipeline.

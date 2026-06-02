@@ -55,6 +55,8 @@ coverage.xml
 
 # ─── Dados brutos (não versionar dados sensíveis de pacientes) ────────────────
 data/raw/*.csv
+# Exceção: o dataset oficial é versionado (necessário p/ treino/CT no CI; sem mirror público; ~11MB).
+!data/raw/oral_cancer_top30.csv
 data/raw/*.xlsx
 data/processed/
 
@@ -101,8 +103,6 @@ scratch/
 # ─── Dados grandes (parquet/feather/etc.) ─────────────────────────────────────
 *.parquet
 *.feather
-data/**/*.csv
-data/**/*.xlsx
 
 # ─── Documentos internos não-oficiais (auditoria/scratch — não versionar) ─────
 docs/AUDIT.md
