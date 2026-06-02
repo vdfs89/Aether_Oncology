@@ -3,204 +3,436 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Aether Oncology Portal — Terminal de diagnóstico oncológico com IA explicável de precisão." />
+  <meta name="description" content="Aether Oncology — Terminal de Triagem Oncológica. Inferência real de risco de câncer oral (protótipo acadêmico)." />
   <meta name="theme-color" content="#03060b" />
-  <title>Aether Oncology Portal | Diagnóstico Oncológico de Precisão</title>
+  <title>Aether Oncology | Terminal de Triagem Oncológica</title>
 
-  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Design System -->
-  <link rel="stylesheet" href="./css/portal.css" />
+  <style>
+    /* ════════════════════════════════════════════════════════════════
+       AETHER ONCOLOGY — Terminal de Triagem (standalone, sem build)
+       ════════════════════════════════════════════════════════════════ */
+    :root{
+      --bg:#03060b; --bg-2:#070b14; --panel:rgba(255,255,255,.025);
+      --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+      --t1:#f3f6fb; --t2:rgba(243,246,251,.62); --t3:rgba(243,246,251,.4);
+      --cyan:#00E5FF; --teal:#21e6b6; --magenta:#FF4FD8; --pink:#E6398A;
+      --amber:#f5a623;
+      --r:18px; --r-sm:12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{
+      background:var(--bg); color:var(--t1);
+      font-family:"Inter",system-ui,sans-serif; line-height:1.6;
+      min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    }
+    h1,h2,h3{font-family:"Sora","Inter",sans-serif;letter-spacing:-.02em;line-height:1.15}
+    a{color:inherit;text-decoration:none}
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="./images/lotus-brand.svg" />
+    /* Ambient */
+    .ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+    .blob{position:absolute;border-radius:50%;filter:blur(110px)}
+    .blob--1{width:55vw;height:55vw;background:radial-gradient(circle,var(--pink) 0%,transparent 65%);top:-18%;left:-12%;opacity:.18}
+    .blob--2{width:45vw;height:45vw;background:radial-gradient(circle,var(--cyan) 0%,transparent 65%);bottom:-15%;right:-10%;opacity:.10}
+
+    /* Navbar */
+    .navbar{position:sticky;top:0;z-index:20;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+      background:rgba(3,6,11,.7);border-bottom:1px solid var(--border)}
+    .nav-inner{max-width:1240px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+    .logo{display:flex;align-items:center;gap:10px;font-family:"Sora";font-weight:800;font-size:1.05rem;letter-spacing:.02em}
+    .logo .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--magenta));box-shadow:0 0 14px var(--cyan)}
+    .logo .grad{background:linear-gradient(90deg,var(--cyan),var(--magenta));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .nav-status{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--t2);
+      border:1px solid var(--border);padding:6px 12px;border-radius:30px}
+    .nav-status .sdot{width:8px;height:8px;border-radius:50%;background:var(--t3);transition:.3s}
+    .nav-status.online .sdot{background:var(--teal);box-shadow:0 0 10px var(--teal)}
+    .nav-status.offline .sdot{background:var(--pink);box-shadow:0 0 10px var(--pink)}
+
+    /* Disclaimer banner */
+    .disclaimer-top{max-width:1240px;margin:18px auto 0;padding:0 24px}
+    .disclaimer-top .inner{display:flex;gap:10px;align-items:flex-start;
+      background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.28);
+      border-radius:var(--r-sm);padding:12px 16px;font-size:.82rem;color:rgba(245,210,150,.92)}
+
+    /* Layout */
+    main{max-width:1240px;margin:0 auto;padding:28px 24px 80px;
+      display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:24px;align-items:start}
+    @media(max-width:920px){main{grid-template-columns:1fr}}
+
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:26px}
+    .panel-head{margin-bottom:22px}
+    .eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
+    .panel-head h2{font-size:1.45rem;font-weight:700}
+    .panel-head p.sub{font-size:.82rem;color:var(--t2);margin-top:6px}
+
+    /* Form */
+    .field{margin-bottom:18px}
+    .field > label{display:block;font-size:.8rem;font-weight:600;color:var(--t2);margin-bottom:8px;letter-spacing:.01em}
+    select,input[type=range]{width:100%}
+    select{appearance:none;background:var(--bg-2);border:1px solid var(--border-2);color:var(--t1);
+      padding:11px 14px;border-radius:var(--r-sm);font-size:.9rem;font-family:inherit;cursor:pointer;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%2300E5FF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 14px center}
+    select:focus{outline:none;border-color:var(--cyan)}
+
+    .range-row{display:flex;align-items:center;gap:14px}
+    input[type=range]{-webkit-appearance:none;height:5px;border-radius:5px;background:var(--border-2);outline:none}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+      background:linear-gradient(135deg,var(--cyan),var(--magenta));cursor:pointer;box-shadow:0 0 10px rgba(0,229,255,.5)}
+    input[type=range]::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;
+      background:linear-gradient(135deg,var(--cyan),var(--magenta));cursor:pointer}
+    .val-pill{min-width:54px;text-align:center;font-variant-numeric:tabular-nums;font-weight:700;
+      background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:6px 8px;font-size:.9rem}
+
+    /* Toggle Sim/Não */
+    .toggle{display:inline-flex;background:var(--bg-2);border:1px solid var(--border-2);border-radius:30px;padding:3px;width:100%}
+    .toggle button{flex:1;border:none;background:transparent;color:var(--t2);font-family:inherit;font-weight:600;
+      font-size:.84rem;padding:9px 0;border-radius:26px;cursor:pointer;transition:.2s}
+    .toggle button.on[data-v="Yes"]{background:linear-gradient(135deg,var(--pink),var(--magenta));color:#fff;box-shadow:0 4px 16px rgba(230,57,138,.35)}
+    .toggle button.on[data-v="No"]{background:rgba(33,230,182,.15);color:var(--teal);border:1px solid rgba(33,230,182,.4)}
+
+    /* Submit */
+    .btn-run{width:100%;margin-top:8px;border:none;cursor:pointer;font-family:"Sora";font-weight:700;
+      letter-spacing:.06em;font-size:.92rem;color:#fff;padding:15px;border-radius:var(--r-sm);
+      background:linear-gradient(135deg,var(--magenta),#C4236A);box-shadow:0 6px 28px rgba(230,57,138,.38);transition:.2s}
+    .btn-run:hover{box-shadow:0 10px 40px rgba(230,57,138,.55)}
+    .btn-run:disabled{opacity:.5;cursor:not-allowed}
+
+    .form-note{font-size:.72rem;color:var(--t3);margin-top:16px;line-height:1.5}
+    .form-note code{color:var(--cyan);font-size:.72rem}
+
+    /* Result panel */
+    .result{min-height:520px;display:flex;flex-direction:column}
+    .state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:40px 20px}
+    .state h3{font-size:1.2rem;color:var(--t1)}
+    .state p{font-size:.88rem;color:var(--t2);max-width:340px}
+    .hidden{display:none!important}
+    .pulse-ring{width:64px;height:64px;border-radius:50%;border:2px solid var(--cyan);
+      animation:pr 1.8s ease-in-out infinite}
+    @keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4);transform:scale(1)}50%{box-shadow:0 0 0 16px rgba(0,229,255,0);transform:scale(1.05)}}
+    .spinner{width:48px;height:48px;border:3px solid var(--border-2);border-top-color:var(--cyan);border-radius:50%;animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+
+    /* Verdict */
+    .verdict{text-align:center;padding:34px 26px}
+    .verdict .vlabel{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+    .verdict .big{font-family:"Sora";font-size:3rem;font-weight:800;line-height:1;letter-spacing:-.03em}
+    .verdict .big.low{color:var(--teal)}
+    .verdict .big.high{color:var(--magenta)}
+    .verdict .vsub{font-size:.82rem;color:var(--t2);margin-top:10px}
+    .prob-wrap{margin:26px auto 0;max-width:420px}
+    .prob-num{font-size:2.2rem;font-weight:800;font-family:"Sora";font-variant-numeric:tabular-nums}
+    .prob-num.low{color:var(--teal)} .prob-num.high{color:var(--magenta)}
+    .prob-lbl{font-size:.74rem;color:var(--t3);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+    .track{height:8px;border-radius:8px;background:var(--bg-2);border:1px solid var(--border);margin-top:14px;overflow:hidden}
+    .track .fill{height:100%;border-radius:8px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+    .track .fill.low{background:linear-gradient(90deg,var(--teal),var(--cyan))}
+    .track .fill.high{background:linear-gradient(90deg,var(--pink),var(--magenta))}
+
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px auto 0;max-width:520px}
+    .mc{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 10px;text-align:center}
+    .mc .v{font-size:1.05rem;font-weight:700;font-variant-numeric:tabular-nums}
+    .mc .l{font-size:.66rem;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+    .conf-High{color:var(--teal)} .conf-Medium{color:var(--amber)} .conf-Low{color:var(--pink)}
+
+    .warn{display:flex;gap:10px;align-items:flex-start;margin:22px auto 0;max-width:560px;text-align:left;
+      background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:var(--r-sm);padding:13px 15px;
+      font-size:.82rem;color:rgba(245,210,150,.95)}
+
+    .resp-disc{margin:18px auto 0;max-width:600px;font-size:.74rem;color:var(--t3);text-align:center;line-height:1.5}
+    .mv{font-size:.72rem;color:var(--t3);text-align:center;margin-top:10px}
+
+    .err{color:#ffb4c8}
+    .err-emoji{font-size:2.4rem}
+
+    footer{max-width:1240px;margin:0 auto;padding:0 24px 40px;font-size:.74rem;color:var(--t3);text-align:center;line-height:1.6}
+  </style>
 </head>
 
-<body class="text-slate-100 antialiased">
-
-  <!-- ═══ AMBIENT ENGINE (Synced with Home v4) ══════════════════════════ -->
+<body>
   <div class="ambient" aria-hidden="true">
-    <div class="mesh-blob mesh-blob--1"></div>
-    <div class="mesh-blob mesh-blob--2"></div>
-    <div class="mesh-blob mesh-blob--3"></div>
-    <div class="mesh-blob mesh-blob--4"></div>
-    <canvas id="neuralCanvas" class="neural-canvas"></canvas>
-    <div class="grain"></div>
+    <div class="blob blob--1"></div>
+    <div class="blob blob--2"></div>
   </div>
 
-  <!-- ═══ NAVBAR ═════════════════════════════════════════════════════════ -->
-  <header class="navbar" role="banner">
-    <nav class="container-premium nav-inner">
-      <a href="https://api.vitorsilva.engineer/" class="nav-logo">
-        <img src="./images/lotus-brand.svg" alt="" class="nav-logo__img" width="24" height="24" />
-        <span class="nav-logo__text">AETHER <span class="text-gradient-future">ONCOLOGY</span></span>
+  <!-- ═══ NAVBAR ═══ -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <a class="logo" href="https://aetheroncology.vercel.app">
+        <span class="dot"></span>
+        AETHER <span class="grad">ONCOLOGY</span>
       </a>
-      <a href="https://api.vitorsilva.engineer/" class="btn btn--ghost btn--sm">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M13 8H3M7 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        Sair do Terminal
-      </a>
-    </nav>
+      <div id="api-status" class="nav-status">
+        <span class="sdot"></span>
+        <span id="api-status-text">Verificando motor…</span>
+      </div>
+    </div>
   </header>
 
-  <!-- ═══ PORTAL COCKPIT ══════════════════════════════════════════════════ -->
-  <main class="portal-container container-premium">
-    
-    <!-- Sidebar (Left): Clinical Controls -->
-    <aside class="portal-sidebar animate-reveal">
-      <div class="glass-card clinical-panel">
-        <div class="panel-header">
-          <p class="section-subtitle">TERMINAL DE TRIAGEM ONCOLÓGICA</p>
-          <h2 class="panel-title">Entrada Biofísica</h2>
-        </div>
+  <!-- ═══ DISCLAIMER ═══ -->
+  <div class="disclaimer-top">
+    <div class="inner">
+      <span>⚠️</span>
+      <span><strong>Protótipo acadêmico</strong> — sistema de apoio à decisão (decision-support), <strong>não é dispositivo médico</strong>. Dataset sintético (Oral Cancer Top 30 Countries); os resultados <strong>não têm validade clínica</strong> e não substituem avaliação profissional.</span>
+    </div>
+  </div>
 
-        <form id="clinical-form" class="clinical-form">
-          <div class="input-grid">
-            <div class="input-group">
-              <label for="radius_mean">Radius Mean</label>
-              <div class="range-wrapper">
-                <input type="range" id="radius_mean" name="radius_mean" min="5" max="30" step="0.1" value="14.0" class="range-dense" />
-                <span class="value-display" id="radius_mean-val">14.0</span>
-              </div>
-            </div>
-            <div class="input-group">
-              <label for="texture_mean">Texture Mean</label>
-              <div class="range-wrapper">
-                <input type="range" id="texture_mean" name="texture_mean" min="9" max="40" step="0.1" value="19.0" class="range-dense" />
-                <span class="value-display" id="texture_mean-val">19.0</span>
-              </div>
-            </div>
-            <div class="input-group">
-              <label for="perimeter_mean">Perimeter Mean</label>
-              <div class="range-wrapper">
-                <input type="range" id="perimeter_mean" name="perimeter_mean" min="40" max="200" step="0.5" value="92.0" class="range-dense" />
-                <span class="value-display" id="perimeter_mean-val">92.0</span>
-              </div>
-            </div>
-            <div class="input-group">
-              <label for="area_mean">Area Mean</label>
-              <div class="range-wrapper">
-                <input type="range" id="area_mean" name="area_mean" min="100" max="2600" step="5" value="650" class="range-dense" />
-                <span class="value-display" id="area_mean-val">650</span>
-              </div>
-            </div>
-            <div class="input-group">
-              <label for="smoothness_mean">Smoothness Mean</label>
-              <div class="range-wrapper">
-                <input type="range" id="smoothness_mean" name="smoothness_mean" min="0.05" max="0.25" step="0.001" value="0.1" class="range-dense" />
-                <span class="value-display" id="smoothness_mean-val">0.100</span>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn--primary btn--sm w-full" id="btn-submit" style="margin-top: 0.5rem; border-radius: 12px; letter-spacing: 0.1em;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            EXECUTAR INFERÊNCIA
-          </button>
-        </form>
-
-        <div class="api-health-check">
-          <div id="api-status-dot" class="status-indicator status-indicator--online"></div>
-          <span id="api-status-text" class="status-text">Motor Online</span>
-        </div>
+  <!-- ═══ COCKPIT ═══ -->
+  <main>
+    <!-- LEFT: inputs -->
+    <aside class="panel">
+      <div class="panel-head">
+        <div class="eyebrow">Terminal de Triagem Oncológica</div>
+        <h2>Fatores de Risco</h2>
+        <p class="sub">Triagem de risco de estágio avançado de câncer oral. Apenas fatores pré-diagnóstico.</p>
       </div>
+
+      <form id="form">
+        <div class="field">
+          <label for="age">Idade — <span id="age-val">52</span> anos</label>
+          <div class="range-row">
+            <input type="range" id="age" min="0" max="120" step="1" value="52" />
+            <span class="val-pill" id="age-pill">52</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="gender">Sexo biológico</label>
+          <select id="gender">
+            <option value="Male">Masculino</option>
+            <option value="Female">Feminino</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="country">País</label>
+          <select id="country"></select>
+        </div>
+
+        <div class="field">
+          <label for="ses">Nível socioeconômico</label>
+          <select id="ses">
+            <option value="High">Alto</option>
+            <option value="Middle" selected>Médio</option>
+            <option value="Low">Baixo</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Uso de tabaco</label>
+          <div class="toggle" id="tobacco" data-value="No">
+            <button type="button" data-v="No" class="on">Não</button>
+            <button type="button" data-v="Yes">Sim</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Consumo regular de álcool</label>
+          <div class="toggle" id="alcohol" data-value="No">
+            <button type="button" data-v="No" class="on">Não</button>
+            <button type="button" data-v="Yes">Sim</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-run" id="run">EXECUTAR INFERÊNCIA</button>
+
+        <p class="form-note">
+          Campos enviados ao modelo: <code>country, gender, age, tobacco_use, alcohol_use, socioeconomic_status</code>.
+          As colunas <code>treatment_type</code> e <code>survival_rate</code> existem no schema mas são
+          <strong>consequência do diagnóstico (vazamento)</strong> e foram deliberadamente <strong>omitidas</strong> desta triagem.
+        </p>
+      </form>
     </aside>
 
-    <!-- Main Dashboard (Right): Analytics & Evidence -->
-    <section class="portal-main animate-reveal" style="--delay:.2s">
-      
-      <!-- Diagnosis & XAI Card -->
-      <div class="glass-card result-panel" id="result-display-container">
-        
-        <!-- Placeholder -->
-        <div id="results-placeholder" class="placeholder-content">
-          <div class="lotus-pulsante lotus-pulsante--sm"></div>
-          <h3>Aguardando Parâmetros</h3>
-          <p>Configure os dados citopatológicos para iniciar a análise.</p>
-        </div>
-
-        <!-- Loader -->
-        <div id="inference-loader" class="loader-content hidden">
-          <div class="scanner-line"></div>
-          <div class="spinner-premium"></div>
-          <p>Processando Verificação Bayesiana...</p>
-        </div>
-
-        <div id="inference-verdict" class="clinical-cockpit-layout hidden">
-          <!-- Top: Radar Chart (60% height goal via CSS) -->
-          <div class="analysis-chart-premium">
-
-            <canvas id="xaiChart"></canvas>
-
-          </div>
-
-          <!-- Base: Massive Verdict -->
-          <div class="verdict-container-premium">
-            <span class="verdict-label-premium">RESULTADO DA ANÁLISE</span>
-            <h3 id="verdict-text" class="verdict-massive"></h3>
-            <div id="verdict-confidence" class="confidence-value-premium"></div>
-            
-            <div class="confidence-track-premium">
-              <div id="confidence-bar" class="confidence-fill"></div>
-            </div>
-
-            <!-- Dashboard Bento Metrics -->
-            <div class="verdict-metrics-grid">
-              <div class="v-metric-card">
-                <span class="v-metric-label">Biomarcador</span>
-                <span class="v-metric-val" id="v-biomarker-status">Ativo</span>
-              </div>
-              <div class="v-metric-card">
-                <span class="v-metric-label">Drift Score</span>
-                <span class="v-metric-val">0.02%</span>
-              </div>
-              <div class="v-metric-card">
-                <span class="v-metric-label">Latência</span>
-                <span class="v-metric-val">1.8ms</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="clinical-disclaimer">
-            <span class="icon">⚠️</span>
-            <p><strong>ONCOLOGY ADVISORY:</strong> Resultado probabilístico baseado em modelos neurais. Requer validação clínica por oncologista.</p>
-          </div>
-        </div>
-
-        <!-- Error Handler -->
-        <div id="error-toast" class="error-content hidden">
-          <div class="error-icon">⚠️</div>
-          <h3>Erro no Motor</h3>
-          <p>Falha na comunicação com o servidor de inferência.</p>
-        </div>
+    <!-- RIGHT: result -->
+    <section class="panel result">
+      <!-- placeholder -->
+      <div id="st-idle" class="state">
+        <div class="pulse-ring"></div>
+        <h3>Aguardando parâmetros</h3>
+        <p>Configure os fatores de risco à esquerda e execute a inferência contra o modelo real.</p>
       </div>
 
-      <!-- Auto-RAG Evidence (PubMed) -->
-      <div id="evidence-section" class="evidence-container hidden">
-        <div class="evidence-header-compact">
-          <div class="pulse-status">
-            <span class="dot"></span>
-            <span class="label">Evidence Engine Live</span>
-          </div>
-          <h2 class="evidence-title">Evidências Científicas Correlacionadas (PubMed)</h2>
-        </div>
-        <div id="evidence-grid" class="evidence-grid">
-          <!-- Dynamically injected by main.js after diagnosis -->
-        </div>
+      <!-- loading -->
+      <div id="st-loading" class="state hidden">
+        <div class="spinner"></div>
+        <p>Consultando o motor de inferência…</p>
       </div>
 
+      <!-- error -->
+      <div id="st-error" class="state hidden">
+        <div class="err-emoji">🛑</div>
+        <h3 class="err">Motor offline / erro na inferência</h3>
+        <p id="err-msg" class="err">Não foi possível obter um laudo. Nenhum resultado é fabricado.</p>
+      </div>
+
+      <!-- verdict -->
+      <div id="st-result" class="verdict hidden">
+        <div class="vlabel">Resultado da Triagem</div>
+        <div id="big" class="big"></div>
+        <div id="vsub" class="vsub"></div>
+
+        <div class="prob-wrap">
+          <div id="prob-num" class="prob-num"></div>
+          <div class="prob-lbl">Probabilidade de alto risco</div>
+          <div class="track"><div id="prob-fill" class="fill"></div></div>
+        </div>
+
+        <div class="cards">
+          <div class="mc"><div id="c-conf" class="v">—</div><div class="l">Confiança</div></div>
+          <div class="mc"><div id="c-lat" class="v">—</div><div class="l">Latência</div></div>
+          <div class="mc"><div id="c-ver" class="v">—</div><div class="l">Modelo</div></div>
+        </div>
+
+        <div id="warn" class="warn hidden"><span>⚠️</span><span id="warn-txt"></span></div>
+        <div id="resp-disc" class="resp-disc"></div>
+      </div>
     </section>
   </main>
 
-  <!-- App Main Core -->
-  <script type="module" src="./js/main.js"></script>
+  <footer>
+    Aether Oncology — Medicina é Arte, Ciência é a Ferramenta. · Inferência real via <code>POST /predict</code>.
+  </footer>
 
+  <script>
+  /* ════════════════════════════════════════════════════════════════
+     CONFIG — aponte API_URL para a sua API:
+       • Servido pela própria API (ex.: https://api.vitorsilva.engineer/portal.html
+         ou http://localhost:8000/portal.html) → deixe "" (mesma origem).
+       • Aberto como arquivo (file://) → usa o deploy automaticamente.
+       • Para forçar local: const API_URL = "http://localhost:8000";
+     ════════════════════════════════════════════════════════════════ */
+  const API_URL = location.protocol === "file:" ? "https://api.vitorsilva.engineer" : "";
+
+  const COUNTRIES = ["Bangladesh","Brazil","China","Colombia","DR Congo","Egypt","Ethiopia","France","Germany","India","Indonesia","Iran","Italy","Japan","Kenya","Mexico","Myanmar","Nigeria","Pakistan","Philippines","Russia","South Africa","South Korea","Spain","Tanzania","Thailand","Turkey","United Kingdom","United States","Vietnam"];
+
+  // ── populate country dropdown ──
+  const countrySel = document.getElementById("country");
+  COUNTRIES.forEach(c => {
+    const o = document.createElement("option");
+    o.value = c; o.textContent = c;
+    if (c === "Brazil") o.selected = true;
+    countrySel.appendChild(o);
+  });
+
+  // ── age slider ──
+  const age = document.getElementById("age");
+  const sync = () => { document.getElementById("age-val").textContent = age.value; document.getElementById("age-pill").textContent = age.value; };
+  age.addEventListener("input", sync); sync();
+
+  // ── Sim/Não toggles ──
+  function wireToggle(id){
+    const el = document.getElementById(id);
+    el.querySelectorAll("button").forEach(btn => btn.addEventListener("click", () => {
+      el.dataset.value = btn.dataset.v;
+      el.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+      btn.classList.add("on");
+    }));
+  }
+  wireToggle("tobacco"); wireToggle("alcohol");
+
+  // ── health check ──
+  async function checkHealth(){
+    const box = document.getElementById("api-status");
+    const txt = document.getElementById("api-status-text");
+    try{
+      const r = await fetch(`${API_URL}/health/ready`, { method:"GET" });
+      if (r.ok){ box.className = "nav-status online"; txt.textContent = "Motor online"; }
+      else { box.className = "nav-status offline"; txt.textContent = "Motor indisponível"; }
+    }catch{ box.className = "nav-status offline"; txt.textContent = "Motor offline"; }
+  }
+  checkHealth();
+
+  // ── state helpers ──
+  const states = { idle:"st-idle", loading:"st-loading", error:"st-error", result:"st-result" };
+  function show(state){
+    Object.values(states).forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById(states[state]).classList.remove("hidden");
+  }
+
+  // ── inference ──
+  document.getElementById("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("run");
+    btn.disabled = true;
+    show("loading");
+
+    const payload = {
+      country: countrySel.value,
+      gender: document.getElementById("gender").value,
+      age: parseInt(age.value, 10),
+      tobacco_use: document.getElementById("tobacco").dataset.value,
+      alcohol_use: document.getElementById("alcohol").dataset.value,
+      socioeconomic_status: document.getElementById("ses").value
+      // treatment_type / survival_rate OMITIDOS (vazamento) — defaults neutros no servidor.
+    };
+
+    const t0 = Date.now();
+    try{
+      const res = await fetch(`${API_URL}/predict`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(payload)
+      });
+      const latency = Date.now() - t0;
+
+      if (!res.ok){
+        let detail = `HTTP ${res.status}`;
+        try{ const j = await res.json(); if (j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); }catch{}
+        throw new Error(detail);
+      }
+
+      const data = await res.json();
+      renderResult(data, latency);
+    }catch(err){
+      document.getElementById("err-msg").textContent =
+        `${err.message || "Falha de conexão"}. Verifique se a API está no ar (API_URL = "${API_URL || location.origin}").`;
+      show("error");
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  // ── render (maps the REAL PredictionResponse) ──
+  function renderResult(d, latency){
+    const isHigh = d.risk_level === "High";
+    const cls = isHigh ? "high" : "low";
+    const pct = (d.probability * 100);
+
+    const big = document.getElementById("big");
+    big.textContent = isHigh ? "ALTO RISCO" : "BAIXO RISCO";
+    big.className = "big " + cls;
+
+    document.getElementById("vsub").textContent = isHigh
+      ? "Indício de estágio avançado (Moderate/Late) — encaminhar para avaliação."
+      : "Perfil compatível com estágio inicial (Early).";
+
+    const pn = document.getElementById("prob-num");
+    pn.textContent = pct.toFixed(2) + "%";
+    pn.className = "prob-num " + cls;
+
+    const fill = document.getElementById("prob-fill");
+    fill.className = "fill " + cls;
+    fill.style.width = Math.max(2, Math.min(100, pct)) + "%";
+
+    const conf = document.getElementById("c-conf");
+    conf.textContent = d.confidence || "—";
+    conf.className = "v conf-" + (d.confidence || "");
+    document.getElementById("c-lat").textContent = latency + " ms";
+    document.getElementById("c-ver").textContent = "v" + (d.model_version || "?");
+
+    const warn = document.getElementById("warn");
+    if (d.warning){ document.getElementById("warn-txt").textContent = d.warning; warn.classList.remove("hidden"); }
+    else { warn.classList.add("hidden"); }
+
+    document.getElementById("resp-disc").textContent = d.clinical_disclaimer || "";
+
+    show("result");
+  }
+  </script>
 </body>
 </html>
