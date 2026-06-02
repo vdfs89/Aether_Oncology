@@ -35,10 +35,10 @@ const GITHUB_DOC =
 /* ──────────────────────────── data ─────────────────────────────── */
 
 const HEADER_STATS = [
-  { value: "≈97%", label: "Recall (alvo)" },
+  { value: "≈0.50", label: "ROC-AUC (CV k=5)" },
+  { value: "≈0.45", label: "Recall @0.5 (CV)" },
   { value: "3.1.0", label: "Versão" },
-  { value: "ISOTONIC", label: "Calibração" },
-  { value: "production", label: "Stage" },
+  { value: "protótipo", label: "Stage" },
 ]
 
 const DETAILS: [string, string][] = [
@@ -72,7 +72,7 @@ const CALIB_METRICS = [
 const INTENDED: [string, string][] = [
   ["Público-alvo (persona)", "oncologistas e cirurgiões de cabeça e pescoço — cenário hipotético do exercício."],
   ["Uso primário (simulado)", "CDSS para triagem de risco — Estágio Inicial (Early) vs. Avançado (Moderate/Late)."],
-  ["Custo do erro", "o custo de um Falso Negativo é incomensuravelmente maior que o de um Falso Positivo — daí a calibração deliberada para Recall ≈ 97%."],
+  ["Custo do erro", "o custo de um Falso Negativo é incomensuravelmente maior que o de um Falso Positivo — por isso o objetivo de projeto priorizou Recall. Porém, o benchmark reprodutível (k=5) mostra ROC-AUC ≈ 0,50: o modelo não supera a taxa-base (ver §7)."],
   ["Fora de escopo (real)", "não é dispositivo médico, não foi validado clinicamente, não diagnostica autonomamente e não deve tocar decisões sobre pacientes reais."],
 ]
 

@@ -156,9 +156,32 @@ SHA-256 checksums persistidos em `models/data_lineage.json`:
 
 ## 7. Análises Quantitativas (Quantitative Analyses)
 
+> [!CAUTION]
+> **Nota de integridade (obrigatória).** Os valores de Recall/F1/ROC-AUC abaixo (0.97/0.96/0.99)
+> e a tabela de fairness (Recall 100% / FPR 100% em todos os subgrupos) refletem uma avaliação
+> **degenerada** (limiar que prevê "positivo" para todos) sobre o conjunto sintético — **não** são
+> desempenho real. O **benchmark reprodutível** (`docs/benchmark.md`, `src/benchmark.py`,
+> StratifiedKFold k=5, MLP vs Dummy/LogReg/RandomForest) mostra a realidade:
+> **ROC-AUC ≈ 0.50** (sem poder discriminativo), **Recall@0.5 ≈ 0.45**, **PR-AUC ≈ 0.70 = a
+> prevalência** (piso no-skill). O MLP **não** supera a taxa-base (paired t p=0.79) e remover o
+> vazamento (`treatment_type`/`survival_rate`) quase não altera as métricas — o dataset não tem
+> sinal aprendível. **Use os números do benchmark, não os desta seção.**
+
 ### 7.1 Performance Agregada
 
-| Metric | Value (no commit atual) |
+**Realidade (benchmark reprodutível, 5-fold CV — fonte da verdade):**
+
+| Metric | Value (CV k=5) | Leitura |
+| :--- | :--- | :--- |
+| ROC-AUC | ≈ 0.50 | moeda ao ar — sem discriminação |
+| Recall @0.5 | ≈ 0.45 | abaixo da regra trivial "prever positivo" |
+| PR-AUC | ≈ 0.70 | = prevalência (piso no-skill) |
+| F1-Score | ≈ 0.54 | — |
+| MLP vs melhor baseline | p = 0.79 | **não** significativo |
+
+**Histórico (avaliação degenerada — NÃO usar como desempenho):**
+
+| Metric | Value (legado, threshold degenerado) |
 | :--- | :--- |
 | Recall (Sensitivity) | 0.97 |
 | F1-Score | 0.96 |

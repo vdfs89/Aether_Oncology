@@ -127,11 +127,13 @@ const ARCH_LAYERS = [
   },
 ]
 
+// Números honestos do benchmark reprodutível (docs/benchmark.md, k=5 CV) —
+// o modelo não supera a taxa-base no dataset sintético.
 const STATS = [
-  { value: "95.2%", label: "Recall Clínico" },
+  { value: "~0.50", label: "ROC-AUC (CV k=5)" },
+  { value: "~0.45", label: "Recall @0.5 (CV)" },
   { value: "3.1.0", label: "Model Version" },
-  { value: "<200ms", label: "Latência p95" },
-  { value: "SOC 2", label: "Compliance" },
+  { value: "MIT", label: "Licença · Open Source" },
 ]
 
 /* ──────────────────────────── component ────────────────────────── */

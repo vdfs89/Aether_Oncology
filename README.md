@@ -23,15 +23,15 @@ model-index:
       name: Oral Cancer Top 30 Countries
       type: custom/oral-cancer-top-30-countries
     metrics:
-    - type: recall
-      value: 0.97
-      name: Recall (Sensitivity)
-    - type: f1
-      value: 0.96
-      name: F1-Score
     - type: roc_auc
-      value: 0.99
-      name: ROC-AUC
+      value: 0.50
+      name: ROC-AUC (5-fold CV — no learnable signal)
+    - type: recall
+      value: 0.45
+      name: Recall @0.5 (5-fold CV)
+    - type: f1
+      value: 0.54
+      name: F1-Score (5-fold CV)
 ---
 
 <p align="center">
@@ -79,8 +79,8 @@ model-index:
 
 <!-- ── Quality ── -->
 <p align="center">
-  <img src="https://img.shields.io/badge/Recall-97.2%25-00C853?style=flat-square&logo=target&logoColor=white" alt="Recall" />
-  <img src="https://img.shields.io/badge/F1--Score-96.5%25-2196F3?style=flat-square" alt="F1" />
+  <img src="https://img.shields.io/badge/ROC--AUC-0.50_(no_signal)-9E9E9E?style=flat-square&logo=target&logoColor=white" alt="ROC-AUC" />
+  <img src="https://img.shields.io/badge/Benchmark-5--fold_CV-2196F3?style=flat-square" alt="Benchmark" />
   <img src="https://img.shields.io/badge/Coverage-~91%25-green?style=flat-square" alt="Coverage" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
 </p>
@@ -152,7 +152,7 @@ The platform spans two complementary surfaces:
 | **Diagnostic ML Core** (`/predict`) | A hospital-grade PyTorch MLP for **oral-cancer risk stratification**, governed by a full MLOps pipeline (Pandera contracts, calibration, fairness, leakage & drift audits, lineage, model cards). | ✅ **Production** |
 | **Clinical AI Copilot** (`/api/v1/clinical/chat`) | A **multi-agent, SSE-streaming clinical reasoning runtime** — planner → execution DAG → provider router → safety judge → physician approval/override → event-sourced audit. | 🧪 **Experimental** |
 
-> Aether is **engineered for Recall above all else.** In oncology, a false negative is not a statistical error — it is a lost early-intervention window. The model is tuned to maximize sensitivity (≈97% recall) and consciously accepts more false positives as a clinically justified trade-off.
+> Aether is **engineered for Recall above all else.** In oncology, a false negative is not a statistical error — it is a lost early-intervention window, so the design *targets* sensitivity over precision. **Honest finding:** the reproducible benchmark ([`docs/benchmark.md`](./docs/benchmark.md), 5-fold stratified CV, MLP vs DummyClassifier/LogReg/RandomForest) shows the synthetic dataset carries **no learnable signal** — ROC-AUC ≈ 0.50, the MLP does **not** beat the base rate (paired t p=0.79), and removing the leakage features barely moves the metrics. The pipeline is presented as an **engineering/MLOps demonstration**, not as evidence of predictive performance.
 
 ---
 

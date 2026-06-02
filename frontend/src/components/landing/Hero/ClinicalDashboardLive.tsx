@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
-// Mock citations
+// Citações ILUSTRATIVAS (demo de UI do RAG) — não são estudos reais nem validação do Aether.
 const REFERENCES = [
-  { id: "PUB-421", source: "PubMed", text: "Targeted BRCA1 inhibitor susceptibility in stage III breast carcinoma.", match: "98%" },
-  { id: "CLIN-88", source: "ClinVar", text: "Pathogenic mutation in TP53 locus correlated with drug response.", match: "94%" },
-  { id: "NEJM-29", source: "NEJM AI", text: "Bayesian model efficacy in predicting triple-negative oncology trajectories.", match: "91%" }
+  { id: "DEMO-1", source: "PubMed", text: "[ilustrativo] Fatores de risco para câncer oral: tabaco e álcool.", match: "—" },
+  { id: "DEMO-2", source: "Cochrane", text: "[ilustrativo] Revisão sistemática — triagem de lesões orais.", match: "—" },
+  { id: "DEMO-3", source: "Semantic Scholar", text: "[ilustrativo] Disparidades regionais na incidência de câncer oral.", match: "—" }
 ]
 
 // Mock terminal inferences
@@ -16,7 +16,7 @@ const INFERENCE_STEPS = [
   "Context loaded: Patient H. Vasconcelos (Age: 54, BRCA1+, TP53+)...",
   "Executing genomic alignment against ONNX local registry...",
   "Querying PubMed & ClinVar via vector database (RAG)...",
-  "Citations resolved: PUB-421 (98% match) & CLIN-88 (94% match)...",
+  "Citations resolved (ilustrativo): DEMO-1 & DEMO-2...",
   "Monte Carlo Dropout completed with 256 samples (Variance: 0.014)...",
   "Clinical decision recommendation generated: SUSCEPTIBLE."
 ]

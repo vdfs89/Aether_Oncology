@@ -27,7 +27,7 @@ export function CTASection() {
                 <div className="sre-dot sre-dot--green" aria-hidden="true"></div>
                 <div>
                   <div className="sre-metric__label">Model Drift</div>
-                  <div className="sre-metric__val" style={{ color: "#00FF99" }}>0.02% · Normal</div>
+                  <div className="sre-metric__val" style={{ color: "#00FF99" }}>KS/PSI · Monitorado</div>
                 </div>
               </div>
               <div className="sre-metric" role="listitem">
@@ -46,14 +46,14 @@ export function CTASection() {
               </div>
               <div className="sre-metric" role="listitem">
                 <div>
-                  <div className="sre-metric__label">SLA Uptime</div>
-                  <div className="sre-metric__val sre-metric__val--accent">99.97%</div>
+                  <div className="sre-metric__label">Testes</div>
+                  <div className="sre-metric__val sre-metric__val--accent">162 ✓</div>
                 </div>
               </div>
               <div className="sre-metric" role="listitem">
                 <div>
-                  <div className="sre-metric__label">Latência P99</div>
-                  <div className="sre-metric__val sre-metric__val--accent">1.8ms</div>
+                  <div className="sre-metric__label">Benchmark</div>
+                  <div className="sre-metric__val sre-metric__val--accent">5-fold CV</div>
                 </div>
               </div>
             </div>
@@ -69,7 +69,7 @@ export function CTASection() {
             <div className="cta-card__body">
               <div className="eyebrow">Comece Agora</div>
               <h2 className="cta-card__h2">Pronto para o próximo<br />nível da oncologia?</h2>
-              <p className="cta-card__sub">Junte-se a 120+ hospitais e clínicas que confiam no Aether Oncology para diagnósticos de precisão.</p>
+              <p className="cta-card__sub">Protótipo acadêmico open-source (FIAP Tech Challenge). Explore o pipeline, a API de inferência e o Model Card — código aberto sob licença MIT.</p>
               <div className="cta-card__actions">
                 <a href="/platform" className="btn btn--primary btn--lg" aria-label="Agendar demonstração">Agendar Demonstração</a>
                 <a href="https://github.com/vdfs89/Aether_Oncology" className="btn btn--ghost btn--lg" target="_blank" rel="noopener noreferrer">Ver no GitHub</a>

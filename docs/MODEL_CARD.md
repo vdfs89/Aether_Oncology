@@ -72,7 +72,7 @@ Dentro desse cenário hipotético:
 
 - **Público-alvo (persona):** oncologistas e cirurgiões de cabeça e pescoço.
 - **Uso primário (simulado):** Sistema de Apoio à Decisão Clínica (CDSS) para **triagem de risco de câncer oral**, classificando perfis de risco demográfico/clínico em **Estágio Inicial (Early)** vs. **Estágio Avançado (Moderate/Late)**.
-- **Justificativa de negócio (custo do erro):** em oncologia, o custo de um **Falso Negativo** é incomensuravelmente maior que o de um Falso Positivo. Por isso o modelo é deliberadamente calibrado para **Recall ≈ 97%**, aceitando conscientemente mais falsos positivos.
+- **Justificativa de negócio (custo do erro):** em oncologia, o custo de um **Falso Negativo** é incomensuravelmente maior que o de um Falso Positivo. Por isso o *objetivo de projeto* priorizou Recall. **Porém** — o benchmark reprodutível (§7 e [`benchmark.md`](./benchmark.md), CV 5-fold) mostra **ROC-AUC ≈ 0,50** e Recall@0.5 ≈ 0,45: o modelo **não** supera a taxa-base. A meta de recall não foi atingida porque o dataset sintético não tem sinal aprendível.
 - **Fora de escopo (real e absoluto):** não é dispositivo médico, não foi validado clinicamente, não realiza diagnóstico autônomo, não substitui biópsia/histologia, não prescreve terapias — e **não deve** tocar decisões sobre pacientes reais (ver §7.1).
 
 ---

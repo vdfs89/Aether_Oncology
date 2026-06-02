@@ -43,8 +43,7 @@ export function Footer() {
           <ul role="list">
             <li><Link href="/privacy" className="footer-link">Privacidade LGPD</Link></li>
             <li><Link href="/terms" className="footer-link">Termos de Uso</Link></li>
-            <li><a href="https://www.gov.br/anvisa/pt-br" className="footer-link" target="_blank" rel="noopener noreferrer">ANVISA</a></li>
-            <li><a href="https://www.aicpa.org/topic/audit-assurance/audit-and-assurance-soc-2" className="footer-link" target="_blank" rel="noopener noreferrer">SOC 2 Type II</a></li>
+            <li><Link href="/model-card" className="footer-link">Model Card</Link></li>
           </ul>
         </nav>
       </div>

@@ -26,11 +26,12 @@
 
 ## 1. Sumário Executivo
 
-A Aether Oncology é uma plataforma de **Apoio à Decisão Clínica (CDSS)** que
-classifica perfis de risco em **Estágio Inicial vs. Avançado** de câncer oral.
-O modelo é deliberadamente otimizado para **Recall (~97%)** — em oncologia, o
-custo de um falso negativo é incomensuravelmente maior que o de um falso
-positivo.
+A Aether Oncology é um **protótipo acadêmico** de **Apoio à Decisão Clínica (CDSS)**
+que classifica perfis de risco em **Estágio Inicial vs. Avançado** de câncer oral.
+O *design* prioriza **Recall** (em oncologia o falso negativo é o erro caro), mas o
+benchmark reprodutível (`docs/benchmark.md`, CV 5-fold) mostra que o modelo **não
+supera a taxa-base** (ROC-AUC ≈ 0,50): o dataset sintético não tem sinal aprendível.
+O valor da entrega está na **engenharia**, não no desempenho preditivo.
 
 O diferencial não é apenas o modelo, mas a **engenharia ao redor dele**: um
 sistema operacional clínico com governança de dados, segurança clínica
@@ -62,9 +63,10 @@ regulatória de ponta a ponta.
 | Dataset | *Oral Cancer Top 30 Countries* (licença MIT) |
 | Registros | 24.044 (multinacional, balanceado por subgrupo) |
 | Países | 30 (maior incidência global) |
-| **Recall (sensibilidade)** | **~97%** (alvo de otimização) |
-| Calibração | Isotônica — Brier 0.210, ECE ≈ 0 |
-| Fairness | Equalized Odds **Passed** (disparidade 0,00% por gênero/idade/país) |
+| **Recall @0.5 (CV 5-fold)** | **≈ 0.45** — abaixo da taxa-base; meta de ~95% **não atingida** (ver `benchmark.md`) |
+| **ROC-AUC (CV 5-fold)** | **≈ 0.50** — sem poder discriminativo (dataset sintético sem sinal) |
+| Calibração | Isotônica (Brier 0.210); métricas ECE ≈ 0 vêm de avaliação degenerada — não confiáveis |
+| Fairness | Infraestrutura Equalized Odds funcional; números versionados (disparidade 0,00%) são **provisórios** (avaliação degenerada) |
 | Classe regulatória | FDA SaMD Class II (decision support) |
 
 Detalhe completo: [docs/MODEL_CARD.md](MODEL_CARD.md) e o card auto-gerado em

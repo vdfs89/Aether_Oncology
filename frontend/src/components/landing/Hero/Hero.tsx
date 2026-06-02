@@ -15,7 +15,7 @@ export function Hero() {
           <div className="lg:col-span-5 flex flex-col justify-center text-left">
             <div className="hero-badge" aria-label="Posição">
               <span className="hero-badge__dot" aria-hidden="true"></span>
-              Series A · AI Oncology Platform · 2026
+              Protótipo Acadêmico · FIAP Tech Challenge · 2026
             </div>
 
             <h1 className="hero-h1 mt-2 text-white font-extrabold tracking-tight">

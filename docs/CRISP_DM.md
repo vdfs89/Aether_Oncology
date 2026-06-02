@@ -11,7 +11,7 @@
 
 ## 🎯 Executive Summary
 
-A Aether Oncology entrega um **Clinical Decision Support System (CDSS)** para triagem de risco de câncer oral, com recall clínico ≥ 0.97, governança HIPAA/LGPD-ready, fairness auditada por subgrupo e rastreabilidade total (SHA-256 lineage + MLflow tracking + audit trail criptografado).
+A Aether Oncology é um **protótipo acadêmico** (FIAP Tech Challenge) que demonstra um pipeline de **Clinical Decision Support System (CDSS)** para triagem de risco de câncer oral — com governança LGPD-aware, fairness auditada por subgrupo e rastreabilidade total (SHA-256 lineage + MLflow tracking + audit trail criptografado). **Achado de engenharia:** o benchmark reprodutível ([`benchmark.md`](./benchmark.md)) mostra que o modelo **não supera a taxa-base** no dataset sintético (ROC-AUC ≈ 0,50); o foco da entrega é a metodologia, não validade clínica.
 
 **Dor de negócio resolvida:**
 - 54% dos projetos de Data Science falham por desalinhamento entre estratégia de negócio e execução técnica (fonte: literatura Gartner / Anaconda State of DS 2024).
@@ -101,15 +101,19 @@ A Aether Oncology entrega um **Clinical Decision Support System (CDSS)** para tr
 
 ### Fase 5 — Evaluation
 
-**Métricas globais:**
-| Métrica | Valor |
-| :--- | :---: |
-| Recall (Sensitivity) | 0.97 |
-| F1-Score | 0.96 |
-| ROC-AUC | 0.99 |
-| Brier Score | 0.21 |
-| ECE | 3.84e-08 |
-| MCE | 4.94e-08 |
+**Métricas globais (benchmark reprodutível — fonte da verdade, [`benchmark.md`](./benchmark.md), CV 5-fold):**
+
+| Métrica | Valor | Leitura |
+| :--- | :---: | :--- |
+| ROC-AUC | ≈ 0.50 | sem poder discriminativo |
+| Recall @0.5 | ≈ 0.45 | abaixo da regra trivial "prever positivo" |
+| PR-AUC | ≈ 0.70 | = prevalência (piso no-skill) |
+| F1-Score | ≈ 0.54 | — |
+| MLP vs melhor baseline | p = 0.79 | **não** significativo |
+
+> ⚠️ Os valores legados 0.97/0.96/0.99 (calibração ECE/MCE ~1e-08) vinham de uma avaliação
+> **degenerada** (limiar que prevê positivo para todos) sobre o conjunto sintético — não representam
+> desempenho. O modelo **não** supera a taxa-base; o dataset não tem sinal aprendível.
 
 **Fairness Audit (Equalized Odds):**
 - Disparidade de Recall por gênero: 0.00% ✅
@@ -187,7 +191,7 @@ A Aether Oncology entrega um **Clinical Decision Support System (CDSS)** para tr
 | Detecção precoce (estágio Early) | TBD | +10% | +25% |
 | Tempo médio de biópsia | TBD | -15% | -30% |
 | Disparidade socioeconômica | TBD | -5% | -10% |
-| Recall clínico | 0.97 | ≥ 0.95 | ≥ 0.95 |
+| Recall clínico (CV 5-fold) | ≈ 0.45 | ≥ 0.95 (meta não atingida — sem sinal no dado) | ≥ 0.95 |
 | Custo de triagem por caso detectado | TBD | -20% | -40% |
 
 ---

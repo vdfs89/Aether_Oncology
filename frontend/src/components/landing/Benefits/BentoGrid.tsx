@@ -131,7 +131,7 @@ export function BentoGrid() {
             <span>IndexedDB Active Connection</span>
           </div>
           <div className="flex flex-col gap-1 text-[8px] bg-[#070914] p-1.5 rounded border border-[rgba(255,255,255,0.05)]">
-            <div>&gt; db.store("conversations").write()</div>
+            <div>&gt; db.store(&quot;conversations&quot;).write()</div>
             <div className="text-[#00FF99]">&gt; [OK] Scoped Patient ID #AET-8832 Encrypted</div>
             <div className="text-white/30">&gt; Syncing session timeline (today, yesterday...)</div>
           </div>
@@ -222,8 +222,8 @@ export function BentoGrid() {
         {/* Latency diagram */}
         <div className="relative z-10 w-full mt-4 flex items-center justify-between p-2.5 rounded bg-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.04)] font-mono text-[9px]">
           <div>
-            <div className="text-[rgba(255,255,255,0.4)]">P99 LATENCY</div>
-            <div className="text-lg font-black text-white mt-0.5">1.8ms</div>
+            <div className="text-[rgba(255,255,255,0.4)]">TRANSPORTE</div>
+            <div className="text-lg font-black text-white mt-0.5">SSE</div>
           </div>
           <div>
             <div className="text-[rgba(255,255,255,0.4)] text-right">API PROTOCOL</div>
@@ -269,8 +269,8 @@ export function BentoGrid() {
             <div className="p-3 bg-[#050816]/75 rounded-lg border border-[rgba(255,255,255,0.04)]">
               <div className="text-[8px] text-[rgba(255,255,255,0.35)] font-mono">ONNX RUNTIME NODE</div>
               <div className="flex justify-between items-center mt-1.5">
-                <span className="font-mono text-white text-[10px]">INT8 TensorRT</span>
-                <span className="text-[#00FF99] font-mono text-[9px]">98.4% Eff</span>
+                <span className="font-mono text-white text-[10px]">PyTorch MLP</span>
+                <span className="text-[#00FF99] font-mono text-[9px]">CPU</span>
               </div>
               <div className="mt-2 flex gap-1">
                 {[1, 2, 3, 4, 5, 6].map((i) => (

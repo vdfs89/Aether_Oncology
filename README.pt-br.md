@@ -23,15 +23,15 @@ model-index:
       name: Oral Cancer Top 30 Countries
       type: custom/oral-cancer-top-30-countries
     metrics:
-    - type: recall
-      value: 0.97
-      name: Recall (Sensibilidade)
-    - type: f1
-      value: 0.96
-      name: F1-Score
     - type: roc_auc
-      value: 0.99
-      name: ROC-AUC
+      value: 0.50
+      name: ROC-AUC (CV 5-fold — sem sinal aprendível)
+    - type: recall
+      value: 0.45
+      name: Recall @0.5 (CV 5-fold)
+    - type: f1
+      value: 0.54
+      name: F1-Score (CV 5-fold)
 ---
 
 <p align="center">
@@ -79,9 +79,9 @@ model-index:
 
 <!-- ── Qualidade ── -->
 <p align="center">
-  <img src="https://img.shields.io/badge/Recall-97.2%25-00C853?style=flat-square&logo=target&logoColor=white" alt="Recall" />
-  <img src="https://img.shields.io/badge/F1--Score-96.5%25-2196F3?style=flat-square" alt="F1" />
-  <img src="https://img.shields.io/badge/ROC--AUC-99.1%25-7C4DFF?style=flat-square" alt="AUC" />
+  <img src="https://img.shields.io/badge/ROC--AUC-0.50_(sem_sinal)-9E9E9E?style=flat-square&logo=target&logoColor=white" alt="ROC-AUC" />
+  <img src="https://img.shields.io/badge/Recall_@0.5-~0.45-2196F3?style=flat-square" alt="Recall" />
+  <img src="https://img.shields.io/badge/Benchmark-CV_5--fold-7C4DFF?style=flat-square" alt="Benchmark" />
   <img src="https://img.shields.io/badge/Cobertura-~91%25-green?style=flat-square" alt="Coverage" />
   <img src="https://img.shields.io/badge/Licença-MIT-yellow?style=flat-square" alt="License" />
 </p>
@@ -151,7 +151,7 @@ A plataforma abrange duas superfícies complementares:
 | **Núcleo Diagnóstico de ML** (`/predict`) | Uma MLP em PyTorch de nível hospitalar para **estratificação de risco de câncer oral**, governada por um pipeline completo de MLOps (contratos Pandera, calibração, fairness, auditorias de vazamento e drift, lineage, model cards). | ✅ **Produção** |
 | **Copiloto Clínico de IA** (`/api/v1/clinical/chat`) | Um **runtime de raciocínio clínico multi-agente com streaming SSE** — planner → DAG de execução → roteador de provedores → juiz de segurança → aprovação/override médico → auditoria event-sourced. | 🧪 **Experimental** |
 
-> Aether foi **projetado para Recall acima de tudo.** Em oncologia, um falso negativo não é um erro estatístico — é uma janela de intervenção precoce perdida. O modelo é ajustado para maximizar a sensibilidade (≈97% de recall) e aceita conscientemente mais falsos positivos como um trade-off clinicamente justificado.
+> Aether foi **projetado para Recall acima de tudo.** Em oncologia, um falso negativo não é um erro estatístico — é uma janela de intervenção precoce perdida, então o *design* prioriza sensibilidade. **Achado honesto:** o benchmark reprodutível ([`docs/benchmark.md`](./docs/benchmark.md), CV estratificada 5-fold, MLP vs DummyClassifier/LogReg/RandomForest) mostra que o dataset sintético **não tem sinal aprendível** — ROC-AUC ≈ 0,50, o MLP **não** supera a taxa-base (teste t pareado p=0,79) e remover as features de vazamento quase não altera as métricas. O pipeline é apresentado como **demonstração de engenharia/MLOps**, não como evidência de desempenho preditivo.
 
 ---
 
