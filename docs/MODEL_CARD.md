@@ -65,10 +65,15 @@ autonomous_diagnosis: false
 
 ## 2. Uso Pretendido (Intended Use)
 
-- **Público-alvo:** oncologistas e cirurgiões de cabeça e pescoço.
-- **Uso primário:** Sistema de Apoio à Decisão Clínica (CDSS) para **triagem de risco de câncer oral**, classificando perfis de risco demográfico/clínico em **Estágio Inicial (Early)** vs. **Estágio Avançado (Moderate/Late)**.
+> [!IMPORTANT]
+> **Enquadramento real:** este é um **protótipo acadêmico** (Tech Challenge FIAP) — uma demonstração de pipeline de ML end-to-end, **não** um produto clínico. A narrativa de CDSS abaixo é a **persona/cenário hipotético do exercício** (o problema de negócio que o pipeline *simula* resolver), não uma reivindicação de uso clínico real. Limitações, vieses e a proibição de uso clínico estão na **§7**.
+
+Dentro desse cenário hipotético:
+
+- **Público-alvo (persona):** oncologistas e cirurgiões de cabeça e pescoço.
+- **Uso primário (simulado):** Sistema de Apoio à Decisão Clínica (CDSS) para **triagem de risco de câncer oral**, classificando perfis de risco demográfico/clínico em **Estágio Inicial (Early)** vs. **Estágio Avançado (Moderate/Late)**.
 - **Justificativa de negócio (custo do erro):** em oncologia, o custo de um **Falso Negativo** é incomensuravelmente maior que o de um Falso Positivo. Por isso o modelo é deliberadamente calibrado para **Recall ≈ 97%**, aceitando conscientemente mais falsos positivos.
-- **Fora de escopo:** não realiza diagnóstico autônomo, não substitui biópsia/histologia e não prescreve terapias ou dosagens.
+- **Fora de escopo (real e absoluto):** não é dispositivo médico, não foi validado clinicamente, não realiza diagnóstico autônomo, não substitui biópsia/histologia, não prescreve terapias — e **não deve** tocar decisões sobre pacientes reais (ver §7.1).
 
 ---
 
@@ -126,14 +131,56 @@ A auditoria (`src/ml/pipelines/audit/fairness.py`) computa Recall / FPR / FNR / 
 
 ---
 
-## 7. Limitações & Contraindicações
+## 7. Limitações, Vieses & Cenários de Falha
+
+Esta seção documenta de forma transparente **o que o modelo não é capaz de fazer** e em que condições ele falha ou produz resultados eticamente problemáticos. Complementa o Uso Pretendido (§2), a governança de vazamento (§3) e a auditoria de fairness (§5).
+
+### 7.1 Uso pretendido vs. fora de escopo
+
+> [!IMPORTANT]
+> **Enquadramento honesto.** Independentemente da moldura de CDSS descrita na §2, esta entrega é um **protótipo acadêmico** (Tech Challenge FIAP) cujo foco é demonstrar um **pipeline de ML end-to-end** — EDA, baselines, MLP em PyTorch, pipeline reprodutível e API de inferência. O foco é a **engenharia e a metodologia**, não a validade clínica do resultado.
+
+- **Uso proibido (fora de escopo):** não é dispositivo médico, não foi validado clinicamente e **não deve** ser usado para triagem, diagnóstico, priorização ou qualquer decisão sobre pacientes reais. A saída é uma **probabilidade ilustrativa**, não uma indicação clínica.
+
+### 7.2 Limitações
+
+| Limitação | Descrição |
+| :--- | :--- |
+| **Dataset sintético** | Treinado sobre o **Oral Cancer Top 30 Countries** (MIT License, ~160k registros) — dataset de origem **sintética/gerada**. As distribuições não correspondem a uma população real e nenhuma métrica transfere para dados clínicos. Bons números indicam **aderência ao gerador de dados**, não capacidade preditiva no mundo real. |
+| **Métricas infladas por construção** | Mesmo após remover o vazamento explícito (§7.4), um dataset sintético pode ser trivialmente separável (rótulo quase determinístico a partir de poucas features). **Sempre comparar** o MLP contra um `DummyClassifier` (taxa-base) e baselines lineares: se a vantagem for pequena — ou as métricas quase perfeitas — trate o resultado como **artefato do dado**, não como desempenho. |
+| **Escopo de features reduzido** | A inferência usa apenas **seis fatores demográficos/comportamentais** (`age`, `gender`, `country`, `socioeconomic_status`, `tobacco_use`, `alcohol_use`). Não há exames, imagem, histopatologia ou biomarcadores — insuficiente para qualquer juízo de risco individual. |
+| **Ausência de validação** | Sem validação externa, validação clínica ou calibração de probabilidade em população real. As probabilidades **não** representam risco absoluto. |
 
 > [!CAUTION]
-> - **Não diagnóstico:** apenas apoio à triagem; não substitui biópsia ou histologia.
-> - **Exclusão pediátrica:** não validado para menores de 18 anos.
-> - **Imunocomprometidos:** não validado para populações imunocomprometidas ou pós-transplante.
-> - **Variância geográfica:** validado principalmente nos 30 países de maior incidência; usar com cautela fora deles.
-> - **Distribuição:** entradas fora da distribuição de treino podem ser sinalizadas pelo detector OOD, mas não bloqueadas.
+> **Contraindicações clínicas** (caso, hipoteticamente, o enquadramento mude para uso clínico): não diagnóstico (não substitui biópsia/histologia); **não validado** para menores de 18 anos, imunocomprometidos ou pós-transplante; validado apenas nos 30 países do dataset; entradas fora da distribuição podem ser sinalizadas pelo detector OOD, mas **não bloqueadas**.
+
+### 7.3 Vieses identificados
+
+- **Viés por país (`country`).** O modelo atribui risco diferente a dois indivíduos idênticos apenas por nacionalidades distintas. Como o dataset é sintético, a feature provavelmente codifica prevalências por país embutidas no gerador, aprendidas como sinal. Em contexto clínico isso é **tratamento desigual com base em nacionalidade** — inaceitável para decisão individual. Limitado aos 30 países do dataset; não generaliza fora deles.
+- **Viés socioeconômico (`socioeconomic_status`).** Faz o risco predito variar conforme a faixa socioeconômica, podendo **codificar desigualdade estrutural** e penalizar grupos vulneráveis — reforçando disparidades em vez de corrigi-las. Eticamente problemático como driver de decisão individual.
+- **Viés de representação.** Sintético e restrito a 30 países, não representa a diversidade real de pacientes (etnia, acesso à saúde, hábitos regionais). Subgrupos fora dessas distribuições recebem predições não confiáveis.
+
+### 7.4 Tratamento de vazamento de dados (data leakage)
+
+As features `treatment_type` e `survival_rate` foram **excluídas da inferência** por serem **consequências do diagnóstico**, não preditores — só existem após o paciente já ter sido diagnosticado e tratado. Incluí-las vazaria o rótulo e inflaria as métricas artificialmente.
+
+No servidor, esses campos recebem **valores neutros default** e não influenciam a predição exposta pela API; o portal de triagem documenta essa exclusão explicitamente ao usuário.
+
+### 7.5 Cenários de falha
+
+| Cenário | Risco |
+| :--- | :--- |
+| **Decisão clínica individual** | Usar a saída para triar/diagnosticar/priorizar um paciente real — principal cenário de falha; o modelo não tem base para isso. |
+| **Entrada fora da distribuição** | Idades extremas, país não listado ou combinações raras de fatores produzem predições sem confiabilidade. |
+| **Drift de distribuição** | Dados reais teriam distribuição diferente da sintética desde o dia 1; o modelo degradaria imediatamente em produção real. |
+| **Interpretação indevida da probabilidade** | Tratar o percentual de confiança como certeza diagnóstica — erro de uso previsível e perigoso. |
+
+### 7.6 Mitigações & recomendações
+
+- Manter o enquadramento de **protótipo / demonstração de engenharia**, com disclaimer visível em toda interface e na documentação.
+- Antes de qualquer cogitação de uso real: **recoletar dados clínicos reais**, executar **validação externa** e calibração, e conduzir **auditoria de fairness** por subgrupo (`country`, `gender`, `socioeconomic_status`).
+- Reavaliar as features sensíveis: idealmente **remover `country` e `socioeconomic_status`** como drivers de risco individual, ou usá-las apenas em análise populacional agregada — nunca em decisão sobre indivíduos.
+- Implementar **monitoramento de drift** (PSI/KS) e um *playbook* de resposta caso o modelo seja exposto a dados diferentes dos de treino.
 
 ---
 
