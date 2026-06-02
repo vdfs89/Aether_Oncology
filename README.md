@@ -68,13 +68,11 @@ model-index:
   <img src="https://img.shields.io/badge/OpenAI-Judge_(gpt--4o--mini)-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI Judge" />
 </p>
 
-<!-- ── Governance ── -->
+<!-- ── Honest framing ── -->
 <p align="center">
-  <img src="https://img.shields.io/badge/Compliance-HIPAA-0D47A1?style=flat-square" alt="HIPAA" />
-  <img src="https://img.shields.io/badge/Compliance-LGPD-0D47A1?style=flat-square" alt="LGPD" />
-  <img src="https://img.shields.io/badge/FDA_SaMD-Readiness-1565C0?style=flat-square" alt="FDA SaMD" />
-  <img src="https://img.shields.io/badge/EU_AI_Act-High--Risk_(Annex_III)-FF6F00?style=flat-square" alt="AI Act" />
-  <img src="https://img.shields.io/badge/AI_Safety-Judge_+_Consensus-7C4DFF?style=flat-square" alt="AI Safety" />
+  <img src="https://img.shields.io/badge/Academic_Prototype-FIAP_Tech_Challenge-7C4DFF?style=flat-square" alt="Academic Prototype" />
+  <img src="https://img.shields.io/badge/Status-Not_a_Medical_Device-B00020?style=flat-square" alt="Not a Medical Device" />
+  <img src="https://img.shields.io/badge/LGPD--aware-PHI_scrubber-0D47A1?style=flat-square" alt="LGPD-aware" />
 </p>
 
 <!-- ── Quality ── -->
@@ -94,9 +92,11 @@ model-index:
 
 <br/>
 
-| ![Benign Diagnosis](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_benigno.png) | ![Malignant Diagnosis](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/aether_oncology_portal_maligno.png) | ![XAI Radar Chart](https://github.com/vdfs89/Aether_Oncology/raw/main/docs/screenshots/clinical_portal_xai_radar.png) |
-| :---: | :---: | :---: |
-| *Low Risk — 98.00% Confidence* | *High Risk — 92.76% Confidence* | *Explainability (XAI) via Radar Chart* |
+> 📸 **Portal screenshots — recapture pending.** The previous captures referred to an earlier
+> model and were removed to avoid misrepresentation. New screenshots of the current oral-cancer
+> **risk-stratification** portal (`/portal.html`) will be added here, labelled as *low-risk /
+> high-risk example outputs* — **without confidence percentages**, since the benchmark shows
+> ROC-AUC ≈ 0.50 (no real predictive signal).
 
 ---
 
@@ -115,7 +115,7 @@ model-index:
 5. [Multi-Agent Execution Engine](#-multi-agent-execution-engine)
 6. [Clinical Safety Engine](#-clinical-safety-engine)
 7. [Physician Governance](#-physician-governance)
-8. [Compliance: HIPAA · LGPD · FDA SaMD](#-compliance-hipaa--lgpd--fda-samd)
+8. [Security & Privacy Engineering](#-security--privacy-engineering-lgpd-aware)
 9. [Machine Learning Platform](#-machine-learning-platform)
 10. [Data Governance](#-data-governance)
 11. [SSE Streaming Protocol](#-sse-streaming-protocol)
@@ -147,9 +147,9 @@ It is not "another medical chatbot." It is a **Clinical AI Operating System** bu
 
 The platform spans two complementary surfaces:
 
-| Surface | What it is | Production maturity |
+| Surface | What it is | Maturity |
 | :--- | :--- | :---: |
-| **Diagnostic ML Core** (`/predict`) | A hospital-grade PyTorch MLP for **oral-cancer risk stratification**, governed by a full MLOps pipeline (Pandera contracts, calibration, fairness, leakage & drift audits, lineage, model cards). | ✅ **Production** |
+| **Diagnostic ML Core** (`/predict`) | A PyTorch MLP for **oral-cancer risk stratification**, governed by a full MLOps pipeline (Pandera contracts, calibration, fairness, leakage & drift audits, lineage, model cards). | ✅ **Functional (prototype)** |
 | **Clinical AI Copilot** (`/api/v1/clinical/chat`) | A **multi-agent, SSE-streaming clinical reasoning runtime** — planner → execution DAG → provider router → safety judge → physician approval/override → event-sourced audit. | 🧪 **Experimental** |
 
 > Aether is **engineered for Recall above all else.** In oncology, a false negative is not a statistical error — it is a lost early-intervention window, so the design *targets* sensitivity over precision. **Honest finding:** the reproducible benchmark ([`docs/benchmark.md`](./docs/benchmark.md), 5-fold stratified CV, MLP vs DummyClassifier/LogReg/RandomForest) shows the synthetic dataset carries **no learnable signal** — ROC-AUC ≈ 0.50, the MLP does **not** beat the base rate (paired t p=0.79), and removing the leakage features barely moves the metrics. The pipeline is presented as an **engineering/MLOps demonstration**, not as evidence of predictive performance.
@@ -198,7 +198,7 @@ The platform spans two complementary surfaces:
 - **Pandera data contracts** for training **and** inference (distinct schemas).
 - **Probability calibration** — Platt vs. Isotonic auto-selected by Brier score, with ECE/MCE and reliability curves.
 - **Leakage, fairness, OOD & drift auditing** built into the training pipeline.
-- **SHA-256 data lineage** + **FDA-style model cards** + **MLflow** tracking.
+- **SHA-256 data lineage** + **model cards** + **MLflow** tracking.
 
 ### 🔐 Security & Compliance
 - **Fernet-encrypted** audit logs with versioned crypto envelopes.
@@ -420,23 +420,22 @@ Governance is event-sourced end-to-end (`frontend/src/features/ai/orchestration/
 
 ---
 
-## 🔐 Compliance: HIPAA · LGPD · FDA SaMD
+## 🔐 Security & Privacy Engineering (LGPD-aware)
 
-> [!WARNING]
-> These describe **engineering controls and readiness**, not certifications. Aether is HIPAA/LGPD/FDA-SaMD *aligned and ready*; no formal Business Associate Agreement or regulatory clearance has been obtained.
+> [!NOTE]
+> These are **engineering controls**, not certifications or regulatory status. **No** HIPAA Business Associate Agreement, FDA clearance, ANVISA registration, SOC 2, or any audit has been obtained or pursued. Frameworks such as HIPAA, LGPD and FDA SaMD are referenced only as **concepts that informed the design** of the controls below — never as compliance claims or "readiness".
 
-### HIPAA (PHI confidentiality)
-- **Encrypted audit logs** — `src/services/audit.py` wraps every prediction in a Fernet-encrypted JSON envelope (`key_version`, `algorithm`, `encrypted`, `payload`).
-- **Fail-closed auth** — in production (`AETHER_ENV != dev`), protected endpoints return **503** when `API_KEY` is unset (no open access) and the app never injects default/ephemeral keys. A missing `AUDIT_ENCRYPTION_KEY` disables audit writes (fail-safe) and is logged **critical** instead of silently using a throwaway key.
+### Encrypted, tamper-evident audit trail
+- **Fernet-encrypted audit logs** — `src/services/audit.py` wraps every prediction in a Fernet-encrypted JSON envelope (`key_version`, `algorithm`, `encrypted`, `payload`), **hash-chained** for tamper-evidence (`compute_entry_hash`).
+- **Fail-closed** — in production (`AETHER_ENV != dev`), protected endpoints return **503** when `API_KEY` is unset; a missing `AUDIT_ENCRYPTION_KEY` disables audit writes (fail-safe) and is logged **critical** — never a throwaway key. If the audit write fails, the prediction is **not** emitted (HTTP 500).
 - **Encrypted client storage** — conversation data is AES-GCM-256 encrypted in IndexedDB before persistence.
 - **Migration tooling** — `src/scripts/migrate_logs.py` upgrades legacy plaintext logs into encrypted envelopes.
 
-### LGPD (Brazilian data protection)
-- **PHI scrubber** (`telemetry/scrubbers/phi.ts`) redacts Brazilian identifiers before any telemetry: **CPF, CNS/SUS, CRM, CEP, BR phone, email, DOB** — recursive over objects/arrays, with a 42-case test suite.
+### PHI/PII scrubbing (LGPD-aware)
+- **PHI scrubber** (`frontend …/telemetry/scrubbers/phi.ts` + `src/safety/phi_scrubber.py`) redacts Brazilian identifiers before telemetry/audit: **CPF, CNS/SUS, CRM, CEP, BR phone, email, DOB** — recursive over objects/arrays, with a test suite.
 - **Fail-closed PHI gate** — `scrubPHI()` runs *before* inference; a failure halts execution and emits `InferenceFailed`.
 
-### FDA SaMD / ANVISA readiness
-- **Model cards** (`src/ml/pipelines/model_card_generator.py`, `models/model_card.md`) document intended use (CDSS, oral-cancer screening), clinical limitations (pediatric exclusion, immunocompromised contraindication, geographic variance), calibration, and fairness.
+### Reproducibility & lineage
 - **Deterministic lineage** — `src/ml/pipelines/lineage.py` records SHA-256 checksums of dataset, schemas, clinical rules, feature registry, and preprocessing logic + git commit (`models/data_lineage.json`).
 - **Immutable snapshots** — training persists `raw.parquet` / `validated.parquet` keyed by dataset hash.
 - **Event-sourced replay** — every clinical event carries a `sequence` within a `traceId` for deterministic reconstruction.
@@ -445,7 +444,7 @@ Governance is event-sourced end-to-end (`frontend/src/features/ai/orchestration/
 
 ## 🔬 Machine Learning Platform
 
-The diagnostic core is governed by a **hospital-grade MLOps pipeline** (`src/train.py` orchestrating `src/ml/pipelines/**`).
+The diagnostic core is governed by a **comprehensive MLOps pipeline** (`src/train.py` orchestrating `src/ml/pipelines/**`).
 
 | Stage | Module | What it does |
 | :--- | :--- | :--- |
@@ -456,7 +455,7 @@ The diagnostic core is governed by a **hospital-grade MLOps pipeline** (`src/tra
 | **Calibration** | `calibration/calibration_engine.py` | Platt vs. Isotonic auto-selected by Brier; ECE/MCE over 10 bins; reliability curve. |
 | **Fairness** | `audit/fairness.py` | Equalized-Odds FNR/FPR/recall disparity (15% threshold) across Gender / age-bucket / Country. |
 | **Drift** | `drift/drift_rules.py`, `ml_platform/drift.py` | KS-test (p<0.05), PSI ≥0.25, JS-divergence ≥0.20; global flag when >33% features drift. |
-| **Lineage & Cards** | `lineage.py`, `model_card_generator.py` | SHA-256 lineage + FDA-style model card. |
+| **Lineage & Cards** | `lineage.py`, `model_card_generator.py` | SHA-256 lineage + model card. |
 | **Tracking** | `train.py` | MLflow logging + model registry (`AetherOncologyOralCancerHighRisk`). |
 
 **Model** — `src/models/mlp.py`: a configurable MLP `Input → [128, 64, 32] → 1 logit` with BatchNorm, ReLU, Dropout(0.3), trained with `BCEWithLogitsLoss(pos_weight)` and early stopping. Hyperparameter search via **Optuna (TPE)** in `src/optimize.py`.
