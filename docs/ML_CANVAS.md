@@ -22,8 +22,8 @@
 - **Saída:** probabilidade de risco + classe + nível de confiança.
 
 ## 4. Fontes de Dados (Data Sources)
-- Dataset público **Oral Cancer Top 30 Countries** (~160k registros).
-- **Caveat:** dataset **sintético**, sem validade clínica. Confirmar licença na origem.
+- Dataset público **Oral Cancer Top 30 Countries** (~160k registros) — autor *Ankush Panday*, [Kaggle](https://www.kaggle.com/datasets/ankushpanday1/oral-cancer-prediction-dataset-top-30-countries). **Licença MIT** (confirmada nos metadados do Kaggle).
+- **Caveat:** dataset **sintético**, sem validade clínica.
 
 ## 5. Features
 - **Pré-diagnóstico (usadas):** `age`, `gender`, `country`, `socioeconomic_status`, `tobacco_use`, `alcohol_use`.

@@ -81,7 +81,7 @@ Dentro desse cenário hipotético:
 
 | Campo | Valor |
 | :--- | :--- |
-| **Dataset** | *Oral Cancer Top 30 Countries* (Licença MIT) |
+| **Dataset** | *Oral Cancer Top 30 Countries* — autor Ankush Panday, [Kaggle](https://www.kaggle.com/datasets/ankushpanday1/oral-cancer-prediction-dataset-top-30-countries). **Licença MIT** (confirmada nos metadados do Kaggle) |
 | **Alvo** | `high_risk = Diagnosis_Stage ∈ {Moderate, Late}` (binário) |
 | **Features brutas (8)** | `Age`, `Survival_Rate`, `Tobacco_Use`, `Alcohol_Use`, `Country`, `Gender`, `Socioeconomic_Status`, `Treatment_Type` |
 | **Features derivadas** | `risk_index` (tabaco+álcool+HPV), `age_bucket`, `high_incidence_country` |
