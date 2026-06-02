@@ -2,8 +2,9 @@
 
 > Registro honesto do processo de engenharia do Aether Oncology — o que a investigação
 > revelou sobre o modelo e o dataset, e que decisões tomamos em resposta. Documento vivo,
-> alinhado ao [Model Card](./MODEL_CARD.md), ao [Benchmark](./benchmark.md), à
-> [Arquitetura de Deploy](./DEPLOY_ARCHITECTURE.md) e ao [Playbook de Monitoramento](./MONITORING_PLAYBOOK.md).
+> alinhado ao [ML Canvas](./ML_CANVAS.md), ao [Model Card](./MODEL_CARD.md), ao
+> [Benchmark](./benchmark.md), à [Arquitetura de Deploy](./DEPLOY_ARCHITECTURE.md) e ao
+> [Playbook de Monitoramento](./MONITORING_PLAYBOOK.md).
 
 ---
 

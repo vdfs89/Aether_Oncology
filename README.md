@@ -218,6 +218,14 @@ The platform spans two complementary surfaces:
 
 ## 🏗️ System Architecture
 
+> **Project Documentation:**
+> - 📄 [ML Canvas (Etapa 1)](./docs/ML_CANVAS.md)
+> - 📄 [Model Card — limitations, biases, failure modes](./docs/MODEL_CARD.md)
+> - 📄 [Benchmark — MLP vs baselines (honest null result)](./docs/benchmark.md)
+> - 📄 [Findings — what we found & how we treated it](./docs/FINDINGS.md)
+> - 📄 [Deployment Architecture (Batch vs Real-time)](./docs/DEPLOY_ARCHITECTURE.md)
+> - 📄 [Monitoring & Alerting Playbook](./docs/MONITORING_PLAYBOOK.md)
+
 ### High-Level Architecture
 
 ```mermaid
