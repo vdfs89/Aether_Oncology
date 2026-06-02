@@ -91,3 +91,15 @@ src/static/aether-oncology-portal/dist/
 
 # ─── Data Snapshots ──────────────────────────────────────────────────────────
 data/snapshots/
+
+# ─── Scratch / experimentos descartáveis (não versionar) ──────────────────────
+scratch/
+
+# ─── Venvs adicionais (auditoria, etc.) ───────────────────────────────────────
+.venv*/
+
+# ─── Dados grandes (parquet/feather/etc.) ─────────────────────────────────────
+*.parquet
+*.feather
+data/**/*.csv
+data/**/*.xlsx

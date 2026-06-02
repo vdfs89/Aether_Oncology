@@ -9,6 +9,56 @@
 O MLP tem **vantagem preditiva real** sobre baselines triviais, ou as métricas altas
 são **artefato** do dataset sintético e do **vazamento** (`treatment_type`, `survival_rate`)?
 
+## PASSO 1 — Diagnóstico de sinal por feature (antes de treinar)
+
+> Gerado por [`scripts/diagnose_features.py`](../scripts/diagnose_features.py).
+> Objetivo: tentar **honestamente** enriquecer o modelo com fatores de risco
+> pré-diagnóstico (TIER 1) já presentes no dataset. Antes de qualquer re-treino,
+> medimos a relação de cada feature com o alvo.
+
+**Inventário de features deste dataset (`oral_cancer_top30.csv`, 11 colunas):**
+
+- **TIER 1 (fatores de risco — usar):** `Age`, `Gender`, `Country`, `Tobacco_Use`,
+  `Alcohol_Use`, `Socioeconomic_Status`, `HPV_Related`. **Todas já estão no pipeline
+  de produção** (`src/features/preprocessor.py`) — não há TIER 1 "excluído" a reintroduzir.
+- **TIER 2 (sintomas clínicos):** **ausentes** — esta versão enxuta não traz
+  `oral_lesions`, `unexplained_bleeding`, `white/red_patches` nem `difficulty_swallowing`.
+- **TIER 3 (vazamento — nunca usar como preditor):** `Diagnosis_Stage` (origem do alvo),
+  `Treatment_Type`, `Survival_Rate`.
+
+**Mutual information com o alvo (`mutual_info_classif`, todas < 5e-4 nats):**
+
+| feature | mutual_info | tier |
+| --- | --- | --- |
+| Survival_Rate | 0.000473 | TIER3 |
+| Age | 0.000398 | TIER1 |
+| Country | 0.000091 | TIER1 |
+| Treatment_Type | 0.000012 | TIER3 |
+| Socioeconomic_Status | 0.000009 | TIER1 |
+| Gender | 0.000007 | TIER1 |
+| HPV_Related | 0.000002 | TIER1 |
+| Tobacco_Use | 0.000001 | TIER1 |
+| Alcohol_Use | 0.00000005 | TIER1 |
+
+**Teste de independência (H0: feature ⟂ alvo; n = 160 292 — alto poder estatístico):**
+
+| feature | teste | p-valor | conclusão |
+| --- | --- | --- | --- |
+| Tobacco_Use | χ² | 0.5532 | ruído |
+| Alcohol_Use | χ² | 0.9006 | ruído |
+| HPV_Related | χ² | 0.4065 | ruído |
+| Gender | χ² | 0.1405 | ruído |
+| Socioeconomic_Status | χ² | 0.2302 | ruído |
+| Country | χ² | 0.4533 | ruído |
+| Age | point-biserial (r=−0.004) | 0.0970 | ruído |
+
+**Conclusão do PASSO 1:** `P(high_risk | categoria) ≈ 0.699` (a própria prevalência) para
+**todas** as categorias de **todas** as features. Nenhum fator de risco TIER 1 rejeita a
+hipótese nula de independência a 0.05 — nem mesmo com 160 mil amostras. Até a feature de
+**vazamento** de maior MI (Survival_Rate, 5e-4) é desprezível. **Não existe sinal
+aprendível** para enriquecer: o alvo foi gerado de forma aproximadamente independente das
+features. Logo, não há re-treino a fazer (PASSO 6) — o null result documentado abaixo se mantém.
+
 ## Métrica
 
 Contexto de **rastreio**: o Falso Negativo (deixar passar um caso avançado) é o erro caro.
