@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SiteNav } from "@/components/landing/Nav/SiteNav"
 import { PrecisionDashboard } from "@/components/dashboard/PrecisionDashboard"
 
 export const metadata: Metadata = {
@@ -8,5 +9,11 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardPage() {
-  return <PrecisionDashboard />
+  return (
+    <>
+      {/* Mesmo componente de navegação do site (reuso, não cópia) — tira o dashboard do isolamento. */}
+      <SiteNav />
+      <PrecisionDashboard />
+    </>
+  )
 }
