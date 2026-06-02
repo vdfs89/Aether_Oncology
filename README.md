@@ -700,9 +700,17 @@ python -m src.train
 
 # Hyperparameter optimization (Optuna)
 python -m src.optimize
+
+# Reproducible MLP-vs-baselines benchmark (StratifiedKFold k=5 → MLflow)
+python -m src.benchmark
+
+# Inspect experiments in the MLflow UI
+make mlflow-ui                        # → http://localhost:5000 (backend: mlruns/)
 ```
 
 > ℹ️ Before the model is trained, prediction routes return `503` and the corresponding tests are marked `xfail` — the API still boots.
+>
+> 📊 **MLflow tracking.** The MLP is tracked with cross-validated metrics in the **`Aether_Oncology_Benchmark`** experiment (10 runs: MLP + DummyClassifier ×2 + LogisticRegression + RandomForest, each with per-fold recall / PR-AUC / ROC-AUC / F1). `python -m src.train` additionally logs the full training run (params, calibration/fairness metrics, artifacts, and the registered model `AetherOncologyOralCancerHighRisk`). Run `make mlflow-ui` to browse them — no retraining needed to see the model compared against baselines.
 
 ---
 
