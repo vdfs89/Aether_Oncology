@@ -103,3 +103,7 @@ scratch/
 *.feather
 data/**/*.csv
 data/**/*.xlsx
+
+# ─── Documentos internos não-oficiais (auditoria/scratch — não versionar) ─────
+docs/AUDIT.md
+RESUMO_IMPLEMENTACAO_HIPAA.md
