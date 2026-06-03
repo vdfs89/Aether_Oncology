@@ -1,24 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Stage 1: Frontend Build (Node.js + Vite)
+# Backend & Runtime (Python 3.12 — fewer CVEs than 3.11)
 # ─────────────────────────────────────────────────────────────────────────────
-# node:22-bookworm-slim — LTS with latest security patches (fewer CVEs vs 20-slim)
-FROM node:22-bookworm-slim AS frontend-builder
-WORKDIR /build
-
-# Copy package files for caching
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-# Copy source files needed for Vite build
-COPY vite.config.js ./
-COPY src/static/aether-oncology-portal/ ./src/static/aether-oncology-portal/
-
-# Build the frontend
-RUN npm run build
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Stage 2: Backend & Runtime (Python 3.12 — fewer CVEs than 3.11)
-# ─────────────────────────────────────────────────────────────────────────────
+# The clinical portal (/portal.html) is a STANDALONE HTML page (inline CSS/JS)
+# served directly from src/static/ — there is NO Vite/Node build step. The legacy
+# Vite SPA (breast-cancer demo) was removed; this avoids the old build output
+# clobbering the honest oral-cancer portal.
 # python:3.12-slim-bookworm — explicit tag prevents silent digest changes;
 # 3.12 receives active security patches and has fewer known CVEs than 3.11.
 FROM python:3.12-slim-bookworm
@@ -67,10 +53,6 @@ RUN pip install uv \
 COPY src/ src/
 COPY models/ models/
 COPY data/raw/ data/raw/
-
-# Replace static folder with Vite build output
-COPY --from=frontend-builder /build/src/static/aether-oncology-portal/dist/ \
-     ./src/static/aether-oncology-portal/
 
 # ── Runtime directories & ownership ──────────────────────────────────────────
 RUN mkdir -p logs .cache/research \
