@@ -1,40 +1,41 @@
 import Link from "next/link"
-import { Terminal, FileText, GitBranch } from "lucide-react"
-import { Button } from "@/components/ui/Button"
+import { Terminal, FileText, GitBranch, Cpu, BarChart3, Brain, BookOpen } from "lucide-react"
 import { INTERNAL_LINKS, EXTERNAL_LINKS, type NavLink } from "@/config/navigation"
 
 type IconType = React.ComponentType<{ size?: number; className?: string }>
 
-// Ações primárias em destaque — ícone + acento por card.
-const PRIMARY: { link: NavLink; icon: IconType; accent: string }[] = [
-  { link: EXTERNAL_LINKS.find((l) => l.title === "Portal")!, icon: Terminal, accent: "#00E5FF" },
-  { link: INTERNAL_LINKS.find((l) => l.title === "Model Card")!, icon: FileText, accent: "#FF4FD8" },
-  { link: EXTERNAL_LINKS.find((l) => l.title === "GitHub")!, icon: GitBranch, accent: "#A78BFA" },
+const find = (title: string): NavLink =>
+  [...INTERNAL_LINKS, ...EXTERNAL_LINKS].find((l) => l.title === title)!
+
+// Todos os destinos — MESMA família de card (uniformes). Ícone por destino;
+// acento único (cyan) para consistência visual.
+const ITEMS: { link: NavLink; icon: IconType }[] = [
+  { link: find("Portal"), icon: Terminal },
+  { link: find("Model Card"), icon: FileText },
+  { link: find("GitHub"), icon: GitBranch },
+  { link: find("Platform"), icon: Cpu },
+  { link: find("Dashboard"), icon: BarChart3 },
+  { link: find("AI Sandbox"), icon: Brain },
+  { link: find("API Docs"), icon: BookOpen },
 ]
 
-// Secundárias agrupadas (família de pílulas via Button ghost).
-const SECONDARY: NavLink[] = [
-  INTERNAL_LINKS.find((l) => l.title === "Platform")!,
-  INTERNAL_LINKS.find((l) => l.title === "Dashboard")!,
-  INTERNAL_LINKS.find((l) => l.title === "AI Sandbox")!,
-  EXTERNAL_LINKS.find((l) => l.title === "API Docs")!,
-]
+const ACCENT = "#00E5FF"
 
-function PrimaryCard({ link, icon: Icon, accent }: { link: NavLink; icon: IconType; accent: string }) {
+function HubCard({ link, icon: Icon }: { link: NavLink; icon: IconType }) {
   const cardClass =
     "group relative flex flex-col gap-3 p-5 rounded-2xl border border-[rgba(255,255,255,0.08)] " +
-    "bg-[rgba(255,255,255,0.03)] backdrop-blur-sm transition-all duration-300 " +
+    "bg-[rgba(255,255,255,0.03)] backdrop-blur-sm transition-all duration-300 h-full " +
     "hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.05)] hover:border-[var(--acc)] " +
     "hover:shadow-[0_14px_44px_-14px_var(--acc)] " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--acc)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
-  const style = { ["--acc"]: accent } as React.CSSProperties
+  const style = { ["--acc"]: ACCENT } as React.CSSProperties
 
   const inner = (
     <>
       <div className="flex items-center gap-2.5">
         <span
-          className="w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 transition-colors"
-          style={{ background: `${accent}14`, borderColor: `${accent}33`, color: accent }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0"
+          style={{ background: `${ACCENT}14`, borderColor: `${ACCENT}33`, color: ACCENT }}
         >
           <Icon size={18} />
         </span>
@@ -42,13 +43,16 @@ function PrimaryCard({ link, icon: Icon, accent }: { link: NavLink; icon: IconTy
         {link.badge && (
           <span
             className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border"
-            style={{ background: `${accent}1f`, borderColor: `${accent}40`, color: accent }}
+            style={{ background: `${ACCENT}1f`, borderColor: `${ACCENT}40`, color: ACCENT }}
           >
             {link.badge}
           </span>
         )}
         {link.external && (
-          <span className="ml-auto text-sm transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: accent }}>
+          <span
+            className="ml-auto text-sm transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            style={{ color: ACCENT }}
+          >
             ↗
           </span>
         )}
@@ -81,29 +85,9 @@ export function NavHub() {
           </p>
         </div>
 
-        {/* Primárias */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {PRIMARY.map((p) => (
-            <PrimaryCard key={p.link.href} {...p} />
-          ))}
-        </div>
-
-        {/* Secundárias — família de pílulas */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {SECONDARY.map((l) => (
-            <Button key={l.href} asChild variant="ghost" size="sm">
-              {l.external ? (
-                <a href={l.href} target="_blank" rel="noopener noreferrer">
-                  {l.title}
-                  {l.badge ? ` · ${l.badge}` : ""} ↗
-                </a>
-              ) : (
-                <Link href={l.href}>
-                  {l.title}
-                  {l.badge ? ` · ${l.badge}` : ""}
-                </Link>
-              )}
-            </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {ITEMS.map((it) => (
+            <HubCard key={it.link.href} {...it} />
           ))}
         </div>
       </div>
