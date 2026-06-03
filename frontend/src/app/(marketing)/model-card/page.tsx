@@ -421,7 +421,7 @@ export default function ModelCardPage() {
 
             {/* 9 */}
             <Panel icon={BookOpen} n="09" title="Referências Técnicas">
-              <ol className="space-y-3 list-decimal list-inside marker:text-[rgba(255,255,255,0.35)] text-center max-w-2xl mx-auto">
+              <ul className="space-y-2.5 list-none text-center max-w-2xl mx-auto">
                 {REFERENCES.map((r) => (
                   <li
                     key={r}
@@ -430,7 +430,7 @@ export default function ModelCardPage() {
                     {r}
                   </li>
                 ))}
-              </ol>
+              </ul>
             </Panel>
           </div>
 
