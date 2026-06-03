@@ -47,10 +47,10 @@ export async function POST(req: NextRequest) {
         enqueueEvent({
           type: "citation",
           citation: {
-            id: "pmid-3891002",
+            id: "demo",
             source: "PubMed",
-            title: "Advanced Oncological Decision Trees with Bayesian Logic",
-            relevance: 0.95
+            title: "[exemplo ilustrativo de recuperação — não é um estudo real]",
+            relevance: 0
           }
         })
         await delay(300)
@@ -61,9 +61,9 @@ export async function POST(req: NextRequest) {
           attachment: {
             type: "prediction",
             data: {
-              confidence: 0.94,
+              confidence: 0.5,
               riskLevel: "High",
-              modelMetadata: { version: "v2.4", latencyMs: 450 }
+              modelMetadata: { version: "3.1.0 (protótipo · ROC≈0.50)", latencyMs: 450 }
             }
           }
         })
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
         // 6. Streaming the tokens
         enqueueEvent({ type: "status", status: "streaming" })
-        const textToStream = "Com base nas diretrizes do NCCN e dados mais recentes..."
+        const textToStream = "[Protótipo acadêmico — informação geral, não conselho médico.] Exemplo ilustrativo de resposta. O modelo de risco subjacente é um protótipo treinado em dados sintéticos (ROC ≈ 0.50), sem validade clínica. Para qualquer caso individual, procure um profissional de saúde."
         const chunks = textToStream.split(" ")
 
         for (const chunk of chunks) {
