@@ -8,7 +8,9 @@ export default function MarketingLayout({
   return (
     <div className="min-h-screen flex flex-col w-full relative">
       <SiteNav />
-      {children}
+      {/* Offset for the fixed SiteNav — single source: --nav-height (globals.css).
+          Every marketing page (home, platform, model-card, sandbox) clears the nav. */}
+      <div style={{ paddingTop: "var(--nav-height)" }}>{children}</div>
     </div>
   )
 }

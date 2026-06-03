@@ -88,8 +88,8 @@
   z-index: 1;
   max-width: 1640px;
   margin: 0 auto;
-  /* topo aumentado p/ liberar o SiteNav fixo (64px) renderizado em /dashboard */
-  padding: 98px clamp(16px, 3vw, 44px) 64px;
+  /* topo = altura do SiteNav (token --nav-height) + respiro, p/ liberar o nav fixo */
+  padding: calc(var(--nav-height, 64px) + 34px) clamp(16px, 3vw, 44px) 64px;
   text-align: center;
 }
 
@@ -516,7 +516,7 @@
 /* ============================================================
    CONTROL WIDGET (language + color theme)
    ============================================================ */
-.ao-dash .ctrl { position: fixed; top: 80px; right: 20px; z-index: 40; text-align: left; font-family: var(--sans); }
+.ao-dash .ctrl { position: fixed; top: calc(var(--nav-height, 64px) + 16px); right: 20px; z-index: 40; text-align: left; font-family: var(--sans); }
 .ao-dash .ctrl-fab {
   width: 50px; height: 50px; border-radius: 14px; cursor: pointer;
   display: grid; place-items: center; color: #fff;
@@ -583,6 +583,6 @@
   .ao-dash .headline { font-size: clamp(46px, 13vw, 80px); }
   .ao-dash .coverage-stats { grid-template-columns: repeat(3,1fr); }
   .ao-dash .kh-list { grid-template-columns: repeat(2, 1fr); }
-  .ao-dash .ctrl { top: 72px; right: 12px; }
+  .ao-dash .ctrl { top: calc(var(--nav-height, 64px) + 8px); right: 12px; }
   .ao-dash .ctrl-panel { width: 240px; }
 }
