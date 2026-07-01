@@ -1,423 +1,96 @@
-# Relatório de Auditoria Arquitetural - Aether Oncology
+# Relatório de Auditoria Arquitetural — Aether Oncology
 
-## Resumo Executivo
+> **Verificado contra o código em 2026-05-29.** Esta versão substitui um relatório
+> anterior que estava **desatualizado**: vários achados "🔴 críticos" (sobretudo de
+> criptografia/HIPAA) já haviam sido resolvidos quando foram reportados. Cada item
+> abaixo traz um **veredito verificado**: ✅ Resolvido · 🟡 Aberto · ⚪ Não verificado
+> a fundo · ❌ Alegação falsa/desatualizada.
 
-Análise completa da arquitetura identificou múltiplos pontos críticos que impactam performance, segurança e experiência clínica. O sistema apresenta riscos significativos de conformidade HIPAA e problemas estruturais que podem afetar a confiabilidade em ambiente de produção hospitalar.
+---
 
-## 1. Gargalos de Performance
+## 1. Conformidade HIPAA / Segurança
 
-### Backend (FastAPI + PyTorch)
+| Achado original | Veredito | Evidência atual |
+| :--- | :---: | :--- |
+| "Audit logs sem criptografia (plaintext JSONL)" | ❌ Falso | `src/services/audit.py`: `encrypt_entry()` (Fernet) + `f.write(encrypted_bytes)` |
+| "IndexedDB não criptografado" | ❌ Falso | `frontend/.../persistence/crypto.ts`: PBKDF2 + AES-GCM-256 (`window.crypto.subtle`) |
+| "PHI scrubber básico (sem CPF/datas)" | ❌ Falso | `phi.ts`: CPF, DOB, CNS/SUS, CRM, CEP, telefone, e-mail (42 testes) |
+| **Judge fail-open** (auto-aprova sem OpenAI key) | ✅ Resolvido (2026-05-29) | `judge_provider.py`: agora **fail-safe** — retorna `WARNING` + `requires_physician_review=True` quando o juiz não pode avaliar |
 
-**🔴 Crítico: Carregamento síncrono de modelos**
+**Pontos de hardening ainda abertos (HIPAA-adjacente):**
+- 🟡 `crypto.ts`: salt fixo (aceitável p/ tokens de sessão, mas documentar) e `extractable: true` na CryptoKey (comentário admite que `false` é mais seguro).
+- 🟡 Token de sessão demo permite rodar sem autenticação — bom p/ dev, deve ser bloqueado em produção.
+- 🟡 Trilha de auditoria `.jsonl` sem política de retenção/cap de tamanho.
+- 🟡 `AUDIT_ENCRYPTION_KEY` agora é setada de forma persistente no Render; em outros ambientes, garantir que seja persistente (chave efêmera = logs não decifráveis após restart).
 
-```python
-# src/main.py:106
-def _load_oral_cancer_artifacts() -> bool:
-    # Bloqueia startup até carregar modelo de ~50MB
-    _oral_model = MLP(input_shape=_oral_input_dim, hidden_dims=[128, 64, 32])
-```
+---
 
-- **Impacto**: Startup time de 5-10s em cold start
-- **Solução**: Implementar lazy loading com warming endpoint
+## 2. Performance & Concorrência
 
-**⚠️ Moderado: API sem connection pooling**
+| Achado original | Veredito | Observação |
+| :--- | :---: | :--- |
+| "Re-render: deep clone do state inteiro por token" | ❌ Exagerado | `ai.reducer.ts:UPDATE_STREAMING_MESSAGE` faz **cópia imutável shallow** padrão (spreads + 1 array). Re-render por token é inerente ao streaming. |
+| "Buffer concat O(n²) no SSE" | ⚠️ Enganoso | `stream-reader.ts`: o buffer é **truncado** a cada iteração (`lines.pop()`); só a última linha parcial é retida. Não é O(n²) sobre o stream. |
+| "feedback: `time.sleep` bloqueia async context" | ❌ Falso | `main.py`: `await asyncio.to_thread(_write_feedback)` — offloaded p/ thread. |
+| "Carregamento síncrono de modelos no startup" | 🟡 Verdadeiro (aceitável) | `_load_oral_cancer_artifacts()` é síncrono no lifespan, mas o boot agora **degrada em vez de crashar** e responde 503 até prontidão. |
+| **Streaming sem cleanup no unmount** | ✅ Resolvido (2026-05-29) | `useStreaming.ts`: adicionado `useEffect` que aborta o `AbortController` no unmount. |
 
-```python
-# src/main.py - Falta pool de conexões para inference_client
-async def lifespan(app: FastAPI):
-    # Sem configuração de pool size/timeout
-```
+**Otimizações abertas (baixo/médio ROI):**
+- ⚪ Batching de tokens (acumular + `requestAnimationFrame`) reduziria re-renders no streaming — otimização, não bug. Risco em app funcionando: avaliar com profiling real antes.
+- 🟡 `inference_client` sem pool size/timeout explícitos configuráveis (há httpx pool no `services/inference_client.py`, mas não parametrizado).
 
-### Frontend (React + Next.js)
+---
 
-**🔴 Crítico: Re-renders excessivos durante streaming**
+## 3. Hidratação / Estado (SSR-CSR)
 
-```typescript
-// frontend/src/features/ai/state/ai.reducer.ts:128
-case "UPDATE_STREAMING_MESSAGE":
-    // Clone profundo do state inteiro a cada token
-    const newMessages = [...session.messages]
-    newMessages[msgIndex] = updatedMsg
-```
+| Achado original | Veredito | Observação |
+| :--- | :---: | :--- |
+| "Race condition: save antes do load" | 🟡 Mitigado | `useSessionHydration.ts`: o efeito de save só dispara se `messages.length > 0`, e o load tem guard `isMounted`. A "sobrescrita de sessão vazia" não ocorre. Uma barreira explícita `HydrationStatus=READY` seria um reforço opcional. |
+| "Flash of empty state" | ⚪ Não verificado | Carregamento assíncrono pode causar tela vazia momentânea; não medido. |
+| "Falta `<Suspense>` / loading declarativo" | ⚪ Não verificado | Observação de UX, não bug. |
+| "Prop drilling (Copilot→…→CitationCard)" | ⚪ Não verificado | Observação de design; refator opcional. |
 
-- **Impacto**: 50-100 re-renders por resposta
-- **Solução**: Usar React.memo + useMemo para isolar updates
+---
 
-**⚠️ Moderado: IndexedDB thrashing**
+## 4. Correções aplicadas nesta auditoria (2026-05-29)
 
-```typescript
-// frontend/src/features/ai/hooks/useSessionHydration.ts:65
-}, 1000) // Salva a cada 1 segundo durante typing
-```
+1. **`JudgeProvider` fail-safe** (`src/providers/judge_provider.py`) — sem OpenAI key,
+   o juiz não aprova mais silenciosamente; sinaliza `WARNING` + revisão médica
+   obrigatória. Crítico após tornar a OpenAI opcional no boot.
+2. **Cleanup de streaming** (`frontend/.../hooks/useStreaming.ts`) — aborta inferência
+   em voo no unmount, eliminando dispatch-após-unmount.
 
-## 2. Anti-patterns Arquiteturais
+Ambas verificadas: backend `pytest` 109 passed / 2 xfailed, Ruff limpo; frontend `tsc --noEmit` OK.
 
-**🔴 Singleton Pattern Abuse**
+---
 
-```python
-# Variáveis globais para modelos ML
-_oral_preprocessor = None  
-_oral_model: MLP | None = None
-```
+## 5. Itens já implementados que o relatório antigo listava como "futuro"
 
-- **Problema**: Dificulta testes, não permite múltiplas instâncias
-- **Solução**: Dependency Injection com FastAPI
+A seção 11/12 do relatório anterior descrevia como *roadmap* coisas que **já existem**:
 
-**⚠️ Prop Drilling no Frontend**
+- ✅ **Multi-provider routing** — `src/providers/router.py` (Groq→Gemini + circuit breaker).
+- ✅ **Planner layer** — `frontend/.../orchestration/planner/` (intent→tools→DAG).
+- ✅ **Human Approval (`WAITING_APPROVAL`)** — `approvalManager.ts` + override engine.
+- ✅ **Event sourcing clínico** — `eventBus.ts` + `ClinicalRuntimeEvent` (replay/audit).
+- ✅ **Explainability visual** — componentes `rag/`, `intelligence/` (SHAP/confidence/risk).
 
-```typescript
-// Múltiplos níveis de componentes passando state
-CopilotShell -> ConversationView -> MessageBubble -> CitationCard
-```
+> Os "scores 9.x/10 / Clinical Operating System" da versão anterior eram
+> **autoavaliação aspiracional**, não medição. Removidos para evitar overclaim.
+> A maturidade real de cada capacidade está na matriz do [README](./README.md).
 
-## 3. Riscos de Hydration (SSR/CSR)
+---
 
-**🔴 Flash of Empty State**
+## 6. Próximos passos de hardening (priorizados, verificados)
 
-```typescript
-// frontend/src/features/ai/hooks/useSessionHydration.ts:26
-ConversationsRepo.getByPatient(activePatientId)
-    .then(sessions => {
-        // Delay assíncrono causa tela vazia
-        dispatch(hydrateSession(activePatientId, latestSession))
-    })
-```
+**Curto prazo (HIPAA/segurança):**
+- [ ] `crypto.ts`: documentar o salt fixo; avaliar `extractable: false`.
+- [ ] Bloquear o token de sessão demo em produção (flag de ambiente).
+- [ ] Retenção/cap da trilha `.jsonl` (migração p/ Postgres já está no roadmap).
 
-**⚠️ Falta Suspense Boundaries**
+**Médio prazo (qualidade):**
+- [ ] Profiling de streaming → decidir sobre batching de tokens com dados reais.
+- [ ] Barreira de hidratação explícita (`HydrationStatus`) se a UX exigir.
+- [ ] Parametrizar pool/timeout do `inference_client`.
 
-- Sem `<Suspense>` para streaming chunks
-- Loading states hardcoded em vez de declarativos
-
-## 4. Problemas de Streaming
-
-**🔴 Buffer String Concatenation**
-
-```typescript
-// frontend/src/features/ai/transport/sse/stream-reader.ts:27
-buffer += decoder.decode(value, { stream: true })
-```
-
-- **Problema**: O(n²) complexity para streams longas
-- **Solução**: Usar array de chunks + join final
-
-**⚠️ Sem Backpressure Control**
-
-```typescript
-// frontend/src/app/api/chat/route.ts:31
-controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
-// Não verifica se consumer está processando
-```
-
-## 5. Inconsistências de Reducer
-
-**⚠️ Duplicação de Lógica de Status**
-
-```typescript
-// ai.reducer.ts tem 2 formas de atualizar status:
-case "SET_STATUS":
-case "TRANSITION_STATE":
-    // Lógica similar mas não idêntica
-```
-
-**⚠️ Mutação Indireta via Spread**
-
-```typescript
-function updateActiveSession(state: AIState, updateFn: (session: SessionState) => Partial<SessionState>)
-    // Múltiplos spreads aninhados criam clones desnecessários
-```
-
-## 6. Riscos de Conformidade HIPAA 🚨
-
-**🔴 PHI Scrubber Inadequado**
-
-```typescript
-// frontend/src/features/ai/telemetry/scrubbers/phi.ts
-const EMAIL_REGEX = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g
-// Regex básico não detecta: nomes, endereços, datas de nascimento
-```
-
-**🔴 Audit Logs Sem Criptografia**
-
-```python
-# src/services/audit.py:42
-with open(AUDIT_FILE, "a", encoding="utf-8") as f:
-    f.write(json.dumps(entry) + "\n")  # Plaintext JSONL
-```
-
-**🔴 IndexedDB Não Criptografado**
-
-- Dados de pacientes salvos em plaintext no browser
-- Sem encryption-at-rest para dados sensíveis
-
-## 7. Problemas de Concorrência
-
-**🔴 Race Condition no Hydration**
-
-```typescript
-// useSessionHydration.ts
-useEffect(() => {
-    // Load from DB
-    ConversationsRepo.getByPatient(activePatientId)
-}, [activePatientId])
-
-useEffect(() => {
-    // Save to DB - pode executar antes do load completar
-    ConversationsRepo.save({...})
-}, [activePatientId, sessionsByPatient])
-```
-
-**⚠️ Timers Não Cancelados**
-
-```python
-# src/main.py:500 - feedback endpoint
-def _write_feedback() -> None:
-    time.sleep(0.1)  # Thread blocking em async context
-```
-
-## 8. Vazamentos de Memória
-
-**🔴 Stream Reader Sem Cleanup**
-
-```typescript
-// stream-reader.ts:53
-} finally {
-    reader.releaseLock()  // Mas não cancela pending reads
-}
-```
-
-**🔴 Modelos ML Nunca Liberados**
-
-```python
-# Modelos globais carregados uma vez, nunca garbage collected
-_oral_model: MLP | None = None
-```
-
-**⚠️ Event Listeners Acumulados**
-
-- SSE connections sem cleanup em unmount
-- Timers setTimeout sem clearTimeout correspondente
-
-## 9. Melhorias de UX Clínica
-
-### Falta Feedback Visual
-
-- ❌ Sem skeleton loaders durante inferência
-- ❌ Confidence meters não mostram incerteza do modelo
-- ❌ Latência de rede não é comunicada
-
-### Visualização de Evidências
-
-- ❌ Citações sem preview inline
-- ❌ SHAP values não interativos
-- ❌ Timeline de biomarcadores estático
-
-### Gestão de Sessões
-
-- ❌ Histórico não agrupa por data/paciente
-- ❌ Sem busca/filtros no histórico
-- ❌ Títulos auto-gerados não editáveis
-
-## 10. Plano de Ação Priorizado
-
-### 🔴 PRIORIDADE MÁXIMA - Implementar AGORA (Semana 1-2)
-
-**1. Corrigir Re-renders Excessivos no Streaming**
-
-```typescript
-// Arquitetura correta: separar buffer transient de messages persistidas
-const tokenBufferRef = useRef("")
-const flushTokens = useCallback(() => {
-  requestAnimationFrame(() => {
-    dispatch(flushBufferedTokens(tokenBufferRef.current))
-    tokenBufferRef.current = ""
-  })
-}, [])
-```
-
-- **Resultado**: UI "Groq-grade", menos GC pressure, zero layout thrashing
-
-**2. Eliminar Race Condition no Hydration**
-
-```typescript
-// Bloquear persistência até hydratação completa
-const hydrationRef = useRef(false)
-if (!hydrationRef.current) return // Evita sobrescrever sessão vazia
-```
-
-**3. Criptografar IndexedDB com Web Crypto API Nativa**
-
-```typescript
-// NÃO crypto-js - usar window.crypto.subtle
-const encrypted = await crypto.subtle.encrypt({
-  name: "AES-GCM",
-  iv: salt
-}, key, patientData)
-```
-
-- **Estrutura**: EncryptedConversation, EncryptedTrace, EncryptedPatientContext
-
-**4. Pipeline Híbrido de PHI Detection**
-
-```typescript
-// Phase 1: Regex → Dictionary → Heuristic
-// Detectar: CPF, nomes, datas, IDs hospitalares, convênios
-// NÃO Presidio ainda (overkill)
-```
-
-**5. Cleanup Agressivo de Streaming**
-
-```typescript
-// Garantir em TODOS os hooks:
-AbortController.abort()
-reader.cancel()
-reader.releaseLock()
-clearTimeout()
-removeEventListener()
-```
-
-### 🟡 IMPORTANTE - Próximo Sprint (Semana 3-4)
-
-1. **Dependency Injection FastAPI** - `Depends(get_model_service)` vs globals
-2. **Web Workers** - SHAP rendering, graph layouts, timeline computations  
-3. **Circuit Breaker** - quando entrar Groq/OpenAI real
-4. **Tool Scheduler** - ToolExecutionQueue com priority/retries/timeout
-
-### 🟢 ROADMAP Q2 - Fase 5: Clinical Operating System
-
-1. **Planner Layer** - Reasoning → Retrieval → Tool Calls → Evidence Fusion
-2. **Human Approval Layer** - WAITING_APPROVAL para recomendações críticas
-3. **Multi-provider Routing** - Groq (fast) + OpenAI (reasoning) + Local (private)
-4. **Advanced UX** - Confidence meters, interactive SHAP, citation previews
-
-### ❌ OVERENGINEERING (Muito Cedo)
-
-- Redis cache (desnecessário agora)
-- D3.js (SVG + Framer Motion suficiente)
-- Microservices/Kubernetes
-- Presidio full stack
-- CQRS completo
-
-## 11. Estado Arquitetural Atual - Clinical Operating System 🏆
-
-### Evolução Conquistada: Chat → Runtime Cognitivo Corporativo
-
-O Aether Oncology **transcendeu** a categoria de "frontend com IA" e alcançou o patamar de **Clinical Operating Runtime**.
-
-### 🥇 Pilares Arquiteturais de Excelência
-
-**1. Runtime Cognitivo Desacoplado (9.4/10)**
-
-```
-UI → Event Bus → Planner → Execution Engine → Providers/Tools → Streaming Protocol
-```
-
-- Arquitetura de **plataforma**, não aplicação
-- Orchestration comparável: ChatGPT runtime, Cursor, Claude artifacts, LangGraph
-
-**2. Event Sourcing Clínico (9.6/10)**
-
-```
-✅ Tool execution events
-✅ State transition replay  
-✅ Evidence graphs traceable
-✅ Approval workflows future-ready
-✅ Compliance audit trails
-```
-
-- **Diferencial gigantesco** para MedTech
-- Auditabilidade, replay, debugging nativo
-
-**3. Explainability Visual Layer (9.5/10)**
-
-```
-RAG Visualizer + Runtime Inspector
-"AI chegou nisso através destes sinais"
-```
-
-- Fundamental para tumor boards, revisão médica, governança hospitalar
-- Vai além de "AI disse isso"
-
-### 🎯 Avaliação Técnica Completa
-
-| Dimensão | Score | Status |
-|----------|--------|---------|
-| **Runtime Architecture** | 9.4/10 | Excelente |
-| **Tool Orchestration** | 9.6/10 | Excepcional |  
-| **Explainability** | 9.5/10 | Excepcional |
-| **UX Sophistication** | 9.2/10 | Excelente |
-| **Clinical Readiness** | 7.5/10 | Muito Bom |
-| **Compliance Hardening** | 5.5/10 | Em Desenvolvimento |
-
-**Potential de Produção**: **Extremamente Alto** ⭐⭐⭐⭐⭐
-
-## 12. Próximo Salto: Clinical Governance
-
-### O salto não será visual - será governança clínica
-
-**1. Approval Workflows**
-
-```typescript
-AI Suggestion → Risk Classification → Physician Approval → Audit Signature → Finalized Recommendation
-```
-
-**2. Confidence Taxonomy**
-
-```typescript
-type ClinicalConfidence = {
-  evidenceConfidence: number
-  inferenceConfidence: number  
-  recommendationConfidence: number
-  clinicalRisk: "LOW" | "MODERATE" | "HIGH" | "CRITICAL"
-}
-```
-
-**3. Recommendation Boundaries**
-
-```typescript
-type ClinicalOutput = {
-  type: "EVIDENCE" | "OBSERVATION" | "HYPOTHESIS" | "RECOMMENDATION" | "ACTION"
-  confidence: ClinicalConfidence
-  requiresApproval: boolean
-  regulatoryClass: string
-}
-```
-
-**4. Replayable Clinical Sessions**
-
-- Replay consultation
-- Replay inference  
-- Replay planner decisions
-- Replay tool outputs
-
-### Hydration Status Management
-
-```typescript
-type HydrationStatus = "PENDING" | "HYDRATING" | "READY"
-
-// Barrier crítico
-if (hydrationStatus !== "READY") return
-```
-
-### Resource Lifecycle Management
-
-```typescript
-interface DisposableResource {
-  owner: string
-  lifecycle: "ACTIVE" | "DISPOSING" | "DISPOSED"
-  dispose(): void
-}
-```
-
-## Métricas de Sucesso
-
-- **Performance**: P95 latency < 200ms para inference
-- **Segurança**: 100% PHI detectado e sanitizado
-- **UX**: Time to First Byte < 1s
-- **Confiabilidade**: 99.9% uptime em produção
-
-## Conclusão
-
-A arquitetura atual funciona para POC mas requer melhorias significativas para produção hospitalar. Priorizar segurança HIPAA e performance são críticos para adoção clínica.
-
-**Tempo estimado para correções críticas**: 4-6 semanas
-**Equipe recomendada**: 2 backend, 2 frontend, 1 security engineer
+> Documento de auditoria interno — **não é um documento oficial do projeto** e não
+> é versionado por padrão.

@@ -58,6 +58,19 @@ class HallucinationDetectedEvent(BaseEventMetadata):
     details: str
 
 
+class ApprovalRequiredEvent(BaseEventMetadata):
+    """
+    Emitido quando o Clinical Judge determina WARNING + requires_physician_review.
+    O frontend exibe um banner de aprovação com countdown baseado em expires_at.
+    """
+
+    type: str = "approval_required"
+    approval_request_id: str
+    risk_level: str
+    rationale: str
+    expires_at: int  # timestamp em milissegundos
+
+
 class EscalationTriggeredEvent(BaseEventMetadata):
     type: str = "escalation_triggered"
     level: str

@@ -5,8 +5,9 @@ from typing import Any, AsyncGenerator, Dict
 
 from src.providers.circuit_breaker import clinical_circuit_breaker
 from src.providers.router import ClinicalModelRouter, ClinicalTaskProfile
-from src.safety.clinical_judge import ClinicalJudge
+from src.safety.policy import SafetyPolicy
 from src.streaming.protocol import (
+    ApprovalRequiredEvent,
     CompleteEvent,
     ErrorEvent,
     EscalationTriggeredEvent,
@@ -36,21 +37,21 @@ class ClinicalInferenceRuntime:
 
     def __init__(self):
         self.router: ClinicalModelRouter | None = None
-        self.judge: ClinicalJudge | None = None
+        self.policy: SafetyPolicy | None = None
         self._sequence_counter: Dict[str, int] = {}
 
     async def startup(self):
         """Initializes clinical components during application startup."""
         logger.info("[Runtime] Initializing Clinical Inference Runtime...")
         self.router = await ClinicalModelRouter.get_instance()
-        self.judge = ClinicalJudge()
+        self.policy = SafetyPolicy()
         logger.info("[Runtime] Clinical Inference Runtime ready.")
 
     async def shutdown(self):
         """Graceful shutdown of clinical components."""
         logger.info("[Runtime] Shutting down Clinical Inference Runtime...")
         self.router = None
-        self.judge = None
+        self.policy = None
 
     def _next_seq(self, trace_id: str) -> int:
         self._sequence_counter[trace_id] = self._sequence_counter.get(trace_id, 0) + 1
@@ -186,7 +187,7 @@ class ClinicalInferenceRuntime:
                 (m["content"] for m in reversed(messages) if m.get("role") == "user"),
                 "",
             )
-            judgement = await self.judge.evaluate(user_msg, full_response)
+            judgement = await self.policy.evaluate_response(user_msg, full_response)
 
             yield format_sse(
                 JudgementCompletedEvent(
@@ -208,6 +209,41 @@ class ClinicalInferenceRuntime:
                     )
                 )
 
+            # Step 5a: WARNING + physician review → criar approval request (não bloqueia)
+            if judgement.escalation_level == "WARNING" and judgement.requires_physician_review:
+                from src.services.approval_store import approval_repository, APPROVAL_TIMEOUT_SECONDS
+                approval_request_id = str(uuid.uuid4())
+                expires_at = int((time.time() + APPROVAL_TIMEOUT_SECONDS) * 1000)
+
+                approval_repository.save({
+                    "approvalRequestId": approval_request_id,
+                    "plan": {
+                        "prompt": user_msg[:200],
+                        "response_preview": full_response[:200],
+                    },
+                    "riskLevel": judgement.escalation_level,
+                    "rationale": {
+                        "hallucination_risk": judgement.hallucination_risk,
+                        "missing_citations": judgement.missing_citations,
+                        "contradictions": judgement.contradictions,
+                    },
+                    "requestedAt": int(time.time() * 1000),
+                    "expiresAt": expires_at,
+                    "sessionId": session_id,
+                    "patientId": patient_id,
+                })
+
+                yield format_sse(
+                    ApprovalRequiredEvent(
+                        **make_base_kwargs(),
+                        approval_request_id=approval_request_id,
+                        risk_level=judgement.escalation_level,
+                        rationale=str(judgement.missing_citations + judgement.contradictions),
+                        expires_at=expires_at,
+                    )
+                )
+
+            # Step 5b: HARD_STOP → bloquear stream
             if judgement.escalation_level == "HARD_STOP":
                 yield format_sse(
                     ErrorEvent(
