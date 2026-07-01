@@ -134,11 +134,7 @@ model-index:
 
 ## 🌌 Visão Geral
 
-Em 2017, o **IBM Watson for Oncology** foi retirado de hospitais após produzir recomendações que oncologistas consideraram inseguras. O diagnóstico do fracasso foi inequívoco: uma caixa-preta sem explicabilidade, dados de treino opacos e **zero supervisão humana no loop de decisão**.
-
-**Aether Oncology é a resposta arquitetural a esse fracasso.**
-
-Não é "mais um chatbot médico". É um **Sistema Operacional de IA Clínica** construído sobre três princípios inegociáveis:
+O **Aether Oncology** é um **Sistema Operacional de IA Clínica** (Clinical AI Operating System) experimental concebido para demonstrar infraestrutura de engenharia e governança de MLOps na área da saúde. Em vez de atuar como uma caixa-preta de recomendação clínica, o projeto serve como referência arquitetural para a orquestração e auditoria de inteligência artificial aplicada, estruturado sob três princípios inegociáveis:
 
 - **🩺 Médico no loop, por design.** A IA propõe; um clínico aprova, modifica ou faz override — e cada decisão é registrada.
 - **🔍 Auditável, não opaco.** Cada inferência emite eventos estruturados e rastreáveis (correlação por `X-Request-ID`), e cada predição é gravada em uma **trilha de auditoria imutável e criptografada**.
@@ -364,7 +360,7 @@ ClinicalRuntimeState = IDLE | HYDRATING | PLANNING | RETRIEVING | EXECUTING
 
 ## 🛡️ Motor de Segurança Clínica
 
-A camada de segurança (`src/safety/`) envolve cada resposta de **chat clínico**. É a herdeira conceitual da lição do Watson: *nenhuma saída do modelo chega a um clínico sem um veredito.*
+A camada de segurança (`src/safety/`) envolve cada resposta de **chat clínico**. Ela atua como uma barreira de governança explícita: *nenhuma saída de IA chega ao clínico sem passar por uma validação de conformidade e veredito clínico.*
 
 ```
 ClinicalJudge.evaluate(prompt, resposta)
