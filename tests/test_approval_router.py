@@ -7,13 +7,10 @@ O SQLiteApprovalRepository é o singleton global — cada teste cria
 seus próprios registros para evitar acoplamento entre testes.
 """
 
-import pytest
-import httpx
 from fastapi.testclient import TestClient
 
 from src.main import app
 from src.services.approval_store import FALLBACK_PHYSICIAN_ID
-
 
 client = TestClient(app)
 
@@ -37,6 +34,7 @@ def _create_approval() -> str:
 
 # ── 1. POST /request com payload válido → 201, retorna approval_request_id ──
 
+
 def test_create_approval_request_returns_201():
     """Criação bem-sucedida retorna 201 e um UUID."""
     resp = client.post(f"{BASE}/request", json=VALID_PAYLOAD)
@@ -47,6 +45,7 @@ def test_create_approval_request_returns_201():
 
 
 # ── 2. POST /resolve com FALLBACK_PHYSICIAN_ID → 403 ──
+
 
 def test_resolve_with_fallback_physician_returns_403():
     """Tentativa de resolver com médico não autenticado é bloqueada."""
@@ -60,6 +59,7 @@ def test_resolve_with_fallback_physician_returns_403():
 
 # ── 3. POST /resolve com id inexistente → 404 ──
 
+
 def test_resolve_nonexistent_returns_404():
     """Resolver um ID inexistente retorna 404."""
     resp = client.post(
@@ -70,6 +70,7 @@ def test_resolve_nonexistent_returns_404():
 
 
 # ── 4. POST /resolve válido → 200, status RESOLVED ──
+
 
 def test_resolve_valid_approval_returns_200():
     """Médico autenticado resolve com sucesso → RESOLVED."""
@@ -85,6 +86,7 @@ def test_resolve_valid_approval_returns_200():
 
 
 # ── 5. POST /resolve já resolvido → 409 ──
+
 
 def test_resolve_already_resolved_returns_409():
     """Tentar resolver novamente uma approval já RESOLVED → 409 Conflict."""
@@ -104,6 +106,7 @@ def test_resolve_already_resolved_returns_409():
 
 # ── 6. GET /pending → lista vazia após resolver todos os criados ──
 
+
 def test_pending_excludes_resolved():
     """Após resolver, o item não aparece mais na lista de pendentes."""
     aid = _create_approval()
@@ -119,6 +122,7 @@ def test_pending_excludes_resolved():
 
 
 # ── 7. GET /{id} após resolução → decision e decided_by corretos ──
+
 
 def test_get_approval_shows_decision_after_resolve():
     """Consulta completa após resolução retorna decision, decided_by e status."""

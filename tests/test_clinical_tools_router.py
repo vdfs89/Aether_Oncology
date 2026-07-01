@@ -11,15 +11,10 @@ Usa unittest.mock / pytest monkeypatch para simular retornos dos adapters
 e validar o comportamento da SafetyPolicy e o formato da ToolResponse.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
 from src.main import app
-from src.tools.biomarker_adapter import BiomarkerResult
-from src.tools.therapy_matcher import TherapyResult
-from src.tools.clinical_rag import RAGResult
-
 
 client = TestClient(app)
 
@@ -27,6 +22,7 @@ client = TestClient(app)
 # ---------------------------------------------------------------------------
 # Mocks / Dublês Pydantic para os testes
 # ---------------------------------------------------------------------------
+
 
 class DummyBiomarkerResult(BaseModel):
     patient_profile: dict
@@ -63,6 +59,7 @@ class DummyRAGResult(BaseModel):
 # Testes
 # ---------------------------------------------------------------------------
 
+
 def test_biomarkers_success_no_warning(monkeypatch):
     """POST /api/v1/tools/biomarkers retorna 200 com requires_physician_review=False quando o output contém source e evidence_level."""
     dummy_result = DummyBiomarkerResult(
@@ -72,27 +69,27 @@ def test_biomarkers_success_no_warning(monkeypatch):
         source="INCA 2024",
         evidence_level="I",
         version="2025.1",
-        recommendations=[]
+        recommendations=[],
     )
-    
+
     # Mock do analyze do biomarker adapter
     monkeypatch.setattr(
         "src.api.routes.clinical_tools._biomarker.analyze",
-        lambda **kwargs: dummy_result
+        lambda **kwargs: dummy_result,
     )
-    
+
     payload = {
         "age": 45,
         "tobacco_use": "No",
         "alcohol_use": "No",
         "socioeconomic_status": "Middle",
         "country": "Brazil",
-        "gender": "M"
+        "gender": "M",
     }
-    
+
     resp = client.post("/api/v1/tools/biomarkers", json=payload)
     assert resp.status_code == 200
-    
+
     body = resp.json()
     assert "data" in body
     assert body["safety_warning"] is None
@@ -111,22 +108,20 @@ def test_therapy_warning_missing_source(monkeypatch):
         source="",  # Faltando source
         evidence_level="I",
         version="2025.1",
-        notes=""
+        notes="",
     )
-    
+
     # Mock do match do therapy matcher
     monkeypatch.setattr(
         "src.api.routes.clinical_tools._therapy.match",
-        lambda *args, **kwargs: dummy_result
+        lambda *args, **kwargs: dummy_result,
     )
-    
-    payload = {
-        "risk_level": "HIGH"
-    }
-    
+
+    payload = {"risk_level": "HIGH"}
+
     resp = client.post("/api/v1/tools/therapy", json=payload)
     assert resp.status_code == 200
-    
+
     body = resp.json()
     assert "data" in body  # O campo data sempre é retornado
     assert body["safety_warning"] is not None
@@ -143,22 +138,19 @@ def test_guidelines_warning_missing_evidence_level(monkeypatch):
         source="INCA 2024",
         evidence_level="",  # Faltando evidence_level
         confidence=0.9,
-        disclaimer=""
+        disclaimer="",
     )
-    
+
     # Mock do query do clinical RAG
     monkeypatch.setattr(
-        "src.api.routes.clinical_tools._rag.query",
-        lambda *args, **kwargs: dummy_result
+        "src.api.routes.clinical_tools._rag.query", lambda *args, **kwargs: dummy_result
     )
-    
-    payload = {
-        "question": "cigarro"
-    }
-    
+
+    payload = {"question": "cigarro"}
+
     resp = client.post("/api/v1/tools/guidelines", json=payload)
     assert resp.status_code == 200
-    
+
     body = resp.json()
     assert "data" in body  # O campo data sempre é retornado
     assert body["safety_warning"] is not None

@@ -30,7 +30,9 @@ class SafetyPolicy:
         """
         return await self.judge.evaluate(prompt, response)
 
-    def evaluate_prediction(self, confidence: float, risk_level: str) -> ClinicalJudgement:
+    def evaluate_prediction(
+        self, confidence: float, risk_level: str
+    ) -> ClinicalJudgement:
         """Avalia predições do /predict endpoint.
 
         Regras:

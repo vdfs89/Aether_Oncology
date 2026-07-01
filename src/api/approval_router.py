@@ -34,11 +34,10 @@ class ApprovalRequestBody(BaseModel):
     """Payload para criação de uma nova solicitação de aprovação médica."""
 
     plan: dict = Field(..., description="Plano clínico proposto pelo copiloto")
-    riskLevel: str = Field(
-        ..., description="Nível de risco: HIGH | MEDIUM | LOW"
-    )
+    riskLevel: str = Field(..., description="Nível de risco: HIGH | MEDIUM | LOW")
     rationale: dict = Field(
-        ..., description="Justificativa do Clinical Judge (hallucination_risk, evidence_strength)"
+        ...,
+        description="Justificativa do Clinical Judge (hallucination_risk, evidence_strength)",
     )
     sessionId: str = Field(..., description="ID da sessão clínica ativa")
     patientId: str = Field(..., description="ID do paciente")
@@ -50,9 +49,7 @@ class ApprovalDecisionBody(BaseModel):
     decision: str = Field(
         ..., description="Decisão do médico: APPROVED | REJECTED | OVERRIDE"
     )
-    decided_by: str = Field(
-        ..., description="ID do médico responsável pela decisão"
-    )
+    decided_by: str = Field(..., description="ID do médico responsável pela decisão")
     override_reason: Optional[str] = Field(
         None, description="Justificativa obrigatória quando decision == OVERRIDE"
     )

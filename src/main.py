@@ -492,8 +492,8 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-from src.api.routes.clinical_chat import router as clinical_chat_router
 from src.api.approval_router import router as approval_router
+from src.api.routes.clinical_chat import router as clinical_chat_router
 from src.api.routes.clinical_tools import router as clinical_tools_router
 
 app.include_router(clinical_chat_router, prefix="/api/v1/clinical")

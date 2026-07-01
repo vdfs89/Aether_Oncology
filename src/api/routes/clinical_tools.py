@@ -12,9 +12,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from src.safety.policy import SafetyPolicy
-from src.tools.biomarker_adapter import BiomarkerAdapter, BiomarkerResult
-from src.tools.clinical_rag import ClinicalRAG, RAGResult
-from src.tools.therapy_matcher import TherapyMatcher, TherapyResult
+from src.tools.biomarker_adapter import BiomarkerAdapter
+from src.tools.clinical_rag import ClinicalRAG
+from src.tools.therapy_matcher import TherapyMatcher
 
 router = APIRouter(prefix="/tools", tags=["Clinical Tools"])
 

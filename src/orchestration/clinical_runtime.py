@@ -210,35 +210,46 @@ class ClinicalInferenceRuntime:
                 )
 
             # Step 5a: WARNING + physician review → criar approval request (não bloqueia)
-            if judgement.escalation_level == "WARNING" and judgement.requires_physician_review:
-                from src.services.approval_store import approval_repository, APPROVAL_TIMEOUT_SECONDS
+            if (
+                judgement.escalation_level == "WARNING"
+                and judgement.requires_physician_review
+            ):
+                from src.services.approval_store import (
+                    APPROVAL_TIMEOUT_SECONDS,
+                    approval_repository,
+                )
+
                 approval_request_id = str(uuid.uuid4())
                 expires_at = int((time.time() + APPROVAL_TIMEOUT_SECONDS) * 1000)
 
-                approval_repository.save({
-                    "approvalRequestId": approval_request_id,
-                    "plan": {
-                        "prompt": user_msg[:200],
-                        "response_preview": full_response[:200],
-                    },
-                    "riskLevel": judgement.escalation_level,
-                    "rationale": {
-                        "hallucination_risk": judgement.hallucination_risk,
-                        "missing_citations": judgement.missing_citations,
-                        "contradictions": judgement.contradictions,
-                    },
-                    "requestedAt": int(time.time() * 1000),
-                    "expiresAt": expires_at,
-                    "sessionId": session_id,
-                    "patientId": patient_id,
-                })
+                approval_repository.save(
+                    {
+                        "approvalRequestId": approval_request_id,
+                        "plan": {
+                            "prompt": user_msg[:200],
+                            "response_preview": full_response[:200],
+                        },
+                        "riskLevel": judgement.escalation_level,
+                        "rationale": {
+                            "hallucination_risk": judgement.hallucination_risk,
+                            "missing_citations": judgement.missing_citations,
+                            "contradictions": judgement.contradictions,
+                        },
+                        "requestedAt": int(time.time() * 1000),
+                        "expiresAt": expires_at,
+                        "sessionId": session_id,
+                        "patientId": patient_id,
+                    }
+                )
 
                 yield format_sse(
                     ApprovalRequiredEvent(
                         **make_base_kwargs(),
                         approval_request_id=approval_request_id,
                         risk_level=judgement.escalation_level,
-                        rationale=str(judgement.missing_citations + judgement.contradictions),
+                        rationale=str(
+                            judgement.missing_citations + judgement.contradictions
+                        ),
                         expires_at=expires_at,
                     )
                 )
