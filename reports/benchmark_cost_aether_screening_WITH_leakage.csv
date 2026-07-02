@@ -1,0 +1,7 @@
+model,cost@0.5,recall@0.5,opt_threshold,cost@opt,recall@opt,FN@opt,FP@opt
+Dummy (most_frequent),2.9987,0.0,0.5,2.9987,0.0,48066,0
+Dummy (stratified),2.3156,0.2975,0.5,2.3156,0.2975,33768,33489
+LogisticRegression,2.9987,0.0,0.01,0.7001,1.0,0,112226
+RandomForest,2.7356,0.1139,0.01,0.7002,1.0,2,112224
+XGBoost,2.96,0.0166,0.02,0.7001,1.0,0,112219
+MLP (PyTorch),1.9284,0.4657,0.01,0.7001,1.0,0,112226
