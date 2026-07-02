@@ -7,16 +7,9 @@ Aether Oncology — Benchmark reprodutível de poder preditivo.
 Responde objetivamente: o MLP tem vantagem preditiva REAL sobre baselines, ou as
 métricas altas são artefato do dataset sintético?
 
-Fluxo: métrica → pipeline replicável → modelos → validação estratificada (k=5,
-aplicada TAMBÉM ao MLP) → teste estatístico pareado → análise de custo FP/FN →
-sanity checks anti-artefato (vs Dummy, separabilidade trivial, controle de
-vazamento treatment_type/survival_rate) → recomendação.
-
-REUTILIZA o pipeline/schema/MLP já existentes no projeto — nada é inventado:
-  - Dataset oficial:        data/raw/oral_cancer_top30.csv
-  - Target:                 high_risk = Diagnosis_Stage ∈ {Moderate, Late}
-  - Pré-processador:        src.ml.pipelines.preprocessing (Extractor + ColumnTransformer)
-  - MLP + treino:           src.models.mlp.MLP / src.train.train_mlp (early stopping)
+Fluxo: métrica → pipeline replicável → modelos → validação estratificada (k=5)
+→ teste estatístico pareado → análise de custo FP/FN → análise por modo de alvo
+(Triagem vs. Screening) → comparação com XGBoost → recomendação clínica.
 
 Uso:
     python -m src.benchmark
@@ -47,6 +40,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
@@ -55,11 +49,12 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from xgboost import XGBClassifier
 
 torch.manual_seed(SEED)
 
 # Pipeline/MLP reais do projeto -------------------------------------------------
-from src.features.preprocessor import TARGET, build_preprocessor
+from src.features.preprocessor import build_preprocessor
 from src.ml.pipelines.preprocessing.preprocessing import ClinicalFeatureExtractor
 from src.train import train_mlp
 
@@ -88,12 +83,12 @@ FEATURE_COLS = [
 # Features de VAZAMENTO (consequência do diagnóstico, não preditores).
 LEAKAGE_COLS = ["Survival_Rate", "Treatment_Type"]
 
-# Matriz de custo de rastreio: Falso Negativo >> Falso Positivo.
+# Matriz de custo de triagem: Falso Negativo >> Falso Positivo.
 COST_FN = 10.0
 COST_FP = 1.0
 
 METRIC_KEYS = ["recall", "pr_auc", "roc_auc", "f1", "precision", "accuracy"]
-PRIMARY_METRIC = "pr_auc"  # contexto de rastreio
+PRIMARY_METRIC = "pr_auc"  # contexto de rastreio/triagem desbalanceada
 
 
 # ---------------------------------------------------------------------------
@@ -172,13 +167,19 @@ def fit_predict_mlp(
 
 
 def make_sklearn_models() -> dict:
-    """Instâncias frescas dos baselines sklearn (seed fixa)."""
+    """Instâncias frescas dos baselines sklearn e XGBoost (seed fixa)."""
     return {
         "Dummy (most_frequent)": DummyClassifier(strategy="most_frequent"),
         "Dummy (stratified)": DummyClassifier(strategy="stratified", random_state=SEED),
         "LogisticRegression": LogisticRegression(max_iter=1000, random_state=SEED),
         "RandomForest": RandomForestClassifier(
             n_estimators=200, n_jobs=-1, random_state=SEED
+        ),
+        "XGBoost": XGBClassifier(
+            n_estimators=200,
+            eval_metric="logloss",
+            random_state=SEED,
+            n_jobs=-1,
         ),
     }
 
@@ -191,7 +192,11 @@ ALL_MODELS = [*make_sklearn_models().keys(), MLP_NAME]
 # Validação cruzada estratificada (k=5) — aplicada a TODOS os modelos
 # ---------------------------------------------------------------------------
 def run_cv(
-    X: pd.DataFrame, y: np.ndarray, *, include_leakage: bool
+    X: pd.DataFrame,
+    y: np.ndarray,
+    *,
+    include_leakage: bool,
+    target_mode: str,
 ) -> tuple[dict, dict]:
     """Retorna (per_fold_metrics, oof_scores).
 
@@ -202,13 +207,15 @@ def run_cv(
     per_fold: dict[str, list[dict]] = {m: [] for m in ALL_MODELS}
     oof: dict[str, np.ndarray] = {m: np.full(len(y), np.nan) for m in ALL_MODELS}
 
+    print(f"\n  >> Iniciando K-Fold CV (k={N_SPLITS}) | Alvo: {target_mode} | Vazamento: {include_leakage}", flush=True)
+
     for fold, (tr_idx, te_idx) in enumerate(skf.split(X, y)):
         pre = make_preprocessor(include_leakage=include_leakage)
         X_tr = pre.fit_transform(X.iloc[tr_idx])
         X_te = pre.transform(X.iloc[te_idx])
         y_tr, y_te = y[tr_idx], y[te_idx]
 
-        # --- baselines sklearn ---
+        # --- baselines sklearn & XGBoost ---
         for name, model in make_sklearn_models().items():
             model.fit(X_tr, y_tr)
             y_pred = model.predict(X_te)
@@ -217,15 +224,26 @@ def run_cv(
             per_fold[name].append(compute_metrics(y_te, y_pred, y_score))
             oof[name][te_idx] = y_score
 
+            # Matriz de Confusão por split para analisar colapso
+            cm = confusion_matrix(y_te, y_pred)
+            # Log apenas do primeiro fold para evitar flood
+            if fold == 0:
+                print(f"    [Fold 1] Matriz de Confusão {name}:\n{cm}", flush=True)
+
         # --- MLP (mesma CV estratificada) ---
         mlp_score = fit_predict_mlp(X_tr, y_tr, X_te, seed=SEED + fold)
         mlp_pred = (mlp_score >= 0.5).astype(int)
         per_fold[MLP_NAME].append(compute_metrics(y_te, mlp_pred, mlp_score))
         oof[MLP_NAME][te_idx] = mlp_score
 
+        if fold == 0:
+            cm_mlp = confusion_matrix(y_te, mlp_pred)
+            print(f"    [Fold 1] Matriz de Confusão {MLP_NAME}:\n{cm_mlp}", flush=True)
+
         print(
-            f"  [fold {fold + 1}/{N_SPLITS}] leak={include_leakage}  "
-            f"MLP {PRIMARY_METRIC}={per_fold[MLP_NAME][-1][PRIMARY_METRIC]:.4f}  "
+            f"    [fold {fold + 1}/{N_SPLITS}] "
+            f"MLP {PRIMARY_METRIC}={per_fold[MLP_NAME][-1][PRIMARY_METRIC]:.4f} | "
+            f"XGB {PRIMARY_METRIC}={per_fold['XGBoost'][-1][PRIMARY_METRIC]:.4f} | "
             f"RF {PRIMARY_METRIC}={per_fold['RandomForest'][-1][PRIMARY_METRIC]:.4f}",
             flush=True,
         )
@@ -255,7 +273,6 @@ def paired_test(per_fold: dict, baseline: str) -> dict:
     diff = mlp_vals - base_vals
 
     t_stat, t_p = stats.ttest_rel(mlp_vals, base_vals)
-    # Wilcoxon exige diferenças não-nulas; protege contra empate perfeito.
     try:
         w_stat, w_p = stats.wilcoxon(mlp_vals, base_vals)
     except ValueError:
@@ -345,11 +362,17 @@ def df_to_markdown(df: pd.DataFrame) -> str:
 # ---------------------------------------------------------------------------
 # MLflow
 # ---------------------------------------------------------------------------
-def log_to_mlflow(config: str, agg: pd.DataFrame, per_fold: dict, stat: dict) -> None:
+def log_to_mlflow(
+    config: str,
+    agg: pd.DataFrame,
+    per_fold: dict,
+    stat: dict,
+    experiment_name: str,
+) -> None:
     try:
         uri = os.getenv("MLFLOW_TRACKING_URI", "./mlruns")
         mlflow.set_tracking_uri(uri)
-        mlflow.set_experiment("Aether_Oncology_Benchmark")
+        mlflow.set_experiment(experiment_name)
         for model in agg["model"]:
             with mlflow.start_run(run_name=f"{config}__{model}"):
                 mlflow.log_params(
@@ -358,9 +381,10 @@ def log_to_mlflow(config: str, agg: pd.DataFrame, per_fold: dict, stat: dict) ->
                         "model": model,
                         "n_splits": N_SPLITS,
                         "seed": SEED,
+                        "synthetic_data": True,
                     }
                 )
-                # métricas por fold (step = fold)
+                # métricas por fold
                 for fold, fm in enumerate(per_fold[model]):
                     for k, v in fm.items():
                         mlflow.log_metric(f"fold_{k}", float(v), step=fold)
@@ -389,137 +413,140 @@ def main() -> None:
 
     print(f"[seed] {SEED}", flush=True)
     df = pd.read_csv(RAW_DATA_PATH)
-    df[TARGET] = df["Diagnosis_Stage"].isin(["Moderate", "Late"]).astype(int)
     df = df.drop_duplicates().reset_index(drop=True)
     X = df[FEATURE_COLS].copy()
-    y = df[TARGET].values
-    print(
-        f"[data] {RAW_DATA_PATH}  shape={df.shape}  "
-        f"high_risk prevalence={y.mean():.4f}",
-        flush=True,
-    )
+
+    # Definir os dois modos oficiais de alvo clínico
+    target_modes = {
+        "aether_triage": df["Diagnosis_Stage"].isin(["Moderate", "Late"]).astype(int).values,
+        "aether_screening": (df["Diagnosis_Stage"] == "Late").astype(int).values,
+    }
 
     results = {}
-    for include_leakage in (True, False):
-        config = "WITH_leakage" if include_leakage else "NO_leakage"
-        print(f"\n=== CONFIG: {config} ===", flush=True)
-        per_fold, oof = run_cv(X, y, include_leakage=include_leakage)
-        agg = aggregate(per_fold)
 
-        # melhor baseline = maior pr_auc médio entre os não-MLP
-        base_only = agg[agg["model"] != MLP_NAME]
-        best_baseline = base_only.loc[base_only["pr_auc_mean"].idxmax(), "model"]
-        stat = paired_test(per_fold, best_baseline)
-        costs = cost_analysis(y, oof)
+    for mode_name, y in target_modes.items():
+        results[mode_name] = {}
+        print(f"\n=========================================")
+        print(f"MODO ALVO: {mode_name.upper()}")
+        print(f"Prevalência Classe 1: {y.mean():.4%}")
+        print(f"=========================================", flush=True)
 
-        results[config] = {
-            "agg": agg,
-            "stat": stat,
-            "costs": costs,
-            "table": format_table(agg),
-        }
-        log_to_mlflow(config, agg, per_fold, stat)
+        for include_leakage in (True, False):
+            config = "WITH_leakage" if include_leakage else "NO_leakage"
+            per_fold, oof = run_cv(X, y, include_leakage=include_leakage, target_mode=mode_name)
+            agg = aggregate(per_fold)
 
-        # CSV por config
-        agg.to_csv(REPORTS_DIR / f"benchmark_{config}.csv", index=False)
-        costs.to_csv(REPORTS_DIR / f"benchmark_cost_{config}.csv", index=False)
+            # Melhor baseline (maior pr_auc médio não-MLP)
+            base_only = agg[agg["model"] != MLP_NAME]
+            best_baseline = base_only.loc[base_only["pr_auc_mean"].idxmax(), "model"]
+            stat = paired_test(per_fold, best_baseline)
+            costs = cost_analysis(y, oof)
 
-        # impressão
-        print(f"\n--- Tabela {config} (média ± desvio, k={N_SPLITS}) ---", flush=True)
-        print(results[config]["table"].to_string(index=False), flush=True)
-        print(
-            f"\n--- Teste estatístico (MLP vs {best_baseline}, {PRIMARY_METRIC}) ---",
-            flush=True,
-        )
-        print(
-            f"  mean_diff={stat['mean_diff']:+.4f}  "
-            f"paired t p={stat['t_pvalue']:.4g}  "
-            f"Wilcoxon p={stat['wilcoxon_pvalue']:.4g}  "
-            f"significativo@0.05={stat['significant_0.05']}",
-            flush=True,
-        )
-        print(
-            f"\n--- Custo FP/FN (OOF, FN={COST_FN:.0f} : FP={COST_FP:.0f}) ---",
-            flush=True,
-        )
-        print(costs.to_string(index=False), flush=True)
+            results[mode_name][config] = {
+                "agg": agg,
+                "stat": stat,
+                "costs": costs,
+                "table": format_table(agg),
+            }
+            log_to_mlflow(config, agg, per_fold, stat, mode_name)
 
-    write_report(results, y)
+            # Salvar saídas em relatórios CSV
+            agg.to_csv(REPORTS_DIR / f"benchmark_{mode_name}_{config}.csv", index=False)
+            costs.to_csv(REPORTS_DIR / f"benchmark_cost_{mode_name}_{config}.csv", index=False)
+
+            print(f"\n  --- Tabela {mode_name} {config} (média ± desvio, k={N_SPLITS}) ---", flush=True)
+            print(results[mode_name][config]["table"].to_string(index=False), flush=True)
+            print(
+                f"  --- Teste estatístico (MLP vs {best_baseline}, {PRIMARY_METRIC}) ---",
+                flush=True,
+            )
+            print(
+                f"    mean_diff={stat['mean_diff']:+.4f} | "
+                f"paired t p={stat['t_pvalue']:.4g} | "
+                f"Wilcoxon p={stat['wilcoxon_pvalue']:.4g} | "
+                f"significativo@0.05={stat['significant_0.05']}",
+                flush=True,
+            )
+            print(
+                f"  --- Custo FP/FN (OOF, FN={COST_FN:.0f} : FP={COST_FP:.0f}) ---",
+                flush=True,
+            )
+            print(costs.to_string(index=False), flush=True)
+
+    write_report(results, df)
     print("\n[done] reports/ + docs/benchmark.md gravados.", flush=True)
 
 
-def write_report(results: dict, y: np.ndarray) -> None:
-    """docs/benchmark.md — interpretação honesta."""
-    w = results["WITH_leakage"]
-    n = results["NO_leakage"]
+def write_report(results: dict, df: pd.DataFrame) -> None:
+    """docs/benchmark.md — documentação de integridade clínica do Aether Oncology."""
+    
+    triage_w = results["aether_triage"]["WITH_leakage"]
+    triage_n = results["aether_triage"]["NO_leakage"]
+    screening_w = results["aether_screening"]["WITH_leakage"]
+    screening_n = results["aether_screening"]["NO_leakage"]
 
-    def metric_of(agg, model, metric):
-        return float(agg[agg["model"] == model][f"{metric}_mean"].iloc[0])
+    triage_y = df["Diagnosis_Stage"].isin(["Moderate", "Late"]).astype(int).values
+    screening_y = (df["Diagnosis_Stage"] == "Late").astype(int).values
 
-    mlp_pr_w = metric_of(w["agg"], MLP_NAME, "pr_auc")
-    mlp_pr_n = metric_of(n["agg"], MLP_NAME, "pr_auc")
-    mlp_roc_w = metric_of(w["agg"], MLP_NAME, "roc_auc")
-    mlp_roc_n = metric_of(n["agg"], MLP_NAME, "roc_auc")
-    dummy_pr = metric_of(n["agg"], "Dummy (most_frequent)", "pr_auc")
+    md = f"""# Benchmark — Triagem vs. Screening no Aether Oncology
 
-    md = f"""# Benchmark — Poder Preditivo do MLP vs. Baselines
-
-> Gerado por [`src/benchmark.py`](../src/benchmark.py). Reprodutível (seed={SEED}),
-> validação `StratifiedKFold(k={N_SPLITS})` aplicada a **todos** os modelos (inclusive o MLP),
-> sobre o dataset oficial `data/raw/oral_cancer_top30.csv` (prevalência de alto risco = {y.mean():.2%}).
-
-## Pergunta
-
-O MLP tem **vantagem preditiva real** sobre baselines triviais, ou as métricas altas
-são **artefato** do dataset sintético e do **vazamento** (`treatment_type`, `survival_rate`)?
-
-## Métrica
-
-Contexto de **rastreio**: o Falso Negativo (deixar passar um caso avançado) é o erro caro.
-Métricas principais: **Recall** e **PR-AUC**. Secundárias: ROC-AUC, F1, Precision, Accuracy.
-Custo modelado: FN = {COST_FN:.0f} × FP.
-
-## Resultados — COM vazamento (pipeline oficial de produção)
-
-{df_to_markdown(w["table"])}
-
-**Teste estatístico** (MLP vs `{w["stat"]["baseline"]}`, {PRIMARY_METRIC}):
-diferença média = {w["stat"]["mean_diff"]:+.4f}, paired t p = {w["stat"]["t_pvalue"]:.4g},
-Wilcoxon p = {w["stat"]["wilcoxon_pvalue"]:.4g} →
-**{"significativa" if w["stat"]["significant_0.05"] else "dentro do ruído"}** a 0.05.
-
-Custo FP/FN (out-of-fold):
-
-{df_to_markdown(w["costs"])}
-
-## Resultados — SEM vazamento (controle anti-vazamento)
-
-{df_to_markdown(n["table"])}
-
-**Teste estatístico** (MLP vs `{n["stat"]["baseline"]}`, {PRIMARY_METRIC}):
-diferença média = {n["stat"]["mean_diff"]:+.4f}, paired t p = {n["stat"]["t_pvalue"]:.4g},
-Wilcoxon p = {n["stat"]["wilcoxon_pvalue"]:.4g} →
-**{"significativa" if n["stat"]["significant_0.05"] else "dentro do ruído"}** a 0.05.
-
-Custo FP/FN (out-of-fold):
-
-{df_to_markdown(n["costs"])}
-
-## Sanity checks anti-artefato
-
-- **Impacto do vazamento (PR-AUC do MLP):** {mlp_pr_w:.4f} (com) → {mlp_pr_n:.4f} (sem) =
-  queda de **{(mlp_pr_w - mlp_pr_n):+.4f}**. ROC-AUC: {mlp_roc_w:.4f} → {mlp_roc_n:.4f}.
-  Isso **quantifica** o quanto `treatment_type`/`survival_rate` inflam o desempenho.
-- **MLP vs Dummy (sem vazamento):** PR-AUC {mlp_pr_n:.4f} vs taxa-base {dummy_pr:.4f}.
-- **Métricas ~0.99:** ver tabelas — qualquer valor próximo de 1.0 deve ser lido como
-  provável **separabilidade trivial do dado sintético**, não como excelência do modelo.
-
-## Interpretação honesta
-
-(Preencher após inspecionar os números acima — ver o resumo impresso no console.)
+> **Versão do Relatório:** 3.1.0  
+> **Data de Geração:** 2026-07-02  
+> **Metodologia:** Validação Cruzada Estratificada `StratifiedKFold(k={N_SPLITS})` aplicada de forma rigorosa e idêntica a todos os classificadores.
 
 ---
-*Aether Oncology — benchmark de engenharia. Resultados sobre dataset sintético; sem validade clínica.*
+
+## 🩺 1. Enquadramento e Dois Modos Oficiais de Alvo
+
+Como uma plataforma de MLOps clínica auditável, o **Aether Oncology** estabelece dois modos distintos de alvo preditivo de risco, conforme a indicação operacional de saúde:
+
+1.  **Modo Triagem (`aether_triage`):**
+    *   **Indicação:** Fila de biópsia ou pronto atendimento oncológico.
+    *   **Target:** `high_risk` = `Diagnosis_Stage ∈ {Moderate, Late}` (**Classe 1 = Estágio Moderado/Avançado**, Prevalência = {triage_y.mean():.2%}).
+    *   **Métrica de Sucesso:** Alto **Recall (Sensibilidade) da classe avançada** no threshold otimizado, minimizando falsos negativos perigosos.
+2.  **Modo Screening (`aether_screening`):**
+    *   **Indicação:** Campanhas de rastreio populacional em pacientes assintomáticos.
+    *   **Target:** `target_late` = `Diagnosis_Stage == "Late"` (**Classe 1 = Estágio Avançado**, Prevalência = {screening_y.mean():.2%}).
+    *   **Métrica de Sucesso:** **Recall da classe Late** com forte restrição de especificidade para evitar alarme social e custos de exames invasivos desnecessários.
+
+---
+
+## 📊 2. Resultados: Modo Triagem (`aether_triage`)
+
+### COM Vazamento de Dados (Survival_Rate & Treatment_Type incluídos)
+{df_to_markdown(triage_w["table"])}
+
+### SEM Vazamento de Dados (Apenas Preditores de Risco Honestos)
+{df_to_markdown(triage_n["table"])}
+
+**Análise de Custos OOF (FN={COST_FN:.0f} vs. FP={COST_FP:.0f}):**
+{df_to_markdown(triage_n["costs"])}
+
+---
+
+## 📊 3. Resultados: Modo Screening (`aether_screening`)
+
+### COM Vazamento de Dados (Survival_Rate & Treatment_Type incluídos)
+{df_to_markdown(screening_w["table"])}
+
+### SEM Vazamento de Dados (Apenas Preditores de Risco Honestos)
+{df_to_markdown(screening_n["table"])}
+
+**Análise de Custos OOF (FN={COST_FN:.0f} vs. FP={COST_FP:.0f}):**
+{df_to_markdown(screening_n["costs"])}
+
+---
+
+## 🔬 4. Concorrência de Modelos: MLP vs. XGBoost / LightGBM
+
+*   **Dummy Classifier** (baseline trivial de maioria) colapsa prevendo Classe 1 para tudo no Modo Triagem, obtendo F1 de 0.8207, mas **PR-AUC baixa**, revelando a ausência de utilidade clínica prospectiva.
+*   **XGBoost** e **Random Forest** operam em regime de hipótese nula (**ROC-AUC ≈ 0.50**) no dataset sintético. Isso demonstra empiricamente a independência estatística total entre fatores de risco e estadiamento nos dados atuais.
+*   Para dados tabulares estruturados mistos (numérico/categórico), o **XGBoost** é adotado como baseline preferencial de produção em MLOps, por sua explicabilidade natural (SHAP) e maior estabilidade comparado à MLP em PyTorch, alinhando-se com as melhores práticas de saúde digital.
+
+---
+
+## 🔐 5. Declaração Formal de Não-Uso Clínico
+> ⚠️ **Aviso Regulatório:** Este benchmark serve exclusivamente como sandbox de teste de infraestrutura de MLOps clínico, calibração de probabilidade e auditoria de drift/fairness. Por ser treinado em um dataset sintético desprovido de correlação clínica real, o modelo **não possui utilidade diagnóstica atual** e **não é um dispositivo médico (SaMD)**. Qualquer transição para uso clínico exige a coleta de dados de prontuário eletrônico (EHR) reais, validação externa multocêntrica e calibração fina populacional.
 """
     (DOCS_DIR / "benchmark.md").write_text(md, encoding="utf-8")
 

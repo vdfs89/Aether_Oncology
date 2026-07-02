@@ -1,0 +1,146 @@
+# Dicionário de Dados Clínico — Aether Oncology v3.1.0
+# Define a semântica, unidades, temporalidade e status de vazamento de cada atributo.
+
+version: "1.0.0"
+dataset_name: "oral_cancer_top30.csv"
+source: "Kaggle — Oral Cancer Prediction Dataset (Top 30 Countries)"
+license: "MIT"
+scope: "Triagem de Risco e Sandbox de MLOps Clínico"
+
+variables:
+  ID:
+    type: "raw"
+    data_type: "integer"
+    description: "Identificador sequencial único do registro."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    units: "unitless"
+
+  Age:
+    type: "raw"
+    data_type: "integer"
+    description: "Idade cronológica do paciente no momento do primeiro atendimento."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    units: "anos"
+    range: [20, 89]
+
+  Gender:
+    type: "raw"
+    data_type: "string"
+    description: "Gênero biológico do paciente."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      Male: "Masculino"
+      Female: "Feminino"
+
+  Country:
+    type: "raw"
+    data_type: "string"
+    description: "País de origem do paciente (usado para identificar a incidência epidemiológica de base)."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    cardinality: 30
+
+  Socioeconomic_Status:
+    type: "raw"
+    data_type: "string"
+    description: "Status socioeconômico autodeclarado do paciente."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      Low: "Baixo status socioeconômico (indicador de barreiras de acesso ao cuidado preventivo)"
+      Medium: "Médio status socioeconômico"
+      High: "Alto status socioeconômico"
+
+  Tobacco_Use:
+    type: "raw"
+    data_type: "integer"
+    description: "Histórico de uso de produtos de tabaco."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      0: "Não fumante / sem exposição crônica"
+      1: "Fumante ativo ou histórico de uso pesado"
+
+  Alcohol_Use:
+    type: "raw"
+    data_type: "integer"
+    description: "Histórico de consumo regular de bebidas alcoólicas."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      0: "Não consome regularmente"
+      1: "Consumo regular / crônico"
+
+  HPV_Related:
+    type: "raw"
+    data_type: "integer"
+    description: "Status de infecção relacionada ao papilomavírus humano (HPV), fator etiológico chave para carcinoma espinocelular oral."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      0: "HPV Negativo / não detectado"
+      1: "HPV Positivo"
+
+  Diagnosis_Stage:
+    type: "raw"
+    data_type: "string"
+    description: "Estágio clínico do câncer oral no momento da biópsia/diagnóstico definitivo (Target do modelo)."
+    clinical_timing: "diagnosis"
+    is_leakage: false
+    categories:
+      Early: "Estágio Inicial (lesão localizada, sem metástases detectáveis)"
+      Moderate: "Estágio Moderado (lesão localmente avançada)"
+      Late: "Estágio Avançado (metástase regional/distante)"
+
+  Treatment_Type:
+    type: "raw"
+    data_type: "string"
+    description: "Tipo de tratamento oncológico instituído."
+    clinical_timing: "post-diagnosis"
+    is_leakage: true
+    note: "Esta variável representa o tratamento recebido e só existe após o estadiamento definitivo. Usá-la como preditor de risco representa vazamento temporal (data leakage). É banida das features de inferência real."
+    categories:
+      Surgery: "Procedimento cirúrgico de ressecção tumoral"
+      Radiation: "Radioterapia oncológica"
+      Chemotherapy: "Quimioterapia sistêmica"
+      Targeted Therapy: "Terapia alvo direcionada"
+      Palliative Care: "Cuidados paliativos"
+
+  Survival_Rate:
+    type: "raw"
+    data_type: "float"
+    description: "Probabilidade estimada de sobrevida em 5 anos pós-diagnóstico."
+    clinical_timing: "post-diagnosis"
+    is_leakage: true
+    note: "Variável prognóstica posterior ao estadiamento clínico e à instituição terapêutica. Representa vazamento temporal e é banida das features de inferência real."
+    units: "probabilidade (0.0 a 1.0)"
+    range: [0.30, 0.90]
+
+derived_variables:
+  risk_index:
+    type: "derived"
+    formula: "Tobacco_Use + Alcohol_Use + HPV_Related"
+    description: "Índice de risco acumulado somando os principais fatores de estilo de vida e fatores virais."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    units: "escore discreto (0 a 3)"
+
+  age_bucket:
+    type: "derived"
+    formula: "Discretização da Idade em bins: [0-30, 31-45, 46-60, 61+]"
+    description: "Categorização de idade para estratificação epidemiológica populacional."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+
+  high_incidence_country:
+    type: "derived"
+    formula: "Country in high-risk list"
+    description: "Indicador de residência em país de alto risco de base para câncer de cabeça e pescoço."
+    clinical_timing: "pre-diagnosis"
+    is_leakage: false
+    categories:
+      0: "País de incidência padrão"
+      1: "País de alta incidência (e.g. Índia, Paquistão, Vietnã, África do Sul)"
