@@ -440,7 +440,41 @@ Governance is event-sourced end-to-end (`frontend/src/features/ai/orchestration/
 
 ## 🔬 Machine Learning Platform
 
-The diagnostic core is governed by a **comprehensive MLOps pipeline** (`src/train.py` orchestrating `src/ml/pipelines/**`).
+### 📊 1. Signal Diagnosis & Synthetic Data Limitations
+*   **Synthetic Independence:** The main dataset [oral_cancer_top30.csv](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/data/raw/oral_cancer_top30.csv) (160,292 records, 11 columns) was synthetically generated with **near-perfect statistical independence** between all predictive features (risk factors and demographic data) and the clinical diagnostic stage (`Diagnosis_Stage`). The mutual information of all predictors relative to the target is less than `0.008 nats`, imposing a strict performance limit: any classifier operates under the null hypothesis (**ROC-AUC ≈ 0.50**).
+*   **The F1-score Illusion:** The dataset has a uniform distribution of stages: **Moderate** (~39.89%), **Early** (~30.12%), and **Late** (~29.99%). The standard target definition `high_risk = {Moderate, Late}` creates a natural class imbalance of **Class 1 (69.88%)** vs. **Class 0 (30.12%)**. This allows trivial classifiers to obtain a misleading F1-score of `~0.82` simply by predicting the majority class ("1") for every sample. **Even with F1 ≈ 0.82 under class collapse, the PR-AUC remains low**, reinforcing that there is no real clinical utility in this synthetic independence scenario. PR-AUC is the most honest metric for screening under class imbalance, preparing the reader for the detailed benchmark in [benchmark.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/benchmark.md).
+
+### 🚿 2. Feature Categorization & Leakage Audit
+To maintain a conceptually robust clinical model, the available columns are categorized as follows:
+*   **Risk Factors (Pre-Diagnosis):** `Tobacco_Use`, `Alcohol_Use`, `HPV_Related`, `Age`.
+*   **Contextual Variables:** `Country`, `Gender`, `Socioeconomic_Status`.
+*   **Consequence Variables (Post-Diagnosis):** `Treatment_Type`, `Survival_Rate`.
+
+In a real-world scenario, `Treatment_Type` (such as chemotherapy or surgery) and `Survival_Rate` (survival rate) are determined after diagnosis and thus constitute **temporal leakage** (data leakage) when used as stage predictors. Although the independence in data synthesis means their removal does not alter the current ROC-AUC, **they are completely banned in the honest inference pipeline** to prevent severe methodological flaws in real production data.
+
+### 🎯 3. Methodological Target Redesign
+We propose two target redesign alternatives for clinical screening applications on real clinical datasets:
+*   **Alternative A: Urgent Screening (Advanced vs. Early):** Maps `high_risk = Diagnosis_Stage ∈ {Moderate, Late}` (**Class 1 = Moderate/Late cases**, Class 0 = Early cases). The metric focus is to guarantee a **high Recall (sensitivity) on the advanced class** to prevent catastrophic false negatives in routing beds and specialized treatment.
+*   **Alternative B: Preventive Screening (Late vs. Early/Moderate):** Maps `target_late = Diagnosis_Stage == "Late"` (**Class 1 = Late cases**, Class 0 = Early/Moderate cases). The goal is to isolate high-complexity cases with the poorest prognosis, prioritizing **Recall on the Late class** in epidemiological frontier diagnostics.
+
+### 🧪 4. Clinical Feature Engineering
+New epidemiologically plausible features are computed by the pipeline:
+*   **`risk_index`:** Combined score of harmful habits and predisposition (`Tobacco_Use + Alcohol_Use + HPV_Related`).
+*   **`age_bucket`:** Structuring into age groups of accumulated risk (e.g., `Age_61_plus` as the highest incidence factor).
+*   **Access Interactions:** Geographic and socioeconomic interaction (`Socioeconomic_Status` × `Country`), serving as a proxy for vulnerability and delay in screening.
+
+These features must be implemented in the `ClinicalFeatureExtractor` class in [preprocessing.py](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/src/ml/pipelines/preprocessing/preprocessing.py), ensuring that both the MLP and tree-based models receive the same deterministic and auditable enriched feature space.
+
+### 🏁 5. Benchmark Execution & Tabular Modeling
+In [benchmark.py](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/src/benchmark.py), we implement a structured validation with the following statistical rigor guarantees:
+*   **Stratified Cross-Validation (k=5)** applied identically to all predictive models.
+*   **Screening Metrics:** Promotion of **PR-AUC (Average Precision)** as the primary comparison metric, complemented by sensitivity, specificity, accuracy, and expected cost based on the FP/FN cost matrix ($\text{FN} = 10 \times \text{FP}$).
+*   **Confusion Matrix per Split:** Explicit printing of the confusion matrix to analyze class collapse behavior in each training split.
+*   **Model Competition:** Direct comparison between the PyTorch MLP (`src/models/mlp.py`) and tabular baselines such as **Random Forest** and boosting-based algorithms (**XGBoost / LightGBM**), with structured experiment tracking in **MLflow** to identify the "champion model" (the one with the highest PR-AUC under a minimum acceptable recall of 85%).
+
+### 📝 6. Framing & Integrity Note
+The automatically generated report in [model_card.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/MODEL_CARD.md) and the detailed statistical audit in [dataset_audit_report.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/dataset_audit_report.md) reflect Aether Oncology's commitment to scientific rigor:
+> ⚠️ **Null Results as Integrity:** Obtaining a ROC-AUC ≈ 0.50 is the only mathematically sound response to synthetic data without a signal. Aether Oncology positions itself strictly as a **reference architecture for clinical MLOps engineering and auditable operations**, not as a validated diagnostic classifier (SaMD). Any clinical use in a real production environment requires prior replacement with real clinical data, external bias audit (Fairlearn), and population re-calibration.
 
 | Stage | Module | What it does |
 | :--- | :--- | :--- |
@@ -453,10 +487,6 @@ The diagnostic core is governed by a **comprehensive MLOps pipeline** (`src/trai
 | **Drift** | `drift/drift_rules.py`, `ml_platform/drift.py` | KS-test (p<0.05), PSI ≥0.25, JS-divergence ≥0.20; global flag when >33% features drift. |
 | **Lineage & Cards** | `lineage.py`, `model_card_generator.py` | SHA-256 lineage + model card. |
 | **Tracking** | `train.py` | MLflow logging + model registry (`AetherOncologyOralCancerHighRisk`). |
-
-**Model** — `src/models/mlp.py`: a configurable MLP `Input → [128, 64, 32] → 1 logit` with BatchNorm, ReLU, Dropout(0.3), trained with `BCEWithLogitsLoss(pos_weight)` and early stopping. Hyperparameter search via **Optuna (TPE)** in `src/optimize.py`.
-
-**Dataset** — *Oral Cancer Top 30 Countries* (MIT License); binary target `high_risk = Diagnosis_Stage ∈ {Moderate, Late}`.
 
 > 🧐 **Integrity note:** the committed `models/fairness_audit.json` reports near-perfect parity across all subgroups, which is unusual for a real holdout and likely reflects a synthetic/regenerated evaluation set. Treat the fairness *infrastructure* as production-grade and the *reported numbers* as provisional pending validation on real clinical data.
 

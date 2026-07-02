@@ -397,7 +397,12 @@ function ControlWidget({
 /* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
-export function PrecisionDashboard() {
+interface PrecisionDashboardProps {
+  activeTab?: 'precision' | 'ops'
+  setActiveTab?: (tab: 'precision' | 'ops') => void
+}
+
+export function PrecisionDashboard({ activeTab, setActiveTab }: PrecisionDashboardProps = {}) {
   const [lang, setLang] = useState<Lang>("pt")
   const [themeId, setThemeId] = useState("aurora")
   const [fillReady, setFillReady] = useState(false)
@@ -453,6 +458,26 @@ export function PrecisionDashboard() {
               <div className="brand-sub">PRECISION FOR LIFE</div>
             </div>
           </div>
+
+          {setActiveTab && (
+            <div className="seg">
+              <button 
+                type="button" 
+                className={activeTab === 'precision' ? 'active' : ''} 
+                onClick={() => setActiveTab('precision')}
+              >
+                Precision
+              </button>
+              <button 
+                type="button" 
+                className={activeTab === 'ops' ? 'active' : ''} 
+                onClick={() => setActiveTab('ops')}
+              >
+                Clinical Ops
+              </button>
+            </div>
+          )}
+
           <div className="eyebrow-pill">
             <span className="dot" />
             {t.live} · v3.1.0
