@@ -11,21 +11,21 @@ tags:
 - oncology
 - health
 datasets:
-- custom/oral-cancer-top-30-countries
+- ankushpanday2/oral-cancer-prediction-dataset
 pipeline_tag: tabular-classification
 model-index:
-- name: Aether Oncology Tumor Classifier v3.0
+- name: Aether Oncology Tumor Classifier v3.2
   results:
   - task:
       type: tabular-classification
       name: Tabular Classification
     dataset:
-      name: Oral Cancer Top 30 Countries
-      type: custom/oral-cancer-top-30-countries
+      name: Oral Cancer Prediction Dataset
+      type: ankushpanday2/oral-cancer-prediction-dataset
     metrics:
     - type: roc_auc
       value: 0.50
-      name: ROC-AUC (5-fold CV — no learnable signal)
+      name: ROC-AUC (legacy v1 5-fold CV — no learnable signal)
     - type: recall
       value: 0.45
       name: Recall @0.5 (5-fold CV)
@@ -77,7 +77,7 @@ model-index:
 
 <!-- ── Quality ── -->
 <p align="center">
-  <img src="https://img.shields.io/badge/ROC--AUC-0.50_(no_signal)-9E9E9E?style=flat-square&logo=target&logoColor=white" alt="ROC-AUC" />
+  <img src="https://img.shields.io/badge/ML_Core-Sprint_3_Retraining-2196F3?style=flat-square&logo=target&logoColor=white" alt="Sprint 3 retraining" />
   <img src="https://img.shields.io/badge/Benchmark-5--fold_CV-2196F3?style=flat-square" alt="Benchmark" />
   <img src="https://img.shields.io/badge/Coverage-~91%25-green?style=flat-square" alt="Coverage" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
@@ -95,8 +95,8 @@ model-index:
 > 📸 **Portal screenshots — recapture pending.** The previous captures referred to an earlier
 > model and were removed to avoid misrepresentation. New screenshots of the current oral-cancer
 > **risk-stratification** portal (`/portal.html`) will be added here, labelled as *low-risk /
-> high-risk example outputs* — **without confidence percentages**, since the benchmark shows
-> ROC-AUC ≈ 0.50 (no real predictive signal).
+> high-risk example outputs* — **without confidence percentages** until the Sprint 3
+> 25-feature benchmark is complete.
 
 ---
 
@@ -145,10 +145,10 @@ The platform spans two complementary surfaces:
 
 | Surface | What it is | Maturity |
 | :--- | :--- | :---: |
-| **Diagnostic ML Core** (`/predict`) | A PyTorch MLP for **oral-cancer risk stratification**, governed by a full MLOps pipeline (Pandera contracts, calibration, fairness, leakage & drift audits, lineage, model cards). | ✅ **Functional (prototype)** |
+| **Diagnostic ML Core** (`/predict`) | A PyTorch MLP for **oral-cancer risk stratification**, governed by a full MLOps pipeline (Pandera contracts, calibration, fairness, leakage & drift audits, lineage, model cards). | 🔄 **Retraining (Sprint 3)** |
 | **Clinical AI Copilot** (`/api/v1/clinical/chat`) | A **multi-agent, SSE-streaming clinical reasoning runtime** — planner → execution DAG → provider router → safety judge → physician approval/override → event-sourced audit. | 🧪 **Experimental** |
 
-> Aether is **engineered for Recall above all else.** In oncology, a false negative is not a statistical error — it is a lost early-intervention window, so the design *targets* sensitivity over precision. **Honest finding:** the reproducible benchmark ([`docs/benchmark.md`](./docs/benchmark.md), 5-fold stratified CV, MLP vs DummyClassifier/LogReg/RandomForest) shows the synthetic dataset carries **no learnable signal** — ROC-AUC ≈ 0.50, the MLP does **not** beat the base rate (paired t p=0.79), and removing the leakage features barely moves the metrics. The pipeline is presented as an **engineering/MLOps demonstration**, not as evidence of predictive performance.
+> Aether is **engineered for Recall above all else.** In oncology, a false negative is not a statistical error — it is a lost early-intervention window, so the design *targets* sensitivity over precision. **Honest finding:** the legacy v1 benchmark ([`docs/benchmark.md`](./docs/benchmark.md), 5-fold stratified CV, MLP vs DummyClassifier/LogReg/RandomForest) showed the old synthetic dataset carried **no learnable signal** — ROC-AUC ≈ 0.50. Sprint 3 migrates the ML core to the 25-feature `oral_cancer_prediction` dataset; benchmark results are pending and must still be treated as synthetic/prototype evidence only.
 
 ---
 
@@ -157,11 +157,11 @@ The platform spans two complementary surfaces:
 > [!NOTE]
 > Aether is an ambitious platform under active development. To stay honest, every major capability below is labelled by **maturity**, derived directly from the source tree — not from marketing.
 >
-> **✅ Current** = wired and exercised · **🧪 Experimental** = implemented but not fully integrated/validated · **🟡 Mock** = stubbed for demo/dev · **🗓️ Planned** = on the roadmap.
+> **✅ Current** = wired and exercised · **🔄 Retraining** = implemented migration with benchmark pending · **🧪 Experimental** = implemented but not fully integrated/validated · **🟡 Mock** = stubbed for demo/dev · **🗓️ Planned** = on the roadmap.
 
 | Capability | Maturity | Evidence |
 | :--- | :---: | :--- |
-| Oral-cancer risk classification (MLP + confidence tiering) | ✅ Current | `src/main.py` · `src/services/predictor.py` |
+| ML Core (Classifier) | 🔄 Retraining | Migrating to 25-feature dataset (Sprint 3) — benchmark pending; trainer: `src/ml_platform/train_oral_cancer.py` |
 | Encrypted, immutable audit trail (Fernet) | ✅ Current | `src/services/audit.py` |
 | MLOps governance: Pandera schemas, calibration, leakage/fairness audits, OOD, lineage, model cards | ✅ Current | `src/train.py` · `src/ml/pipelines/**` |
 | KS-Test data-drift detection | ✅ Current | `src/ml_platform/drift.py` · `src/services/audit.py` |
@@ -440,53 +440,56 @@ Governance is event-sourced end-to-end (`frontend/src/features/ai/orchestration/
 
 ## 🔬 Machine Learning Platform
 
-### 📊 1. Signal Diagnosis & Synthetic Data Limitations
-*   **Synthetic Independence:** The main dataset [oral_cancer_top30.csv](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/data/raw/oral_cancer_top30.csv) (160,292 records, 11 columns) was synthetically generated with **near-perfect statistical independence** between all predictive features (risk factors and demographic data) and the clinical diagnostic stage (`Diagnosis_Stage`). The mutual information of all predictors relative to the target is less than `0.008 nats`, imposing a strict performance limit: any classifier operates under the null hypothesis (**ROC-AUC ≈ 0.50**).
-*   **The F1-score Illusion:** The dataset has a uniform distribution of stages: **Moderate** (~39.89%), **Early** (~30.12%), and **Late** (~29.99%). The standard target definition `high_risk = {Moderate, Late}` creates a natural class imbalance of **Class 1 (69.88%)** vs. **Class 0 (30.12%)**. This allows trivial classifiers to obtain a misleading F1-score of `~0.82` simply by predicting the majority class ("1") for every sample. **Even with F1 ≈ 0.82 under class collapse, the PR-AUC remains low**, reinforcing that there is no real clinical utility in this synthetic independence scenario. PR-AUC is the most honest metric for screening under class imbalance, preparing the reader for the detailed benchmark in [benchmark.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/benchmark.md).
+### Dataset
 
-### 🚿 2. Feature Categorization & Leakage Audit
-To maintain a conceptually robust clinical model, the available columns are categorized as follows:
-*   **Risk Factors (Pre-Diagnosis):** `Tobacco_Use`, `Alcohol_Use`, `HPV_Related`, `Age`.
-*   **Contextual Variables:** `Country`, `Gender`, `Socioeconomic_Status`.
-*   **Consequence Variables (Post-Diagnosis):** `Treatment_Type`, `Survival_Rate`.
+#### Dataset v2 — oral_cancer_prediction (25 features) ✅ Current
 
-In a real-world scenario, `Treatment_Type` (such as chemotherapy or surgery) and `Survival_Rate` (survival rate) are determined after diagnosis and thus constitute **temporal leakage** (data leakage) when used as stage predictors. Although the independence in data synthesis means their removal does not alter the current ROC-AUC, **they are completely banned in the honest inference pipeline** to prevent severe methodological flaws in real production data.
+| Field | Value |
+| :--- | :--- |
+| **Source** | Kaggle — Ankush Panday (`ankushpanday2/oral-cancer-prediction-dataset`) |
+| **License** | MIT |
+| **Target** | `Oral Cancer` (Yes/No) — direct binary label |
+| **Nature** | Synthetic; no clinical validity. See [`docs/MODEL_CARD.md`](./docs/MODEL_CARD.md). |
 
-### 🎯 3. Methodological Target Redesign
-We propose two target redesign alternatives for clinical screening applications on real clinical datasets:
-*   **Alternative A: Urgent Screening (Advanced vs. Early):** Maps `high_risk = Diagnosis_Stage ∈ {Moderate, Late}` (**Class 1 = Moderate/Late cases**, Class 0 = Early cases). The metric focus is to guarantee a **high Recall (sensitivity) on the advanced class** to prevent catastrophic false negatives in routing beds and specialized treatment.
-*   **Alternative B: Preventive Screening (Late vs. Early/Moderate):** Maps `target_late = Diagnosis_Stage == "Late"` (**Class 1 = Late cases**, Class 0 = Early/Moderate cases). The goal is to isolate high-complexity cases with the poorest prognosis, prioritizing **Recall on the Late class** in epidemiological frontier diagnostics.
+#### Feature Tiers
 
-### 🧪 4. Clinical Feature Engineering
-New epidemiologically plausible features are computed by the pipeline:
-*   **`risk_index`:** Combined score of harmful habits and predisposition (`Tobacco_Use + Alcohol_Use + HPV_Related`).
-*   **`age_bucket`:** Structuring into age groups of accumulated risk (e.g., `Age_61_plus` as the highest incidence factor).
-*   **Access Interactions:** Geographic and socioeconomic interaction (`Socioeconomic_Status` × `Country`), serving as a proxy for vulnerability and delay in screening.
+| Tier | Features | Role |
+| :--- | :--- | :--- |
+| **TIER 1 — Risk** | `Age`, `Gender`, `Country`, `Tobacco_Use`, `Alcohol_Use`, `HPV_Infection`, `Betel_Quid_Use`, `Chronic_Sun_Exposure`, `Poor_Oral_Hygiene`, `Family_History_of_Cancer`, `Compromised_Immune_System`, `Diet` | Available during screening; used as predictors |
+| **TIER 2 — Symptoms** | `Oral_Lesions`, `Unexplained_Bleeding`, `Difficulty_Swallowing`, `White_or_Red_Patches_in_Mouth` | Available during consultation; direct clinical predictors |
+| **TIER 3 — Leakage** | `Tumor_Size_cm`, `Cancer_Stage`, `Treatment_Type`, `Survival_Rate`, `Cost_of_Treatment`, `Economic_Burden`, `Early_Diagnosis` | Post-diagnosis — **forbidden as predictors** |
 
-These features must be implemented in the `ClinicalFeatureExtractor` class in [preprocessing.py](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/src/ml/pipelines/preprocessing/preprocessing.py), ensuring that both the MLP and tree-based models receive the same deterministic and auditable enriched feature space.
+> **Why migrate?** The previous 8-feature dataset had no clinical symptoms (TIER 2),
+> resulting in ROC-AUC ≈ 0.50. The new dataset includes `Oral_Lesions`,
+> `Unexplained_Bleeding`, and other manifestations that are established predictors
+> in the literature.
 
-### 🏁 5. Benchmark Execution & Tabular Modeling
-In [benchmark.py](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/src/benchmark.py), we implement a structured validation with the following statistical rigor guarantees:
-*   **Stratified Cross-Validation (k=5)** applied identically to all predictive models.
-*   **Screening Metrics:** Promotion of **PR-AUC (Average Precision)** as the primary comparison metric, complemented by sensitivity, specificity, accuracy, and expected cost based on the FP/FN cost matrix ($\text{FN} = 10 \times \text{FP}$).
-*   **Confusion Matrix per Split:** Explicit printing of the confusion matrix to analyze class collapse behavior in each training split.
-*   **Model Competition:** Direct comparison between the PyTorch MLP (`src/models/mlp.py`) and tabular baselines such as **Random Forest** and boosting-based algorithms (**XGBoost / LightGBM**), with structured experiment tracking in **MLflow** to identify the "champion model" (the one with the highest PR-AUC under a minimum acceptable recall of 85%).
+---
 
-### 📝 6. Framing & Integrity Note
-The automatically generated report in [model_card.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/MODEL_CARD.md) and the detailed statistical audit in [dataset_audit_report.md](file:///f:/FIAP/Tech%20Challenge%20-%2001/Aether%20Oncology/docs/dataset_audit_report.md) reflect Aether Oncology's commitment to scientific rigor:
-> ⚠️ **Null Results as Integrity:** Obtaining a ROC-AUC ≈ 0.50 is the only mathematically sound response to synthetic data without a signal. Aether Oncology positions itself strictly as a **reference architecture for clinical MLOps engineering and auditable operations**, not as a validated diagnostic classifier (SaMD). Any clinical use in a real production environment requires prior replacement with real clinical data, external bias audit (Fairlearn), and population re-calibration.
+#### Dataset v1 — oral_cancer_top30 (8 features) ⚠️ Deprecated
+
+| Field | Value |
+| :--- | :--- |
+| **File** | `data/raw/oral_cancer_top30.csv` |
+| **Records** | 160,292 |
+| **ROC-AUC (5-fold CV)** | ≈ 0.50 — documented null result |
+| **Status** | Kept for reproducibility; **do not use for new training** |
+
+### Sprint 3 Benchmarking
+
+Sprint 3 introduces [`src/ml_platform/train_oral_cancer.py`](./src/ml_platform/train_oral_cancer.py), which benchmarks Logistic Regression, Random Forest, and Gradient Boosting on the 25-feature schema with stratified cross-validation. The benchmark report is written to `reports/benchmark_25features.json`, and the trained pipeline excludes all TIER 3 leakage columns by construction.
 
 | Stage | Module | What it does |
 | :--- | :--- | :--- |
-| **Validation** | `validation/{training,inference}_schema.py`, `clinical_rules.py` | Pandera DataFrame schemas + clinical-coherence rules with severity `OK/WARNING/HIGH/CRITICAL` (pediatric <18 exclusion, survival bounds, stage/survival inconsistency). |
-| **Feature Eng.** | `preprocessing/preprocessing.py` | `ClinicalFeatureExtractor` derives `risk_index` (tobacco+alcohol+HPV), `age_bucket`, `high_incidence_country`; then `StandardScaler` + `OneHotEncoder`. |
-| **Leakage Audit** | `audit/leakage.py` | Blocks posterior features (`Diagnosis_Stage`); flags Pearson \|r\|>0.95, MI>0.95, permutation importance>0.45. |
+| **Validation** | `validation/{training,inference}_schema.py`, `clinical_rules.py` | Pandera DataFrame schemas + clinical-coherence rules with severity `OK/WARNING/HIGH/CRITICAL`; Sprint 3 also validates the 25-feature dataset in `train_oral_cancer.py`. |
+| **Feature Eng.** | `preprocessing/preprocessing.py` | Sprint 3 derives `risk_index` and `symptom_burden`; then applies ordinal encoding, one-hot encoding, scaling, and binary passthrough. |
+| **Leakage Audit** | `audit/leakage.py` + Sprint 3 schema | Blocks posterior TIER 3 fields (`Tumor_Size_cm`, `Cancer_Stage`, `Treatment_Type`, `Survival_Rate`, `Cost_of_Treatment`, `Economic_Burden`, `Early_Diagnosis`) from inference features. |
 | **OOD** | `preprocessing/ood.py` | Isolation Forest (`contamination=0.01`) flags rare demographic combinations. |
 | **Calibration** | `calibration/calibration_engine.py` | Platt vs. Isotonic auto-selected by Brier; ECE/MCE over 10 bins; reliability curve. |
 | **Fairness** | `audit/fairness.py` | Equalized-Odds FNR/FPR/recall disparity (15% threshold) across Gender / age-bucket / Country. |
 | **Drift** | `drift/drift_rules.py`, `ml_platform/drift.py` | KS-test (p<0.05), PSI ≥0.25, JS-divergence ≥0.20; global flag when >33% features drift. |
 | **Lineage & Cards** | `lineage.py`, `model_card_generator.py` | SHA-256 lineage + model card. |
-| **Tracking** | `train.py` | MLflow logging + model registry (`AetherOncologyOralCancerHighRisk`). |
+| **Tracking** | `src/ml_platform/train_oral_cancer.py` | Writes `reports/benchmark_25features.json` and serialized model pipeline artifacts during Sprint 3 retraining. |
 
 > 🧐 **Integrity note:** the committed `models/fairness_audit.json` reports near-perfect parity across all subgroups, which is unusual for a real holdout and likely reflects a synthetic/regenerated evaluation set. Treat the fairness *infrastructure* as production-grade and the *reported numbers* as provisional pending validation on real clinical data.
 
@@ -720,8 +723,21 @@ uvicorn src.main:app --reload --port 8000
 cd frontend && npm run dev
 #  → Portal at http://localhost:3000
 
-# Train / retrain the diagnostic model (writes to models/ + MLflow)
+# Legacy v1 training path, kept for reproducibility
 python -m src.train
+
+# Sprint 3: download the 25-feature dataset (Kaggle CLI)
+kaggle datasets download -d ankushpanday2/oral-cancer-prediction-dataset
+unzip oral-cancer-prediction-dataset.zip -d data/raw/oral_cancer_prediction_dataset/
+mv data/raw/oral_cancer_prediction_dataset/*.csv data/raw/oral_cancer_prediction.csv
+
+# Signal diagnosis on the new dataset
+python -m scripts.diagnose_features --dataset data/raw/oral_cancer_prediction.csv
+
+# Train with 25 features
+python -m src.ml_platform.train_oral_cancer \
+    --data data/raw/oral_cancer_prediction.csv \
+    --output models/oral_cancer_v2.pkl
 
 # Hyperparameter optimization (Optuna)
 python -m src.optimize
@@ -735,7 +751,7 @@ make mlflow-ui                        # → http://localhost:5000 (backend: mlru
 
 > ℹ️ Before the model is trained, prediction routes return `503` and the corresponding tests are marked `xfail` — the API still boots.
 >
-> 📊 **MLflow tracking.** The MLP is tracked with cross-validated metrics in the **`Aether_Oncology_Benchmark`** experiment (10 runs: MLP + DummyClassifier ×2 + LogisticRegression + RandomForest, each with per-fold recall / PR-AUC / ROC-AUC / F1). `python -m src.train` additionally logs the full training run (params, calibration/fairness metrics, artifacts, and the registered model `AetherOncologyOralCancerHighRisk`). Run `make mlflow-ui` to browse them — no retraining needed to see the model compared against baselines.
+> 📊 **MLflow tracking.** The legacy v1 MLP benchmark remains available in the **`Aether_Oncology_Benchmark`** experiment. Sprint 3 retraining writes a JSON benchmark report to `reports/benchmark_25features.json`; MLflow integration for the new trainer is a follow-up.
 
 ---
 
