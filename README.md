@@ -106,6 +106,26 @@ model-index:
 
 ---
 
+## 📊 Impact at a Glance
+
+| Metric | Value | Context |
+|---|---|---|
+| **Live demo** | **[portal.vitorsilva.engineer](https://portal.vitorsilva.engineer/)** | FastAPI clinical portal — public |
+| **API docs** | **[api.vitorsilva.engineer/docs](https://api.vitorsilva.engineer/docs)** | Interactive Swagger |
+| **Test coverage** | **~91%** | `pytest --cov=src` |
+| **Inference latency** | **~200ms** | Groq LLaMA 3.3 70B (primary provider) |
+| **Safety judge** | **3-tier escalation** | NONE → WARNING → HARD_STOP (blocks response) |
+| **Audit trail** | **Fernet-encrypted** | Hash-chained, immutable, tamper-evident |
+| **PHI scrubbing** | **LGPD-aware** | CPF, CNS/SUS, CRM, CEP, BR phone — 42-case test suite |
+| **SSE protocol** | **13-event Zod-validated** | Full clinical runtime observability |
+| **ML pipeline** | **Pandera + MLflow + calibration** | Leakage, fairness, drift, lineage built-in |
+| **Circuit breaker** | **3 failures / 60s recovery** | Groq → Gemini fallback |
+
+> **Design principle:** *Physician-in-the-loop by design.* AI proposes — clinician approves, modifies, or overrides — every decision recorded in an encrypted, immutable audit trail.
+
+---
+
+
 ## 📑 Table of Contents
 
 1. [Overview](#-overview)
